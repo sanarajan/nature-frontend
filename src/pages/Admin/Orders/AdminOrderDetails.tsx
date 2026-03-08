@@ -19,8 +19,8 @@ const AdminOrderDetails: React.FC = () => {
     const [showShipModal, setShowShipModal] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
     const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-    const [showReturnModal, setShowReturnModal] = useState(false);
-    const [returnReason, setReturnReason] = useState('');
+    // const [showReturnModal, setShowReturnModal] = useState(false);
+    // const [returnReason, setReturnReason] = useState('');
     const [agencies, setAgencies] = useState<any[]>([]);
     const [shippingData, setShippingData] = useState({
         agencyName: '',
@@ -120,9 +120,9 @@ const AdminOrderDetails: React.FC = () => {
             setUpdatingStatus(false);
             setShowCancelModal(false);
             setShowShipModal(false);
-            setShowReturnModal(false);
+            // setShowReturnModal(false);
             setCancelReason('');
-            setReturnReason('');
+            // setReturnReason('');
             setShippingData({ agencyName: '', trackingNumber: '', agencyUrl: '' });
         }
     };
@@ -164,6 +164,7 @@ const AdminOrderDetails: React.FC = () => {
         setShowShipModal(true);
     };
 
+    /*
     const openReturnModal = (productId: string) => {
         setSelectedProductId(productId);
         const product = order?.orderedProducts?.find((p: any) => p.productId === productId || (p as any)._id === productId);
@@ -175,6 +176,7 @@ const AdminOrderDetails: React.FC = () => {
     const handleConfirmReturn = () => {
         handleUpdateStatus('Returned', returnReason, selectedProductId || undefined);
     };
+    */
 
     const handleAgencyChange = (agencyName: string) => {
         const agency = agencies.find(a => a.name === agencyName);
@@ -602,61 +604,61 @@ const AdminOrderDetails: React.FC = () => {
                                                     </div>
                                                 );
                                             })()}
-                                            {/* Status change buttons hidden temporarily per request */}
+                                            {/* Status change buttons hidden as per request (Order-wise management only) */}
                                             {/* {p.orderStatus !== 'Cancelled' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Returned' && (
-                                                 <div className="d-flex gap-2">
-                                                     {p.orderStatus === 'Order Placed' && (
-                                                         <button
-                                                             className="btn btn-sm btn-outline-primary"
-                                                             style={{ borderRadius: '8px', fontSize: '0.8rem' }}
-                                                             onClick={() => handleUpdateStatus('Processing', undefined, p.productId)}
-                                                             disabled={updatingStatus}
-                                                         >
-                                                             Process
-                                                         </button>
-                                                     )}
-                                                     {(p.orderStatus === 'Order Placed' || p.orderStatus === 'Processing') && (
-                                                         <button
-                                                             className="btn btn-sm btn-outline-success"
-                                                             style={{ borderRadius: '8px', fontSize: '0.8rem' }}
-                                                             onClick={() => openShipModal(p.productId)}
-                                                             disabled={updatingStatus}
-                                                         >
-                                                             Ship
-                                                         </button>
-                                                     )}
-                                                     {p.orderStatus === 'Shipped' && (
-                                                         <button
-                                                             className="btn btn-sm btn-outline-success"
-                                                             style={{ borderRadius: '8px', fontSize: '0.8rem' }}
-                                                             onClick={() => handleUpdateStatus('Delivered', undefined, p.productId)}
-                                                             disabled={updatingStatus}
-                                                         >
-                                                             Deliver
-                                                         </button>
-                                                     )}
-                                                     {p.orderStatus !== 'Return' && (
-                                                         <button
-                                                             className="btn btn-sm btn-outline-danger"
-                                                             style={{ borderRadius: '8px', fontSize: '0.8rem' }}
-                                                             onClick={() => openCancelModal(p.productId)}
-                                                             disabled={updatingStatus}
-                                                         >
-                                                             Cancel
-                                                         </button>
-                                                     )}
-                                                     {p.orderStatus === 'Return' && (
-                                                         <button
-                                                             className="btn btn-sm btn-outline-warning"
-                                                             style={{ borderRadius: '8px', fontSize: '0.8rem', borderColor: '#f59e0b', color: '#f59e0b' }}
-                                                             onClick={() => openReturnModal(p.productId)}
-                                                             disabled={updatingStatus}
-                                                         >
-                                                             Confirm Return
-                                                         </button>
-                                                     )}
-                                                 </div>
-                                             )} */}
+                                                <div className="d-flex gap-2">
+                                                    {p.orderStatus === 'Order Placed' && (
+                                                        <button
+                                                            className="btn btn-sm btn-outline-primary"
+                                                            style={{ borderRadius: '8px', fontSize: '0.8rem' }}
+                                                            onClick={() => handleUpdateStatus('Processing', undefined, p.productId)}
+                                                            disabled={updatingStatus}
+                                                        >
+                                                            Process
+                                                        </button>
+                                                    )}
+                                                    {(p.orderStatus === 'Order Placed' || p.orderStatus === 'Processing') && (
+                                                        <button
+                                                            className="btn btn-sm btn-outline-success"
+                                                            style={{ borderRadius: '8px', fontSize: '0.8rem' }}
+                                                            onClick={() => openShipModal(p.productId)}
+                                                            disabled={updatingStatus}
+                                                        >
+                                                            Ship
+                                                        </button>
+                                                    )}
+                                                    {p.orderStatus === 'Shipped' && (
+                                                        <button
+                                                            className="btn btn-sm btn-outline-success"
+                                                            style={{ borderRadius: '8px', fontSize: '0.8rem' }}
+                                                            onClick={() => handleUpdateStatus('Delivered', undefined, p.productId)}
+                                                            disabled={updatingStatus}
+                                                        >
+                                                            Deliver
+                                                        </button>
+                                                    )}
+                                                    {p.orderStatus !== 'Return' && (
+                                                        <button
+                                                            className="btn btn-sm btn-outline-danger"
+                                                            style={{ borderRadius: '8px', fontSize: '0.8rem' }}
+                                                            onClick={() => openCancelModal(p.productId)}
+                                                            disabled={updatingStatus}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    )}
+                                                    {p.orderStatus === 'Return' && (
+                                                        <button
+                                                            className="btn btn-sm btn-outline-warning"
+                                                            style={{ borderRadius: '8px', fontSize: '0.8rem', borderColor: '#f59e0b', color: '#f59e0b' }}
+                                                            onClick={() => openReturnModal(p.productId)}
+                                                            disabled={updatingStatus}
+                                                        >
+                                                            Confirm Return
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )} */}
                                         </div>
                                     </td>
                                 </tr>
@@ -934,8 +936,8 @@ const AdminOrderDetails: React.FC = () => {
                 }
             `}</style>
 
-            {/* Return Confirmation Modal */}
-            {showReturnModal && (
+            {/* Return Confirmation Modal - Hidden until needed for per-product returns */}
+            {/* {showReturnModal && (
                 <div className="cancellation-reason-overlay">
                     <div className="cancellation-reason-box admin-card p-4" style={{ borderColor: '#fde68a !important' }}>
                         <h5 className="fw-bold mb-3" style={{ color: '#92400e' }}>Confirm Customer Return</h5>
@@ -956,7 +958,7 @@ const AdminOrderDetails: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            )}
+            )} */}
 
             {/* Cancellation Reason Modal */}
             {showCancelModal && (

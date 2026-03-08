@@ -14,10 +14,10 @@
     7. Pages
     
 */
-@import url(../icons/feather/css/iconfont.css);
+/* @import url(../icons/feather/css/iconfont.css);
 @import url(../icons/fontawesome/css/all.min.css);
 @import url(../icons/themify/themify-icons.css);
-@import url(../icons/flaticon/flaticon_glower.css);
+@import url(../icons/flaticon/flaticon_glower.css); */
 
 :root {
   --gradient: linear-gradient(to right, rgb(255, 64, 62) 0%, rgb(255, 129, 27) 100%);

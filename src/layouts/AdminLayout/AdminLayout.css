@@ -1,0 +1,43 @@
+.admin-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--admin-bg);
+}
+
+.admin-main-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-open .admin-main-wrapper {
+    margin-left: 260px;
+}
+
+.sidebar-closed .admin-main-wrapper {
+    margin-left: 80px;
+}
+
+.admin-content {
+    flex: 1;
+}
+
+.admin-footer {
+    padding: 20px 30px;
+    background-color: transparent;
+    border-top: 1px solid var(--admin-card-border);
+    text-align: center;
+}
+
+.admin-footer p {
+    margin: 0;
+    font-size: 14px;
+    color: #b7b9cc;
+}
+
+@media (max-width: 992px) {
+    .admin-main-wrapper {
+        margin-left: 0 !important;
+    }
+}

@@ -1,0 +1,356 @@
+.dashboard-content {
+    padding: 30px;
+    background-color: var(--admin-bg);
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    margin-bottom: 30px;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    color: var(--admin-text-secondary);
+}
+
+.breadcrumb-active {
+    color: var(--admin-text-primary);
+    font-weight: 600;
+}
+
+.dashboard-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--admin-text-primary);
+}
+
+.date-picker-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--admin-card-border);
+    font-size: 0.9rem;
+    color: var(--admin-text-secondary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.dashboard-hero-row {
+    margin-bottom: 30px;
+}
+
+.hero-card {
+    background-color: var(--admin-primary-light);
+    border-radius: 24px;
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-content {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.hero-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.hero-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hero-text .welcome-label {
+    font-size: 1.5rem;
+    color: var(--admin-primary);
+    font-weight: 500;
+    margin-bottom: 0px;
+}
+
+.hero-text .admin-name {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #c97c8a;
+    /* Soft Reddish-Pink for name as in screenshot */
+    line-height: 1;
+}
+
+.hero-stats {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+
+.divider {
+    width: 1px;
+    height: 60px;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.circle-progress {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: conic-gradient(var(--admin-primary) var(--progress), #e2e8f0 0deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.circle-progress.secondary {
+    background: conic-gradient(#f25767 var(--progress), #e2e8f0 0deg);
+}
+
+.circle-progress::after {
+    content: '';
+    position: absolute;
+    width: 65px;
+    height: 65px;
+    background-color: #fff;
+    border-radius: 50%;
+}
+
+.progress-value {
+    position: relative;
+    z-index: 10;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--admin-text-primary);
+    display: block;
+    text-align: center;
+}
+
+.progress-label {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: var(--admin-text-secondary);
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--admin-text-secondary);
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--admin-text-primary);
+}
+
+.stat-trend {
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-left: 8px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.stat-trend.up {
+    color: var(--admin-primary);
+    background-color: rgba(56, 153, 110, 0.1);
+}
+
+.stat-trend.down {
+    color: var(--admin-danger);
+    background-color: rgba(231, 74, 59, 0.1);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.main-stats-card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 24px;
+    border: 1px solid var(--admin-card-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+}
+
+.amount-card {
+    background: linear-gradient(135deg, #fff 0%, #f4f9f4 100%);
+}
+
+.amount {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--admin-text-primary);
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.detail {
+    font-size: 0.85rem;
+    color: var(--admin-text-secondary);
+}
+
+.amount-visual {
+    height: 60px;
+    margin: 20px 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.pill-visual {
+    width: 12px;
+    background-color: var(--admin-primary);
+    border-radius: 20px;
+}
+
+.pill-visual:nth-child(1) {
+    height: 40%;
+    opacity: 0.3;
+}
+
+.pill-visual:nth-child(2) {
+    height: 70%;
+    opacity: 0.6;
+}
+
+.pill-visual:nth-child(3) {
+    height: 100%;
+}
+
+.summary-footer {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 12px;
+    border-radius: 16px;
+}
+
+.footer-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background-color: var(--admin-primary-light);
+    color: var(--admin-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.footer-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.footer-label {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.footer-value {
+    font-size: 0.75rem;
+    color: var(--admin-text-secondary);
+}
+
+.trend-up {
+    color: var(--admin-primary);
+    font-weight: 700;
+}
+
+.trend-down {
+    color: var(--admin-danger);
+    font-weight: 700;
+}
+
+.chart-card .card-header-flex {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.icon-badge {
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    border: 1px solid var(--admin-card-border);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 12px;
+}
+
+.icon-badge.secondary {
+    color: #24262b;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.card-subtitle {
+    font-size: 0.8rem;
+    color: var(--admin-text-secondary);
+}
+
+.chart-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-top: 10px;
+}
+
+.chart-label {
+    font-size: 0.8rem;
+    color: var(--admin-text-secondary);
+    margin-bottom: 15px;
+}
+
+.btn-more {
+    background: none;
+    border: none;
+    color: var(--admin-text-secondary);
+    cursor: pointer;
+}
+
+.chart-container-small {
+    height: 100px;
+}

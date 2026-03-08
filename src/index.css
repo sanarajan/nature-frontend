@@ -1,0 +1,713 @@
+/* Conflicting Vite default styles removed — template style.css takes precedence */
+/*
+:root { ... }  ← commented out, style.css handles this
+*/
+
+/* ─── Layout Reset ─────────────────────────────────────────── */
+html {
+  font-size: 15px;
+  /* Scale down slightly to match original HTML visual density */
+}
+
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  min-height: unset !important;
+  place-items: unset !important;
+  background-attachment: fixed;
+  background-size: cover;
+  font-size: 15px;
+  zoom: 0.9;
+  /* Uniform zoom-out to match original HTML visual scale */
+}
+
+#root {
+  width: 100%;
+  display: block;
+}
+
+/* ─── Global Left/Right Padding ────────────────────────────── */
+/* Original style.css sets 80px for >1280px but falls to 15px below that.
+   These overrides give proper breathing room at ALL screen sizes. */
+.container-fluid,
+.container-sm,
+.container-md,
+.container-lg,
+.container-xl {
+  padding-left: 25px !important;
+  padding-right: 25px !important;
+}
+
+@media only screen and (min-width: 768px) {
+
+  .container-fluid,
+  .container-sm,
+  .container-md,
+  .container-lg,
+  .container-xl {
+    padding-left: 45px !important;
+    padding-right: 45px !important;
+  }
+}
+
+@media only screen and (min-width: 1281px) {
+
+  .container-fluid,
+  .container-sm,
+  .container-md,
+  .container-lg,
+  .container-xl {
+    padding-left: 80px !important;
+    padding-right: 80px !important;
+  }
+}
+
+/* ─── Header Nav Links ─────────────────────────────────────────── */
+/* zoom:0.9 on site-header: set values ~11% higher to land on HTML's rendered size */
+/* HTML: font-size:16px, padding:28px 23px → with zoom:0.9 we set 18px/26px */
+.header-nav .nav>li>a {
+  font-size: 18px !important;
+  padding: 28px 26px !important;
+  font-family: 'Lufga', sans-serif !important;
+  font-weight: 400 !important;
+  line-height: 24px !important;
+}
+
+@media only screen and (max-width: 1480px) {
+  .header-nav .nav>li>a {
+    padding-left: 17px !important;
+    padding-right: 17px !important;
+  }
+}
+
+@media only screen and (max-width: 1199px) {
+  .header-nav .nav>li>a {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    font-size: 16px !important;
+  }
+}
+
+/* ─── Logo ─────────────────────────────────────────────────── */
+.logo-header img {
+  height: 45px;
+  /* zoom:0.9 on header scales this to ~40px rendered */
+  width: auto;
+}
+
+/* ─── Dropdown Menu Beautification ───────────────────────────── */
+.dropdown-menu {
+  animation: dropdownFadeIn 0.3s ease;
+  transform-origin: top right;
+  border: none !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dropdown-item {
+  transition: all 0.2s ease !important;
+  font-family: 'Lufga', sans-serif !important;
+}
+
+.dropdown-item:hover {
+  background-color: #f8fafc !important;
+  color: #0D775E !important;
+  padding-left: 1.75rem !important;
+}
+
+.dropdown-item.text-danger:hover {
+  background-color: #fff1f2 !important;
+  color: #e11d48 !important;
+}
+
+/* ─── Header Zoom ───────────────────────────────────────────── */
+/* Fixed/absolute elements can escape parent zoom — apply directly */
+.site-header {
+  zoom: 0.9;
+}
+
+/* ─── Extra Nav Height (matched to HTML style.css line 37747) ── */
+.site-header .extra-nav {
+  height: 80px !important;
+}
+
+/* ─── Login / Register link styling (matches HTML line 37762) ── */
+.site-header .extra-nav .extra-cell .login-link a {
+  color: var(--title, #2D2E2F) !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  margin-right: 35px !important;
+  text-transform: capitalize !important;
+  font-family: 'Marcellus', serif !important;
+  white-space: nowrap;
+}
+
+/* hide Login link on tablets (≤1480px) — same as HTML */
+@media only screen and (max-width: 1480px) {
+  .site-header .extra-nav .extra-cell .login-link {
+    display: none !important;
+  }
+}
+
+/* show again on mobile (≤767px) inside collapsed menu — same as HTML */
+@media only screen and (max-width: 767px) {
+  .site-header .extra-nav .extra-cell .login-link {
+    display: block !important;
+  }
+}
+
+/* ─── Header Icons (Search / Cart / Wishlist) ──────────────── */
+/* Force dark stroke so icons are always visible on transparent header */
+.site-header .extra-nav .extra-cell ul li a svg path,
+.site-header .extra-nav .extra-cell ul li a svg rect {
+  stroke: #24262B !important;
+}
+
+/* ─── Navicon (Burger Menu) ────────────────────────────────── */
+/* Shrink to 38×38px — slightly smaller than original 45×45px */
+.navicon {
+  width: 38px !important;
+  height: 38px !important;
+}
+
+.navicon span {
+  left: 8px !important;
+}
+
+.navicon span:nth-child(1) {
+  top: 11px !important;
+  width: 19px !important;
+}
+
+.navicon span:nth-child(2) {
+  top: 19px !important;
+  width: 22px !important;
+}
+
+.navicon span:nth-child(3) {
+  top: 27px !important;
+  width: 17px !important;
+}
+
+/* ─── Shop Card Offer & Featured Badges ────────────────────── */
+/* Wraps all badges at top-left of the product image */
+.shop-badge-wrap {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* "GET 20% OFF" — white pill with dark text, matches screenshot */
+.shop-offer-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 50px;
+  background: #ffffff;
+  color: #222;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+}
+
+/* "FEATURED" — solid black pill with white text */
+.shop-featured-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 50px;
+  background: #111111;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* ─── Sidebar Cart & Wishlist UI ────────────────────── */
+.offcanvas.dz-offcanvas {
+  transition: transform 0.4s ease-in-out !important;
+}
+
+.offcanvas-body {
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.dz-tabs {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  overflow: hidden !important;
+}
+
+.tab-content {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.sidebar-cart-list.dz-scroll {
+  overflow-y: auto !important;
+  flex: 1 !important;
+  margin-bottom: 0 !important;
+  padding-right: 5px !important;
+}
+
+.sidebar-cart-list.dz-scroll::-webkit-scrollbar {
+  width: 3px !important;
+}
+
+.sidebar-cart-list.dz-scroll::-webkit-scrollbar-thumb {
+  background: #24262B !important;
+  border-radius: 10px !important;
+}
+
+.sidebar-cart-list.dz-scroll::-webkit-scrollbar-track {
+  background: #f5f5f5 !important;
+}
+
+.cart-footer {
+  margin-top: auto !important;
+  padding: 20px 30px !important;
+  background: #fff !important;
+}
+
+.nav-tabs .nav-link {
+  transition: all 0.3s ease !important;
+}
+
+/* ─── Cart/Wishlist Tab Refinements ────────────────────── */
+.dz-offcanvas .nav-tabs {
+  border-bottom: 1px solid #D9D9D9 !important;
+  justify-content: center !important;
+}
+
+.dz-offcanvas .nav-tabs .nav-item {
+  margin-bottom: -1px;
+}
+
+.dz-offcanvas .nav-tabs .nav-link {
+  padding: 12px 15px !important;
+  border: none !important;
+  background: none !important;
+  font-size: 20px !important;
+  font-family: 'Marcellus', serif !important;
+  color: #888 !important;
+  border-bottom: 3px solid transparent !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+}
+
+.dz-offcanvas .nav-tabs .nav-link.active {
+  color: #2D2E2F !important;
+  border-bottom: 3px solid #2D2E2F !important;
+}
+
+/* ─── Shipping & Footer Section ─────────────────────────── */
+.shipping-time {
+  display: flex !important;
+  align-items: center !important;
+  padding: 15px 0 !important;
+  border-top: 1px solid #E5E5E5 !important;
+  margin-top: 10px !important;
+}
+
+.shipping-time .dz-icon {
+  margin-right: 15px !important;
+  flex-shrink: 0 !important;
+}
+
+.shipping-time .shipping-content {
+  flex-grow: 1 !important;
+}
+
+.shipping-time .title {
+  font-size: 15px !important;
+  font-weight: 400 !important;
+  color: #2D2E2F !important;
+  margin-bottom: 8px !important;
+  line-height: 1.4 !important;
+  font-family: 'Marcellus', serif !important;
+}
+
+.shipping-time .progress {
+  height: 4px !important;
+  background-color: #E5E5E5 !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+
+.shipping-time .progress-bar {
+  background-color: #2D2E2F !important;
+  border-radius: 0 !important;
+}
+
+.cart-footer .btn {
+  padding: 12px 20px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  border-radius: 0 !important;
+  margin-bottom: 10px !important;
+  font-family: 'Marcellus', serif !important;
+}
+
+.cart-footer .btn-outline-secondary {
+  border: 1px solid #2D2E2F !important;
+  color: #2D2E2F !important;
+  background: transparent !important;
+}
+
+.cart-footer .btn-outline-secondary:hover {
+  background: #2D2E2F !important;
+  color: #fff !important;
+}
+
+.cart-footer .btn-secondary {
+  background: #2D2E2F !important;
+  border: 1px solid #2D2E2F !important;
+  color: #fff !important;
+}
+
+.cart-footer .btn-secondary:hover {
+  background: #444 !important;
+}
+
+/* ─── Banner & Wishlist Page ─────────────────────────── */
+.dz-bnr-inr {
+  height: 320px !important;
+  background-size: 180% !important;
+  /* Extreme zoom for forehead/eyes focus */
+  background-position: center 10% !important;
+  /* Focus exclusively on forehead and eyes */
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  color: #fff !important;
+  background-color: #fbfbfb !important;
+}
+
+.dz-bnr-inr:before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(rgba(56, 153, 110, 0.4), rgba(36, 38, 43, 0.4)) !important;
+  /* Combined Emerald & Dark tint */
+  z-index: 1 !important;
+}
+
+/* Clearer emerald tint without blocking the image */
+.dz-bnr-inr::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: rgba(12, 255, 198, 0.1) !important;
+  /* Very slight vibrance boost */
+  z-index: 1 !important;
+}
+
+.dz-bnr-inr-entry {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.dz-bnr-inr h1 {
+  font-size: 75px !important;
+  color: #fff !important;
+  font-family: 'Marcellus', serif !important;
+  margin-bottom: 20px !important;
+  font-weight: 400 !important;
+  text-transform: capitalize !important;
+}
+
+.breadcrumb-row {
+  display: inline-block !important;
+}
+
+.breadcrumb {
+  justify-content: center !important;
+  background: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.breadcrumb-item {
+  color: #fff !important;
+  font-size: 18px !important;
+  font-family: 'DM Sans', sans-serif !important;
+  padding: 0 12px !important;
+  position: relative !important;
+}
+
+.breadcrumb-item a {
+  color: #fff !important;
+  text-decoration: none !important;
+  opacity: 1 !important;
+}
+
+.breadcrumb-item+.breadcrumb-item::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 8px !important;
+  height: 8px !important;
+  background-color: #fff !important;
+  transform: rotate(-45deg) !important;
+  margin-right: 20px !important;
+  padding: 0 !important;
+  float: none !important;
+  opacity: 0.7 !important;
+}
+
+.breadcrumb-item.active {
+  opacity: 1 !important;
+  font-weight: 500 !important;
+}
+
+/* Table Styles from shop-wishlist.html */
+.check-tbl {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+.check-tbl thead th {
+  padding: 25px 20px !important;
+  font-family: 'Marcellus', serif !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  /* Bold headings as requested */
+  color: #2D2E2F !important;
+  border-bottom: 2px solid #F0F0F0 !important;
+  text-align: left !important;
+}
+
+.check-tbl thead th.text-end {
+  text-align: right !important;
+}
+
+.check-tbl tbody td {
+  padding: 30px 20px !important;
+  /* Slightly tighter padding as per screenshot */
+  border-bottom: 1px solid #E1E1E1 !important;
+  /* Lighter border */
+  vertical-align: middle !important;
+}
+
+.product-item-img {
+  width: 130px !important;
+}
+
+.product-item-img img {
+  width: 100px !important;
+  height: 100px !important;
+  /* Match content height exactly as requested */
+  object-fit: contain !important;
+  background: #DEEAE2 !important;
+  /* Sharper green background tint */
+  padding: 8px !important;
+  /* Tighter padding for sharper look */
+}
+
+.product-item-name {
+  font-family: 'Marcellus', serif !important;
+  font-size: 24px !important;
+  /* Slightly larger as per screenshot */
+  color: #2D2E2F !important;
+  font-weight: 400 !important;
+  white-space: nowrap !important;
+  /* Keep names in one line */
+  min-width: 300px !important;
+  /* Increase width as requested */
+}
+
+.product-item-list {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 8px 0 0 0 !important;
+}
+
+.product-item-list li {
+  font-size: 15px !important;
+  color: #666 !important;
+  margin-bottom: 0px !important;
+  /* Reduced margin */
+  line-height: 1.2 !important;
+  /* Reduced line-height as requested */
+  font-family: 'DM Sans', sans-serif !important;
+}
+
+.product-item-price {
+  font-size: 26px !important;
+  /* Large Marcellus price as per screenshot */
+  font-weight: 400 !important;
+  color: #2D2E2F !important;
+  font-family: 'Marcellus', serif !important;
+  white-space: nowrap !important;
+}
+
+.check-tbl .btn-outline-secondary {
+  border: 1px solid #2D2E2F !important;
+  color: #2D2E2F !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 12px 35px !important;
+  font-size: 16px !important;
+  text-transform: capitalize !important;
+  font-family: 'DM Sans', sans-serif !important;
+  /* DM Sans for button text as per screenshot */
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  /* Ensure text is in one line */
+  transition: all 0.3s ease !important;
+}
+
+.check-tbl .btn-outline-secondary:hover {
+  background: #2D2E2F !important;
+  color: #fff !important;
+}
+
+.product-item-close {
+  width: 100px !important;
+}
+
+.product-item-close a {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 45px !important;
+  height: 45px !important;
+  background: transparent !important;
+  color: #2D2E2F !important;
+  border: 1px solid #2D2E2F !important;
+  /* Darker border */
+  float: right !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Match the exact SVG path fill if needed */
+.product-item-close a svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.product-item-close a:hover {
+  background: #2D2E2F !important;
+  color: #fff !important;
+  border-color: #2D2E2F !important;
+}
+
+.product-item-close a:hover svg path {
+  fill: #fff !important;
+}
+
+/* Ensure the badge inside the active tab also looks correct */
+.dz-offcanvas .nav-tabs .nav-link.active .badge {
+  background: #2D2E2F !important;
+  color: #fff !important;
+  border: 1px solid #2D2E2F !important;
+}
+
+.dz-offcanvas .nav-tabs .nav-link:not(.active) .badge {
+  background: #fff !important;
+  color: #2D2E2F !important;
+  border: 1px solid #D9D9D9 !important;
+}
+
+.dz-offcanvas .nav-tabs .nav-link:focus,
+.dz-offcanvas .nav-tabs .nav-link:hover {
+  border-color: transparent !important;
+}
+
+/* Restore the active border even on focus */
+.dz-offcanvas .nav-tabs .nav-link.active:focus,
+.dz-offcanvas .nav-tabs .nav-link.active:hover {
+  border-bottom: 3px solid #2D2E2F !important;
+}
+
+/* ─── Toastify Visibility Fix ─────────────────────────── */
+.Toastify__toast-container {
+  z-index: 99999 !important;
+  margin-top: 110px !important;
+  /* Clears the fixed header (which is ~80px + some breathing room) */
+}
+
+/* Ensure toast content is legible and matches premium aesthetic */
+.Toastify__toast {
+  border-radius: 8px !important;
+  font-family: 'DM Sans', sans-serif !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ─── Header Icons Alignment & Spacing ────────────────────── */
+/* Center icons vertically and reduce gap between them */
+.site-header .extra-nav .extra-cell .header-right {
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  gap: 2px !important;
+  /* Reduced gap between list items */
+}
+
+.site-header .extra-nav .extra-cell .header-right .nav-item {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.site-header .extra-nav .extra-cell .header-right .nav-item .nav-link {
+  padding: 0 8px !important;
+  /* Reduced padding to bring icons closer */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 40px !important;
+  min-width: 40px !important;
+}
+
+/* Ensure icons are perfectly centered within their links */
+.site-header .extra-nav .extra-cell .header-right .nav-item .nav-link svg {
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+/* Position badges correctly above the icons */
+.site-header .extra-nav .extra-cell .header-right .wishlist-link .badge,
+.site-header .extra-nav .extra-cell .header-right .cart-link .badge {
+  top: 8px !important;
+  right: 8px !important;
+}

@@ -1,0 +1,18 @@
+.product-item-name {
+    font-size: 20px !important;
+    font-weight: 600 !important;
+}
+
+.product-item-price,
+.product-item-totle {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+}
+
+.product-item-close a {
+    width: 35px !important;
+    height: 35px !important;
+    border-radius: 50% !important;
+    background-color: #ff0000 !important;
+    color: #fff !important;
+}

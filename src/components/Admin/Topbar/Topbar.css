@@ -1,0 +1,150 @@
+.admin-topbar {
+    height: 80px;
+    background-color: var(--admin-bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+}
+
+.topbar-search .search-wrapper {
+    display: flex;
+    align-items: center;
+    background-color: var(--admin-primary-light);
+    padding: 10px 16px;
+    border-radius: 12px;
+    width: 300px;
+    color: var(--admin-text-secondary);
+    transition: all 0.2s ease;
+}
+
+.topbar-search .search-wrapper:focus-within {
+    background-color: #fff;
+    box-shadow: 0 4px 12px rgba(107, 158, 93, 0.1);
+}
+
+.search-icon {
+    margin-right: 12px;
+    opacity: 0.6;
+}
+
+.topbar-search input {
+    background: none;
+    border: none;
+    outline: none;
+    width: 100%;
+    font-size: 0.9rem;
+    color: var(--admin-text-primary);
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 24px;
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    color: var(--admin-text-secondary);
+    cursor: pointer;
+    position: relative;
+    padding: 10px;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn:hover {
+    background-color: var(--admin-primary-light);
+    color: var(--admin-primary);
+}
+
+.badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background-color: #f25767;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 10px;
+    border: 2px solid #fff;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.user-profile:hover {
+    background-color: var(--admin-primary-light);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--admin-text-primary);
+    line-height: 1.2;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: var(--admin-text-secondary);
+}
+
+.dropdown-arrow {
+    color: var(--admin-text-secondary);
+    opacity: 0.5;
+}
+
+@media (max-width: 992px) {
+    .topbar-search {
+        display: none;
+    }
+}

@@ -1,0 +1,38 @@
+:root {
+    --admin-primary: #38996E;
+    --admin-primary-dark: #1e523b;
+    --admin-primary-light: #edf8f3;
+    --admin-secondary: #2D2E2F;
+    --admin-success: #31A56D;
+    --admin-info: #0194D9;
+    --admin-warning: #E79600;
+    --admin-danger: #D23636;
+    --admin-light: #F3F3F3;
+    --admin-dark: #444444;
+
+    --admin-sidebar-bg: #ffffff;
+    --admin-sidebar-text: #2D2E2F;
+    --admin-sidebar-active-bg: #1e523b;
+    --admin-sidebar-active-text: #ffffff;
+    --admin-sidebar-hover: rgba(56, 153, 110, 0.1);
+
+    --admin-sub-menu-bg: #edf8f3;
+
+    --admin-bg: #edf8f3;
+    --admin-card-bg: #ffffff;
+    --admin-card-border: #eef2f5;
+
+    --admin-text-primary: #2D2E2F;
+    --admin-text-secondary: #666666;
+    --admin-font-family: 'Lufga', sans-serif;
+}
+
+body.admin-body-bg {
+    background-color: var(--admin-bg) !important;
+}
+
+.admin-body {
+    font-family: var(--admin-font-family);
+    color: var(--admin-text-primary);
+    background-color: var(--admin-bg);
+}

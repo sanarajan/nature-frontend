@@ -17,6 +17,7 @@ const Orders: React.FC = () => {
         }
 
         const fetchOrders = async () => {
+            const loadStart = performance.now();
             try {
                 const res = await userApiClient.get('/user/order');
                 if (res.data.success) {
@@ -25,6 +26,8 @@ const Orders: React.FC = () => {
             } catch (error) {
                 console.error("Failed to fetch orders:", error);
             } finally {
+                const loadMs = Math.round(performance.now() - loadStart);
+                console.log("Orders page load time (ms):", loadMs);
                 setLoading(false);
             }
         };

@@ -45,6 +45,7 @@ adminApiClient.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
+                console.log(API_BASE_URL,"constant api");
                 const refreshResponse = await axios.post(
                     `${API_BASE_URL}/admin/auth/refresh`,
                     {},

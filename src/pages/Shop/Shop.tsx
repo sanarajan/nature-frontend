@@ -319,6 +319,7 @@ const Shop: React.FC = () => {
 
     useEffect(() => {
         const fetchProducts = async () => {
+            const loadStart = performance.now();
             setLoading(true);
             try {
                 const params: any = {
@@ -337,6 +338,8 @@ const Shop: React.FC = () => {
             } catch (err) {
                 console.error('Error fetching products:', err);
             } finally {
+                const loadMs = Math.round(performance.now() - loadStart);
+                console.log("Products page load time (ms):", loadMs);
                 setLoading(false);
             }
         };

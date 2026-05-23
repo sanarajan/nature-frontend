@@ -14,12 +14,16 @@ import AgencyList from './pages/Admin/ShippingAgencies/AgencyList'
 import AgencyForm from './pages/Admin/ShippingAgencies/AgencyForm'
 import ShippingCharges from './pages/Admin/ShippingCharges/ShippingCharges'
 import AdminProfile from './pages/Admin/Profile/AdminProfile'
+import ProductCategoryOffers from './pages/Admin/Offers/ProductCategoryOffers'
+import AdminComboOffers from './pages/Admin/Offers/ComboOffers'
+import UserComboOffers from './pages/Shop/ComboOffers'
 
 import Header from './components/Header/Header'
 import Footer from './components/Footer/Footer'
 import Home from './pages/Home/Home'
 import Shop from './pages/Shop/Shop'
 import ProductDetails from './pages/ProductDetails/ProductDetails'
+import Offers from './pages/Offers/Offers'
 import Cart from './pages/Cart/Cart'
 import Checkout from './pages/Checkout/Checkout'
 import OrderSuccess from './pages/Checkout/OrderSuccess'
@@ -116,6 +120,8 @@ function App() {
           <Route path="/admin/coupons" element={<AdminCoupons />} />
           <Route path="/admin/coupons/add" element={<AddCoupon />} />
           <Route path="/admin/coupons/edit/:id" element={<AddCoupon />} />
+          <Route path="/admin/offers/product-category" element={<ProductCategoryOffers />} />
+          <Route path="/admin/offers/combo" element={<AdminComboOffers />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/orders/all" element={<AdminOrders />} />
           <Route path="/admin/orders/:id" element={<AdminOrderDetails />} />
@@ -147,6 +153,8 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/shop" element={<Shop />} />
+                  <Route path="/offers" element={<Offers />} />
+                  <Route path="/combo-offers" element={<UserComboOffers />} />
                   <Route path="/product/:id" element={<ProductDetails />} />
                   <Route path="/shop-cart" element={<Cart />} />
                   <Route path="/checkout" element={<Checkout />} />

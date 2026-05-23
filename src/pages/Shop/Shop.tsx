@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import userApiClient from '../../services/userApiClient';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
@@ -51,6 +51,8 @@ interface Product {
     productName: string;
     sku: string;
     price: number;
+    offerPrice?: number;
+    appliedOffer?: any;
     images: string[];
     featured?: boolean;
     isPopular?: boolean;
@@ -109,7 +111,10 @@ const QuickViewModal = ({ prod, onClose, inWishlist, onToggleWishlist, handleAdd
                         <div>
                             <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a1a', marginBottom: '8px' }}>Price</div>
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-                                <span style={{ fontSize: '32px', fontWeight: 400, color: '#1a1a1a' }}>₹{prod.price}</span>
+                                <span style={{ fontSize: '32px', fontWeight: 400, color: '#1a1a1a' }}>₹{prod.offerPrice ? prod.offerPrice : prod.price}</span>
+                                {prod.offerPrice && prod.offerPrice < prod.price && (
+                                    <del style={{ fontSize: '18px', color: '#888' }}>₹{prod.price}</del>
+                                )}
                             </div>
                         </div>
                         <div>
@@ -162,6 +167,7 @@ const QuickViewModal = ({ prod, onClose, inWishlist, onToggleWishlist, handleAdd
 
 const Shop: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [viewMode, setViewMode] = useState<'list' | 'column' | 'grid'>('grid');
     const [priceMin, setPriceMin] = useState(0);
     const [priceMax, setPriceMax] = useState(2000);
@@ -176,12 +182,20 @@ const Shop: React.FC = () => {
     const [activeSubcategoryIds, setActiveSubcategoryIds] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('newest');
+    const [onOffer, setOnOffer] = useState(false);
     const [expandedCats, setExpandedCats] = useState<string[]>([]);
 
-    const isAuthenticated = useSelector((state: RootState) => state.auth.user.isAuthenticated);
     // Ensure we only treat them as a "user" if they actually have a user token.
     // If an Admin is logged in, isAuthenticated is true, but they don't have a user token.
-    const isUser = isAuthenticated && !!localStorage.getItem('user_accessToken');
+    const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
+
+    // Handle offers redirect from home page
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        if (queryParams.get('offers') === 'true') {
+            setOnOffer(true);
+        }
+    }, [location.search]);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -330,6 +344,7 @@ const Shop: React.FC = () => {
                 if (activeCategoryIds.length > 0) params.categoryId = activeCategoryIds.join(',');
                 if (activeSubcategoryIds.length > 0) params.subcategoryId = activeSubcategoryIds.join(',');
                 if (searchQuery) params.search = searchQuery;
+                if (onOffer) params.onOffer = 'true';
 
                 const res = await userApiClient.get('/user/products', { params });
                 if (res.data.success) {
@@ -345,7 +360,7 @@ const Shop: React.FC = () => {
         };
         const timer = setTimeout(fetchProducts, 300);
         return () => clearTimeout(timer);
-    }, [activeCategoryIds, activeSubcategoryIds, searchQuery, priceMin, priceMax, sortBy]);
+    }, [activeCategoryIds, activeSubcategoryIds, searchQuery, priceMin, priceMax, sortBy, onOffer]);
 
     const handleCategoryToggle = (catId: string, subcategories: any[]) => {
         const subIds = subcategories.map(s => s._id);
@@ -397,6 +412,7 @@ const Shop: React.FC = () => {
         setPriceMax(2000);
         setSortBy('newest');
         setExpandedCats([]);
+        setOnOffer(false);
     };
 
     return (
@@ -455,6 +471,15 @@ const Shop: React.FC = () => {
                                         <div className="widget widget_who">
                                             <h6 className="widget-title">Quick Filters</h6>
                                             <ul>
+                                                <li className="cat-item">
+                                                    <div className="custom-control custom-checkbox d-flex align-items-center"
+                                                        onClick={() => setOnOffer(!onOffer)}
+                                                        style={{ cursor: 'pointer', marginBottom: '8px' }}>
+                                                        <div className={`form-check-input square ${onOffer ? 'checked' : ''}`}
+                                                            style={{ width: '16px', height: '16px', border: '1px solid #ccc', marginRight: '10px', backgroundColor: onOffer ? '#38996E' : 'transparent' }}></div>
+                                                        <span style={{ fontSize: '14px', color: onOffer ? '#38996E' : '#555', fontWeight: onOffer ? 600 : 400 }}>On Offers</span>
+                                                    </div>
+                                                </li>
                                                 <li className="cat-item">
                                                     <div className="custom-control custom-checkbox d-flex" onClick={handleReset} style={{ cursor: 'pointer' }}>
                                                         <span style={{ fontSize: '14px', color: '#555' }}>Show All</span>
@@ -649,7 +674,14 @@ const Shop: React.FC = () => {
                                                                 <p className="dz-para">High quality ayurvedic product from Naturalayam.</p>
                                                                 <div className="rate">
                                                                     <div className="d-flex align-items-center mb-xl-3 mb-2">
-                                                                        <div className="meta-content"><span className="price">₹{prod.price.toFixed(2)}</span></div>
+                                                                        <div className="meta-content">
+                                                                            <span className="price">
+                                                                                ₹{prod.offerPrice ? prod.offerPrice.toFixed(2) : prod.price.toFixed(2)}
+                                                                                {prod.offerPrice && prod.offerPrice < prod.price && (
+                                                                                    <del className="ms-2 text-muted" style={{ fontSize: '0.75em' }}>₹{prod.price.toFixed(2)}</del>
+                                                                                )}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
                                                                     <div className="d-flex">
                                                                         <Link to="#" onClick={(e) => { e.preventDefault(); handleAddToCart(prod, 1, true); }} className="btn btn-secondary btn-md btn-icon">Add to cart</Link>
@@ -687,7 +719,12 @@ const Shop: React.FC = () => {
                                                         </div>
                                                         <div className="dz-content">
                                                             <h5 className="title"><Link to={`/product/${prod._id}`}>{prod.productName}</Link></h5>
-                                                            <h6 className="price">₹{prod.price.toFixed(2)}</h6>
+                                                            <h6 className="price">
+                                                                ₹{prod.offerPrice ? prod.offerPrice.toFixed(2) : prod.price.toFixed(2)}
+                                                                {prod.offerPrice && prod.offerPrice < prod.price && (
+                                                                    <del className="ms-2 text-muted" style={{ fontSize: '0.85em' }}>₹{prod.price.toFixed(2)}</del>
+                                                                )}
+                                                            </h6>
                                                             <div className="shop-cart-btn"><Link to="#" onClick={(e) => { e.preventDefault(); handleAddToCart(prod, 1, true); }}><CartBasketSVG /></Link></div>
                                                         </div>
                                                     </div>

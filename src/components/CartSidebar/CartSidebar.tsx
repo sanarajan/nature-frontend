@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import userApiClient from '../../services/userApiClient';
 import type { RootState } from '../../store';
@@ -12,8 +12,34 @@ interface CartSidebarProps {
 
 const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) => {
     const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
+    const navigate = useNavigate();
     const [cartItems, setCartItems] = useState<any[]>([]);
     const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+
+    const handleNavigate = (path: string) => {
+        handleCloseOffcanvas();
+        navigate(path);
+    };
+
+    const handleCloseOffcanvas = () => {
+        console.log("[Sidebar] Closing offcanvas...");
+        const offcanvas = document.getElementById('offcanvasRight');
+        if (offcanvas) {
+            try {
+                // Try getting existing instance or create a new one to hide it properly
+                const bsOffcanvas = (window as any).bootstrap?.Offcanvas.getInstance(offcanvas) || 
+                                   new (window as any).bootstrap.Offcanvas(offcanvas);
+                bsOffcanvas.hide();
+            } catch (e) {
+                console.warn("[Sidebar] Fallback manual close", e);
+                offcanvas.classList.remove('show');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+                const backdrop = document.querySelector('.offcanvas-backdrop');
+                if (backdrop) backdrop.remove();
+            }
+        }
+    };
 
     const fetchCartAndWishlist = async () => {
         if (isUser) {
@@ -230,13 +256,13 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
                                             </div>
                                         </div>
                                     </div>
-                                    <Link to="/checkout" className="btn btn-outline-secondary btn-block w-100" data-bs-dismiss="offcanvas">Checkout</Link>
-                                    <Link to="/shop-cart" className="btn btn-secondary btn-block w-100" data-bs-dismiss="offcanvas">View Cart</Link>
+                                    <button onClick={() => handleNavigate('/checkout')} className="btn btn-outline-secondary btn-block w-100 mb-2">Checkout</button>
+                                    <button onClick={() => handleNavigate('/shop-cart')} className="btn btn-secondary btn-block w-100">View Cart</button>
                                 </>
                             ) : (
-                                <Link to="/wishlist" className="btn btn-secondary btn-block w-100" data-bs-dismiss="offcanvas" style={{ borderRadius: '0', padding: '15px', fontSize: '20px', textTransform: 'none', background: '#2D2E2F', color: '#fff', fontFamily: "'Marcellus', serif", fontWeight: '500' }}>
+                                <button onClick={() => handleNavigate('/wishlist')} className="btn btn-secondary btn-block w-100" style={{ borderRadius: '0', padding: '15px', fontSize: '20px', textTransform: 'none', background: '#2D2E2F', color: '#fff', fontFamily: "'Marcellus', serif", fontWeight: '500' }}>
                                     Check Your Favourite
-                                </Link>
+                                </button>
                             )}
                         </div>
                     </div>

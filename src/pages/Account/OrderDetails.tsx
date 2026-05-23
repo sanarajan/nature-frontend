@@ -119,7 +119,6 @@ const OrderDetails: React.FC = () => {
             case 'RETURN REQUEST':
             case 'PARTIALLY RETURNED': return 'bg-warning text-dark';
             case 'RETURNED': return 'bg-dark';
-            case 'CANCELLATION REQUEST': return 'bg-warning text-dark';
             default: return 'bg-light text-dark';
         }
     };
@@ -362,7 +361,12 @@ const OrderDetails: React.FC = () => {
                                                                 })()}
                                                             </div>
                                                             <div className="product-info-small">
-                                                                <small className="d-block"><strong>Price</strong> : ₹{p.price}</small>
+                                                                <small className="d-block">
+                                                                    <strong>Price</strong> : ₹{p.offerPrice ? p.offerPrice.toFixed(2) : p.price.toFixed(2)}
+                                                                    {p.offerPrice && p.offerPrice < p.price && (
+                                                                        <del className="ms-2 text-muted">₹{p.price.toFixed(2)}</del>
+                                                                    )}
+                                                                </small>
                                                                 <small className="d-block"><strong>Quantity</strong> : {p.quantity}</small>
                                                                 {p.shippingDetails && p.shippingDetails.trackingNumber && (
                                                                     <div className="mt-2 p-2 bg-light rounded border">

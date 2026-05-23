@@ -1,0 +1,299 @@
+
+.wheel-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    background: radial-gradient(circle at center, #ffffff 0%, #f0f7f4 100%);
+    min-height: 80vh;
+}
+
+.wheel-wrapper {
+    position: relative;
+    width: 420px;
+    height: 420px;
+    margin-bottom: 50px;
+    /* Ultra-bright golden metallic gradient */
+    background: linear-gradient(135deg, 
+        #ffd700 0%, 
+        #fff8dc 20%, 
+        #daa520 40%, 
+        #f9e8a5 60%, 
+        #d4af37 80%, 
+        #ffd700 100%
+    );
+    border-radius: 50%;
+    padding: 15px; /* Thinner golden rim as requested */
+    box-shadow: 
+        0 20px 60px rgba(13, 119, 94, 0.25), 
+        0 0 40px rgba(212, 175, 55, 0.3),
+        inset 0 4px 8px rgba(255, 255, 255, 0.8),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.2);
+    border: 3px solid #daa520;
+}
+
+/* Glowing LED lights around the rim */
+.wheel-rim-lights {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.rim-light {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    background-color: #fffbe6;
+    border-radius: 50%;
+    /* Solid high-intensity yellow-gold glow (Default ON state) */
+    box-shadow: 
+        0 0 10px #fff, 
+        0 0 20px #ffcc00, 
+        0 0 35px rgba(255, 204, 0, 0.6),
+        0 0 50px rgba(255, 204, 0, 0.3);
+    margin-top: -6px;
+    margin-left: -6px;
+    opacity: 1; /* Always ON by default */
+    transition: all 0.3s;
+}
+
+/* Lights BLINK/CHASE only when the wheel is spinning */
+.wheel-rim-lights.is-spinning .rim-light {
+    animation: marqueeBlink 0.6s infinite alternate ease-in-out;
+}
+
+.wheel-rim-lights.is-spinning .rim-light:nth-child(4n+1) { animation-delay: 0s; }
+.wheel-rim-lights.is-spinning .rim-light:nth-child(4n+2) { animation-delay: 0.15s; }
+.wheel-rim-lights.is-spinning .rim-light:nth-child(4n+3) { animation-delay: 0.3s; }
+.wheel-rim-lights.is-spinning .rim-light:nth-child(4n+4) { animation-delay: 0.45s; }
+
+@keyframes marqueeBlink {
+    from { 
+        opacity: 0.2; 
+        box-shadow: 0 0 5px #fff, 0 0 10px #ffcc00;
+        transform: scale(0.85);
+    }
+    to { 
+        opacity: 1; 
+        box-shadow: 0 0 15px #fff, 0 0 35px #ffcc00, 0 0 55px rgba(255, 204, 0, 0.8);
+        transform: scale(1.15);
+    }
+}
+
+#wheel {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 5px solid #fff;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    position: relative;
+    transition: transform 4s cubic-bezier(0.1, 1, 0.1, 1);
+}
+
+/* Vibrant multi-color segments like the image */
+.wheel-segments {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: conic-gradient(
+        #ff4d4d 0deg 45deg,
+        #ff9f1a 45deg 90deg,
+        #ffda1a 90deg 135deg,
+        #2ecc71 135deg 180deg,
+        #3498db 180deg 225deg,
+        #9b59b6 225deg 270deg,
+        #e67e22 270deg 315deg,
+        #1abc9c 315deg 360deg
+    );
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.wheel-labels {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.wheel-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform-origin: 0 0;
+    font-weight: 800;
+    color: #fff;
+    font-size: 14px;
+    text-align: right;
+    width: 160px;
+    line-height: 1.2;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    letter-spacing: 0.5px;
+}
+
+.label-text {
+    display: inline-block;
+    padding-right: 35px;
+}
+
+/* Center button & Star Hub */
+.wheel-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 110px;
+    height: 110px;
+    z-index: 10;
+}
+
+.center-star {
+    position: absolute;
+    top: -45px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #ffd700, #daa520);
+    border-radius: 12px;
+    padding: 6px 14px;
+    border: 2px solid #fff;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 11;
+}
+
+#spin-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 85px;
+    height: 85px;
+    background: linear-gradient(135deg, #0D775E 0%, #1a535c 100%);
+    border-radius: 50%;
+    border: 6px solid #fff;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.5);
+    font-size: 16px;
+    color: #fff;
+    text-transform: uppercase;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#spin-btn:hover:not(:disabled) {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 15px 40px rgba(13, 119, 94, 0.5);
+}
+
+#spin-btn:active:not(:disabled) {
+    transform: translate(-50%, -50%) scale(0.95);
+}
+
+/* 3D Arrow pointer on the RIGHT exactly like image */
+#spin-arrow {
+    position: absolute;
+    top: 50%;
+    right: -25px;
+    transform: translateY(-50%) rotate(-90deg);
+    width: 0;
+    height: 0;
+    border-left: 22px solid transparent;
+    border-right: 22px solid transparent;
+    border-top: 45px solid #d4af37;
+    z-index: 20;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+}
+
+#spin-arrow::after {
+    content: '';
+    position: absolute;
+    top: -48px;
+    left: -20px;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-top: 40px solid #fff7cc;
+    z-index: 21;
+}
+
+.offer-result {
+    margin-top: 50px;
+    padding: 40px;
+    background: #fff;
+    border-radius: 28px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.12);
+    text-align: center;
+    max-width: 90%;
+    width: 480px;
+    border: 3px solid #f0fdf4;
+}
+
+.coupon-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
+    padding: 20px 30px;
+    border-radius: 14px;
+    border: 3px dashed #0D775E;
+    margin-top: 30px;
+}
+
+.coupon-code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #0D775E;
+}
+
+.copy-btn {
+    background: linear-gradient(135deg, #0D775E 0%, #17423c 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 800;
+    box-shadow: 0 5px 20px rgba(13, 119, 94, 0.3);
+}
+
+.copy-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(13, 119, 94, 0.4);
+}
+
+@media (max-width: 576px) {
+    .wheel-wrapper {
+        width: 340px;
+        height: 340px;
+        padding: 20px;
+    }
+    .wheel-label {
+        font-size: 12px;
+        width: 135px;
+    }
+    #spin-btn {
+        width: 75px;
+        height: 75px;
+        font-size: 13px;
+    }
+    .rim-light {
+        width: 9px;
+        height: 9px;
+        margin-top: -4.5px;
+        margin-left: -4.5px;
+    }
+}

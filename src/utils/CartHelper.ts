@@ -1,5 +1,6 @@
 import { toast } from 'react-toastify';
 import userApiClient from '../services/userApiClient';
+import { API_ENDPOINTS } from '../constants/apiEndpoints';
 
 // Interface matching the Product interface defined in Shop/ProductDetails
 export interface Product {
@@ -37,7 +38,7 @@ export const handleAddToCartGlobal = async (
 ) => {
     if (isUser) {
         try {
-            const res = await userApiClient.post('/user/cart/toggle', { productId: prod._id, quantity });
+            const res = await userApiClient.post(API_ENDPOINTS.USER.CART.TOGGLE, { productId: prod._id, quantity });
             if (res.data.success) {
                 toast.success('Added to cart');
                 // Dispatch custom event to update sidebar icon even when logged in
@@ -88,7 +89,7 @@ export const handleToggleWishlistGlobal = async (
 ) => {
     if (isUser) {
         try {
-            const res = await userApiClient.post('/user/wishlist/toggle', { productId: prod._id });
+            const res = await userApiClient.post(API_ENDPOINTS.USER.WISHLIST.TOGGLE, { productId: prod._id });
             if (res.data.success) {
                 if (res.data.action === 'added') {
                     toast.success('Added to wishlist');

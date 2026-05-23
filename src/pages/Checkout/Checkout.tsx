@@ -22,6 +22,7 @@ const Checkout: React.FC = () => {
     const [appliedDiscount, setAppliedDiscount] = useState(0);
     const [appliedCode, setAppliedCode] = useState<{ code: string, type: 'referral' | 'coupon' | null }>({ code: '', type: null });
     const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+    const [appliedComboOffer, setAppliedComboOffer] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [addressLoading, setAddressLoading] = useState(true);
 
@@ -131,6 +132,7 @@ const Checkout: React.FC = () => {
                     const res = await userApiClient.get('/user/cart');
                     if (res.data.success && res.data.data) {
                         setCartItems(res.data.data.products || []);
+                        setAppliedComboOffer(res.data.data.appliedComboOffer || null);
                     }
                 } catch (err) { }
             } else {
@@ -293,8 +295,10 @@ const Checkout: React.FC = () => {
     };
 
     useEffect(() => {
+        // Use original MRP (product.price × qty) for shipping calculation,
+        // taking combo/individual discounts into account via the post-discount subtotal
         const sub = cartItems.reduce((acc, item) => {
-            const price = item.product?.price || 0;
+            const price = item.finalPrice !== undefined ? item.finalPrice : (item.product?.price || 0);
             return acc + (price * item.quantity);
         }, 0);
         setSubtotal(sub);
@@ -367,6 +371,10 @@ const Checkout: React.FC = () => {
     };
 
     const handleApplyCode = async (codeToApply: string) => {
+        if (appliedComboOffer) {
+            toast.warning("Coupon or referral cannot be applied when combo offer is active.");
+            return;
+        }
         const code = (codeToApply || couponInput).trim().toUpperCase();
         if (!code) return;
 
@@ -448,7 +456,7 @@ const Checkout: React.FC = () => {
             if (res.data.success) {
                 if (isOnline) {
                     const { razorpayOrderId, amount, key_id, order } = res.data.data;
-
+console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                     const options = {
                         key: key_id,
                         amount: amount,
@@ -457,7 +465,43 @@ const Checkout: React.FC = () => {
                         description: `Order Payment for ${order.orderId}`,
                         image: "/src/assets/images/favicon.png",
                         order_id: razorpayOrderId,
+                        // method: 'upi',
+                        config: {
+                            display: {
+                                blocks: {
+                                    upi: {
+                                        name: 'UPI / QR Code',
+                                        instruments: [
+                                            {
+                                                method: 'upi'
+                                            }
+                                        ]
+                                    },
+                                    other_methods: {
+                                        name: 'Other Payment Methods',
+                                        instruments: [
+                                            {
+                                                method: 'card'
+                                            },
+                                            {
+                                                method: 'netbanking'
+                                            },
+                                            {
+                                                method: 'wallet'
+                                            }
+                                        ]
+                                    }
+                                },
+                                sequence: ['block.upi', 'block.other_methods'],
+                            },
+                        },
+                        retry: {
+                            enabled: true,
+                            max_count: 3
+                        },
                         handler: async (response: any) => {
+                            console.log("[Razorpay] Payment success response:", response);
+                            toast.info("Verifying payment, please wait...");
                             try {
                                 const verifyRes = await userApiClient.post('/user/order/verify-payment', {
                                     orderId: order.orderId,
@@ -467,15 +511,16 @@ const Checkout: React.FC = () => {
                                 });
 
                                 if (verifyRes.data.success) {
-                                    toast.success("Payment successful!");
+                                    toast.success("Payment verified successfully!");
                                     window.dispatchEvent(new Event('cart-updated'));
-                                    navigate('/checkout/success');
+                                    navigate('/checkout/success', { replace: true });
                                 } else {
+                                    console.error("[Verify] Failed:", verifyRes.data);
                                     toast.error(verifyRes.data.message || "Payment verification failed.");
                                 }
                             } catch (err: any) {
-                                console.error("Verification Error:", err);
-                                toast.error(err.response?.data?.message || "Error verifying payment");
+                                console.error("[Verify] API Error:", err);
+                                toast.error(err.response?.data?.message || "Error communicating with server for verification");
                             }
                         },
                         prefill: {
@@ -488,12 +533,17 @@ const Checkout: React.FC = () => {
                         },
                         modal: {
                             ondismiss: function () {
-                                toast.warning("Payment cancelled by user.");
+                                console.log("[Razorpay] Modal closed by user");
+                                toast.warning("Payment modal closed. If money was debited, it will be refunded or order will be updated shortly.");
                             }
                         }
                     };
 
                     const rzp = new (window as any).Razorpay(options);
+                    rzp.on('payment.failed', function (response: any) {
+                        console.error("[Razorpay] Payment failed event:", response.error);
+                        toast.error(`Payment failed: ${response.error.description}`);
+                    });
                     rzp.open();
                 } else {
                     // Clear frontend cart state by notifying components
@@ -728,15 +778,25 @@ const Checkout: React.FC = () => {
                         <div className="col-xl-4 side-bar">
                             <h4 className="title m-b15">Your Order</h4>
                             <div className="order-detail sticky-top">
-                                {cartItems.map((item, idx) => (
-                                    <div className="cart-item style-1" key={item.product?._id || idx}>
-                                        <div className="dz-media"><img src={item.product?.images?.[0] || product1} alt="Product" /></div>
-                                        <div className="dz-content">
-                                            <h6 className="title mb-0">{item.product?.productName} <span className="text-secondary">x{item.quantity}</span></h6>
-                                            <span className="price">₹{(item.product?.price * item.quantity).toFixed(2)}</span>
+                                {(() => {
+                                    // Group combo-split items by productId for clean display
+                                    const grouped: Record<string, { product: any; totalQty: number }> = {};
+                                    cartItems.forEach(item => {
+                                        if (!item.product) return;
+                                        const pId = item.product._id;
+                                        if (!grouped[pId]) grouped[pId] = { product: item.product, totalQty: 0 };
+                                        grouped[pId].totalQty += item.quantity;
+                                    });
+                                    return Object.values(grouped).map(g => (
+                                        <div className="cart-item style-1" key={g.product._id}>
+                                            <div className="dz-media"><img src={g.product?.images?.[0] || product1} alt="Product" /></div>
+                                            <div className="dz-content">
+                                                <h6 className="title mb-0">{g.product?.productName} <span className="text-secondary">x{g.totalQty}</span></h6>
+                                                <span className="price">₹{((g.product?.price || 0) * g.totalQty).toFixed(2)}</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ));
+                                })()}
 
                                 {cartItems.length === 0 && (
                                     <p className="m-b20">Your cart is empty.</p>
@@ -745,13 +805,24 @@ const Checkout: React.FC = () => {
                                 <table>
                                     <tbody>
                                         <tr className="subtotal">
-                                            <td>Subtotal</td>
-                                            <td className="price">₹{subtotal.toFixed(2)}</td>
+                                            <td>Subtotal (MRP)</td>
+                                            <td className="price">₹{cartItems.reduce((a, item) => a + ((item.product?.price || 0) * item.quantity), 0).toFixed(2)}</td>
                                         </tr>
                                         {appliedDiscount > 0 && (
                                             <tr className="discount text-success">
                                                 <td>{appliedCode.type === 'referral' ? 'Referral' : 'Coupon'} Discount</td>
                                                 <td className="price">-₹{appliedDiscount.toFixed(2)}</td>
+                                            </tr>
+                                        )}
+                                        {appliedComboOffer && (
+                                            <tr className="discount text-success" style={{ border: '2px dashed #28a745', background: '#f8fff8', borderRadius: '10px' }}>
+                                                <td style={{ padding: '15px 10px' }}>
+                                                    <h6 className="mb-0 fw-bold">{appliedComboOffer.offerName}</h6>
+                                                    <div className="small opacity-75">Combo Discount Applied</div>
+                                                </td>
+                                                <td className="price fw-bold" style={{ padding: '15px 10px', fontSize: '1.2rem' }}>
+                                                    -₹{appliedComboOffer.discountValue.toFixed(2)}
+                                                </td>
                                             </tr>
                                         )}
                                         <tr className="shipping">
@@ -768,30 +839,43 @@ const Checkout: React.FC = () => {
                                 {/* Coupon / Referral Section */}
                                 <div className="coupon-input-container">
                                     <h6 className="mb-2">Apply Coupon / Referral</h6>
+                                    
+                                    {appliedComboOffer && (
+                                        <div className="alert alert-info py-2 mb-2" style={{ fontSize: '13px', borderLeft: '4px solid #0dcaf0' }}>
+                                            <i className="fas fa-info-circle me-2"></i>
+                                            Combo offer applied. Coupons cannot be used.
+                                        </div>
+                                    )}
+
                                     <div className="input-group">
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder="Code"
+                                            placeholder={appliedComboOffer ? "Disabled" : "Code"}
                                             value={couponInput}
+                                            disabled={!!appliedComboOffer}
                                             onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                                         />
                                         <button
                                             className="btn btn-secondary"
+                                            disabled={!!appliedComboOffer}
                                             onClick={() => handleApplyCode(couponInput)}
                                         >
                                             APPLY
                                         </button>
                                     </div>
-                                    <div
-                                        className="coupon-link"
-                                        onClick={() => {
-                                            fetchCoupons();
-                                            setIsModalOpen(true);
-                                        }}
-                                    >
-                                        Show all active coupons
-                                    </div>
+                                    
+                                    {!appliedComboOffer && (
+                                        <div
+                                            className="coupon-link"
+                                            onClick={() => {
+                                                fetchCoupons();
+                                                setIsModalOpen(true);
+                                            }}
+                                        >
+                                            Show all active coupons
+                                        </div>
+                                    )}
                                     {appliedCode.code && (
                                         <div className="mt-2 text-success" style={{ fontSize: '13px' }}>
                                             <i className="fas fa-check-circle me-1"></i>

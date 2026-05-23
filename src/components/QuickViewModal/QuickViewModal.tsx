@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
@@ -7,126 +7,105 @@ import { handleAddToCartGlobal, handleToggleWishlistGlobal } from '../../utils/C
 // Asset Imports
 import product1 from '../../assets/images/shop/product/1.png';
 
-const QuickViewModal: React.FC = () => {
+interface Product {
+    _id: string;
+    productName: string;
+    sku: string;
+    price: number;
+    offerPrice?: number;
+    appliedOffer?: any;
+    images: string[];
+    categoryId?: { _id: string; categoryName: string };
+    subcategoryId?: { _id: string; subcategoryName: string };
+    featured?: boolean;
+    isBestSeller?: boolean;
+    isPopular?: boolean;
+    isTrending?: boolean;
+}
+
+interface QuickViewModalProps {
+    product: Product | null;
+    onClose: () => void;
+}
+
+const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => {
     const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
     const navigate = useNavigate();
+    const [qty, setQty] = useState(1);
 
-    // MOCK PRODUCT FOR QUICK VIEW (Ideally should pass via props/context)
-    const product: any = {
-        _id: '67c191a99859f5188f98ed61',
-        productName: 'Metavya',
-        sku: 'PRT584E63A',
-        price: 45.00,
-        images: [product1],
-    };
-
-    const closeModal = () => {
-        const modalEl = document.getElementById('exampleModal');
-        if (modalEl) {
-            modalEl.classList.remove('show');
-            modalEl.style.display = 'none';
-        }
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-        document.querySelectorAll('.modal-backdrop').forEach(el => (el as HTMLElement).remove());
-    };
+    if (!product) return null;
 
     const handleAddToCart = () => {
-        handleAddToCartGlobal(product, 1, isUser, navigate, false);
-        closeModal();
+        handleAddToCartGlobal(product, qty, isUser, navigate, false);
+        onClose();
         navigate('/shop-cart');
     };
 
     const handleAddToWishlist = () => {
         handleToggleWishlistGlobal(product, isUser, navigate, false);
-        closeModal();
     };
 
     return (
-        <div className="modal quick-view-modal fade" id="exampleModal" tabIndex={-1} aria-hidden="true">
-            <div className="modal-dialog modal-dialog-centered">
-                <div className="modal-content">
-                    <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                        <i className="icon feather icon-x"></i>
-                    </button>
-                    <div className="modal-body">
-                        <div className="row gx-0">
-                            <div className="col-xl-6 col-md-6">
-                                <div className="dz-product-detail mb-0">
-                                    <div className="swiper-btn-center-lr">
-                                        <div className="swiper quick-modal-swiper2">
-                                            <div className="swiper-wrapper">
-                                                <div className="swiper-slide">
-                                                    <div className="dz-media DZoomImage">
-                                                        <img src={product1} alt="image" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="col-xl-6 col-md-6">
-                                <div className="dz-product-detail style-2 mb-0">
-                                    <div className="dz-content">
-                                        <div className="dz-content-footer">
-                                            <div className="dz-content-start">
-                                                <span className="badge mb-2">SALE 20% Off</span>
-                                                <h4 className="title mb-1">Metavya</h4>
-                                                <div className="review-num">
-                                                    <ul className="dz-rating me-2">
-                                                        <li className="star-fill"><i className="flaticon-star-1"></i></li>
-                                                        <li className="star-fill"><i className="flaticon-star-1"></i></li>
-                                                        <li className="star-fill"><i className="flaticon-star-1"></i></li>
-                                                        <li><i className="flaticon-star-1"></i></li>
-                                                        <li><i className="flaticon-star-1"></i></li>
-                                                    </ul>
-                                                    <span className="text-secondary me-2">4.7 Rating</span>
-                                                    <a href="javascript:void(0);">(5 customer reviews)</a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <p className="para-text">
-                                            Experience the pure essence of nature with our Metavya range.
-                                            Crafted with traditional Ayurvedic wisdom, this product ensures your skin stays hydrated and radiant.
-                                        </p>
-                                        <div className="meta-content m-b20 d-flex align-items-end">
-                                            <div className="me-3">
-                                                <span className="form-label">Price</span>
-                                                <span className="price">45.00 <del>72.17</del></span>
-                                            </div>
-                                            <div className="btn-quantity light me-0 ms-4">
-                                                <label className="form-label">Quantity</label>
-                                                <input type="text" defaultValue="1" name="demo_vertical2" />
-                                            </div>
-                                        </div>
-                                        <div className="btn-group cart-btn">
-                                            <button onClick={handleAddToCart} className="btn btn-secondary text-uppercase">Add To Cart</button>
-                                            <button onClick={handleAddToWishlist} className="btn btn-outline-secondary btn-icon">
-                                                <svg width="19" height="17" viewBox="0 0 19 17" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M9.24805 16.9986C8.99179 16.9986 8.74474 16.9058 8.5522 16.7371C7.82504 16.1013 7.12398 15.5038 6.50545 14.9767L6.50229 14.974C4.68886 13.4286 3.12289 12.094 2.03333 10.7794C0.815353 9.30968 0.248047 7.9162 0.248047 6.39391C0.248047 4.91487 0.755203 3.55037 1.67599 2.55157C2.60777 1.54097 3.88631 0.984375 5.27649 0.984375C6.31552 0.984375 7.26707 1.31287 8.10464 1.96065C8.52734 2.28763 8.91049 2.68781 9.24805 3.15459C9.58574 2.68781 9.96875 2.28763 10.3916 1.96065C11.2292 1.31287 12.1807 0.984375 13.2197 0.984375C14.6098 0.984375 15.8885 1.54097 16.8202 2.55157C17.741 3.55037 18.248 4.91487 18.248 6.39391C18.248 7.9162 17.6809 9.30968 16.4629 10.7792C15.3733 12.094 13.8075 13.4285 11.9944 14.9737C11.3747 15.5016 10.6726 16.1001 9.94376 16.7374C9.75136 16.9058 9.50417 16.9986 9.24805 16.9986Z"
-                                                        fill="black"></path>
-                                                </svg>
-                                                Add To Wishlist
-                                            </button>
-                                        </div>
-                                        <div className="dz-info mb-0">
-                                            <ul>
-                                                <li><strong>SKU:</strong></li>
-                                                <li>PRT584E63A</li>
-                                            </ul>
-                                            <ul>
-                                                <li><strong>Category:</strong></li>
-                                                <li><a href="javascript:void(0);">Skincare</a>, <a href="javascript:void(0);">Makeup</a></li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+        <div 
+            style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        >
+            <div style={{ background: '#fff', width: '96vw', maxWidth: '1100px', height: '90vh', position: 'relative', boxShadow: '0 8px 40px rgba(0,0,0,0.25)', display: 'flex', overflow: 'hidden', borderRadius: '8px' }}>
+                <button onClick={onClose} aria-label="Close"
+                    style={{ position: 'absolute', top: '14px', right: '18px', background: 'none', border: 'none', fontSize: '28px', lineHeight: 1, cursor: 'pointer', color: '#222', zIndex: 20, fontWeight: 300 }}>
+                    ×
+                </button>
+
+                <div style={{ flex: '0 0 45%', background: '#f8f8f8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', position: 'relative' }}>
+                    <img 
+                        src={product.images && product.images.length > 0 ? product.images[0] : product1} 
+                        alt={product.productName} 
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                    />
+                </div>
+
+                <div style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+                    <div>
+                        <h2 style={{ margin: 0, fontSize: '32px', fontWeight: 600, color: '#1a1a1a' }}>{product.productName}</h2>
+                        <div style={{ color: '#38996E', fontSize: '24px', fontWeight: 500, marginTop: '10px', display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                            ₹{product.offerPrice ? product.offerPrice.toFixed(2) : product.price.toFixed(2)}
+                            {product.offerPrice && product.offerPrice < product.price && (
+                                <del style={{ color: '#888', fontSize: '18px' }}>₹{product.price.toFixed(2)}</del>
+                            )}
                         </div>
+                    </div>
+
+                    <p style={{ margin: 0, fontSize: '15px', color: '#666', lineHeight: '1.6' }}>
+                        Experience the pure essence of nature with our {product.productName} range.
+                        Crafted with traditional Ayurvedic wisdom, this product ensures high quality results.
+                    </p>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #ddd', borderRadius: '4px' }}>
+                            <button onClick={() => setQty(q => Math.max(1, q - 1))} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer' }}>-</button>
+                            <span style={{ width: '40px', textAlign: 'center', fontSize: '16px' }}>{qty}</span>
+                            <button onClick={() => setQty(q => q + 1)} style={{ width: '40px', height: '40px', border: 'none', background: 'none', cursor: 'pointer' }}>+</button>
+                        </div>
+                        <button 
+                            onClick={handleAddToCart}
+                            style={{ flex: 1, background: '#1a1a1a', color: '#fff', border: 'none', height: '42px', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>
+                            ADD TO CART
+                        </button>
+                    </div>
+
+                    <button 
+                        onClick={handleAddToWishlist}
+                        style={{ background: 'none', border: '1px solid #1a1a1a', height: '42px', borderRadius: '4px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.3666 3.84172C16.941 3.41589 16.4356 3.0781 15.8794 2.84763C15.3232 2.61716 14.727 2.49854 14.1249 2.49854C13.5229 2.49854 12.9267 2.61716 12.3705 2.84763C11.8143 3.0781 11.3089 3.41589 10.8833 3.84172L9.99994 4.72506L9.1166 3.84172C8.25686 2.98198 7.0908 2.49898 5.87494 2.49898C4.65907 2.49898 3.49301 2.98198 2.63327 3.84172C1.77353 4.70147 1.29053 5.86753 1.29053 7.08339C1.29053 8.29925 1.77353 9.46531 2.63327 10.3251L3.5166 11.2084L9.99994 17.6917L16.4833 11.2084L17.3666 10.3251C17.7924 9.89943 18.1302 9.39407 18.3607 8.83785C18.5912 8.28164 18.7098 7.68546 18.7098 7.08339C18.7098 6.48132 18.5912 5.88514 18.3607 5.32893C18.1302 4.77271 17.7924 4.26735 17.3666 3.84172Z" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        ADD TO WISHLIST
+                    </button>
+
+                    <div style={{ borderTop: '1px solid #eee', paddingTop: '20px', fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div><strong>SKU:</strong> {product.sku}</div>
+                        <div><strong>Category:</strong> {product.categoryId?.categoryName || 'N/A'}</div>
+                        {product.subcategoryId && <div><strong>Subcategory:</strong> {product.subcategoryId.subcategoryName}</div>}
                     </div>
                 </div>
             </div>

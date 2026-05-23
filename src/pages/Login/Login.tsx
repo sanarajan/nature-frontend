@@ -5,6 +5,7 @@ import { userAuthService } from '../../services/user/userAuthService';
 import userApiClient from '../../services/userApiClient';
 import { userLoginSuccess } from '../../store/authSlice';
 import { useLocation } from 'react-router-dom';
+import { API_ENDPOINTS } from '../../constants/apiEndpoints';
 
 // Asset Imports
 import pic1 from '../../assets/images/registration/pic1.jpg';
@@ -41,10 +42,10 @@ const Login: React.FC = () => {
             const result = await userAuthService.login({ email, password });
             if (result.success) {
                 if (result.data) {
-                    localStorage.setItem('user_accessToken', result.data.accessToken);
-                    localStorage.setItem('user_data', JSON.stringify(result.data.user));
+                    const accessToken = result.data.accessToken;
+                    const userData = result.data.user;
 
-                    dispatch(userLoginSuccess(result.data.user));
+                    console.log("[Login] Login successful, starting sync...");
 
                     // Sync Offline Wishlist
                     const localWishlistStr = localStorage.getItem('offlineWishlist');
@@ -52,18 +53,22 @@ const Login: React.FC = () => {
                         try {
                             const localItems = JSON.parse(localWishlistStr);
                             if (Array.isArray(localItems) && localItems.length > 0) {
-                                const token = result.data.accessToken;
-                                const pIds = localItems.map(i => i._id);
-
-                                await userApiClient.post(
-                                    '/user/wishlist/sync',
-                                    { productIds: pIds },
-                                    { headers: { 'Authorization': `Bearer ${token}` } }
-                                ).catch(e => console.error("Wishlist sync failed", e));
-                                localStorage.removeItem('offlineWishlist');
+                                const pIds = localItems.map(i => i._id || i.id || i);
+                                console.log("[Login] Syncing wishlist items:", pIds);
+                                try {
+                                    await userApiClient.post(
+                                        API_ENDPOINTS.USER.WISHLIST.SYNC,
+                                        { productIds: pIds },
+                                        { headers: { 'Authorization': `Bearer ${accessToken}` } }
+                                    );
+                                    localStorage.removeItem('offlineWishlist');
+                                    console.log("[Login] Wishlist sync success");
+                                } catch (e) {
+                                    console.error("[Login] Wishlist sync API failed", e);
+                                }
                             }
                         } catch (err) {
-                            console.error('Error syncing offline wishlist:', err);
+                            console.error('[Login] Error parsing offline wishlist:', err);
                         }
                     }
 
@@ -73,21 +78,41 @@ const Login: React.FC = () => {
                         try {
                             const localCartItems = JSON.parse(localCartStr);
                             if (Array.isArray(localCartItems) && localCartItems.length > 0) {
-                                const token = result.data.accessToken;
-                                const formattedItems = localCartItems.map((item: any) => ({ product: item.product._id, quantity: item.quantity }));
+                                const formattedItems = localCartItems.map((item: any) => {
+                                    const productId = (item.product && typeof item.product === 'object') 
+                                        ? (item.product._id || item.product.id) 
+                                        : item.product;
+                                    return { product: productId, quantity: item.quantity };
+                                }).filter(i => i.product);
 
-                                await userApiClient.post(
-                                    '/user/cart/sync',
-                                    { cartItems: formattedItems },
-                                    { headers: { 'Authorization': `Bearer ${token}` } }
-                                ).catch(e => console.error("Cart sync failed", e));
-                                localStorage.removeItem('offlineCart');
-                                window.dispatchEvent(new Event('cart-updated'));
+                                console.log("[Login] Syncing cart items:", JSON.stringify(formattedItems));
+                                try {
+                                    await userApiClient.post(
+                                        API_ENDPOINTS.USER.CART.SYNC,
+                                        { cartItems: formattedItems },
+                                        { headers: { 'Authorization': `Bearer ${accessToken}` } }
+                                    );
+                                    localStorage.removeItem('offlineCart');
+                                    console.log("[Login] Cart sync success");
+                                } catch (e) {
+                                    console.error("[Login] Cart sync API failed", e);
+                                }
                             }
                         } catch (err) {
-                            console.error('Error syncing offline cart:', err);
+                            console.error('[Login] Error parsing offline cart:', err);
                         }
                     }
+
+                    // NOW set tokens and dispatch success
+                    localStorage.setItem('user_accessToken', accessToken);
+                    localStorage.setItem('user_data', JSON.stringify(userData));
+                    console.log("[Login] Tokens saved to localStorage");
+
+                    window.dispatchEvent(new Event('cart-updated'));
+                    window.dispatchEvent(new Event('wishlist-updated'));
+
+                    dispatch(userLoginSuccess(userData));
+                    console.log("[Login] Redux state updated");
                 }
                 const from = (location.state as any)?.from?.pathname || '/account';
                 navigate(from, { replace: true });

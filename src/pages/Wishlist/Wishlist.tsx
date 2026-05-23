@@ -12,8 +12,7 @@ const Wishlist: React.FC = () => {
     const [wishlistItems, setWishlistItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const isAuthenticated = useSelector((state: RootState) => state.auth.user.isAuthenticated);
-    const isUser = isAuthenticated && !!localStorage.getItem('user_accessToken');
+    const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
 
     const fetchWishlist = async () => {
         if (!isUser) {
@@ -139,7 +138,12 @@ const Wishlist: React.FC = () => {
                                                             {item.sku && <li>SKU: {item.sku}</li>}
                                                         </ul>
                                                     </td>
-                                                    <td className="product-item-price">₹{item.price.toFixed(2)}</td>
+                                                    <td className="product-item-price">
+                                                        ₹{item.offerPrice ? item.offerPrice.toFixed(2) : item.price.toFixed(2)}
+                                                        {item.offerPrice && item.offerPrice < item.price && (
+                                                            <div className="text-muted" style={{ fontSize: '0.8em', textDecoration: 'line-through' }}>₹{item.price.toFixed(2)}</div>
+                                                        )}
+                                                    </td>
                                                     <td className="product-item-totle">
                                                         <button
                                                             onClick={() => handleAddToCartGlobal(item, 1, isUser, navigate, true)}

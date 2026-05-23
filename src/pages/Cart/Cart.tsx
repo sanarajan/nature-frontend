@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -12,13 +12,29 @@ import product1 from '../../assets/images/shop/product/1.png';
 import iconPic2 from '../../assets/images/shop/shop-cart/icon-box/pic2.png';
 
 interface CartItem {
-    product: any;
+    product: {
+        _id: string;
+        productName: string;
+        price: number;
+        images?: string[];
+        categoryId?: { categoryName: string; _id: string };
+        subcategoryId?: { subcategoryName: string; _id: string };
+    };
     quantity: number;
+    isComboItem: boolean;
+    finalUnitPrice: number;
+    appliedProductOffer: {
+        offerName: string;
+        discountType: 'percentage' | 'flat';
+        discountValue: number;
+        finalUnitPrice: number;
+    } | null;
 }
 
 const Cart: React.FC = () => {
     const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
+    const [appliedComboOffer, setAppliedComboOffer] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
     const navigate = useNavigate();
@@ -30,6 +46,7 @@ const Cart: React.FC = () => {
                 const res = await userApiClient.get('/user/cart');
                 if (res.data.success && res.data.data) {
                     setCartItems(res.data.data.products);
+                    setAppliedComboOffer(res.data.data.appliedComboOffer || null);
                 }
             } catch (err) {
                 console.error("Failed to fetch cart", err);
@@ -39,12 +56,17 @@ const Cart: React.FC = () => {
             if (localCartStr) {
                 try {
                     const parsed = JSON.parse(localCartStr);
-                    setCartItems(parsed);
+                    const res = await userApiClient.post('/user/cart/calculate', { products: parsed });
+                    if (res.data.success && res.data.data) {
+                        setCartItems(res.data.data.products);
+                        setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                    }
                 } catch (e) {
                     setCartItems([]);
                 }
             } else {
                 setCartItems([]);
+                setAppliedComboOffer(null);
             }
         }
         setLoading(false);
@@ -71,44 +93,85 @@ const Cart: React.FC = () => {
     }, [isUser]);
 
     const updateQty = async (productId: string, delta: number) => {
-        const item = cartItems.find(i => i.product._id === productId);
-        if (!item) return;
-        const newQty = Math.max(1, item.quantity + delta);
+        const currentQty = cartItems.filter((i: CartItem) => i.product._id === productId).reduce((acc, curr) => acc + curr.quantity, 0) || 1;
+        const newQty = Math.max(1, currentQty + delta);
 
         if (isUser) {
             try {
-                await userApiClient.put('/user/cart/update', { productId, quantity: newQty });
-                setCartItems(items => items.map(i => i.product._id === productId ? { ...i, quantity: newQty } : i));
+                const res = await userApiClient.put('/user/cart/update', { productId, quantity: newQty });
+                if (res.data.success && res.data.data) {
+                    setCartItems(res.data.data.products);
+                    setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                }
             } catch (err) {
                 toast.error('Failed to update quantity');
             }
         } else {
-            const newItems = cartItems.map(i => i.product._id === productId ? { ...i, quantity: newQty } : i);
-            setCartItems(newItems);
-            localStorage.setItem('offlineCart', JSON.stringify(newItems));
+            const localCart = JSON.parse(localStorage.getItem('offlineCart') || '[]');
+            const newCart = localCart.map((i: any) => (i.product._id === productId || i.product === productId) ? { ...i, quantity: newQty } : i);
+            localStorage.setItem('offlineCart', JSON.stringify(newCart));
+            fetchCart();
         }
     };
 
     const performRemove = async (productId: string) => {
         if (isUser) {
             try {
-                await userApiClient.delete(`/user/cart/${productId}`);
-                setCartItems(items => items.filter(i => i.product._id !== productId));
+                const res = await userApiClient.delete(`/user/cart/${productId}`);
+                if (res.data.success && res.data.data) {
+                    setCartItems(res.data.data.products);
+                    setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                }
                 toast.success('Item removed');
             } catch (err) {
                 toast.error('Failed to remove item');
             }
         } else {
-            const newItems = cartItems.filter(i => i.product._id !== productId);
-            setCartItems(newItems);
-            localStorage.setItem('offlineCart', JSON.stringify(newItems));
+            const localCart = JSON.parse(localStorage.getItem('offlineCart') || '[]');
+            const newCart = localCart.filter((i: any) => (i.product._id !== productId && i.product !== productId));
+            localStorage.setItem('offlineCart', JSON.stringify(newCart));
+            fetchCart();
             window.dispatchEvent(new Event('cart-updated'));
             toast.success('Item removed');
         }
-        setItemToDelete(null);
     };
 
-    const subtotal = cartItems.reduce((acc, item) => acc + ((item.product?.price || 0) * item.quantity), 0);
+    const finalItems = useMemo(() => {
+        const grouped: { [key: string]: any } = {};
+        cartItems.forEach((item: CartItem) => {
+            const id = item.product._id;
+            if (!grouped[id]) {
+                grouped[id] = {
+                    ...item,
+                    quantity: 0,
+                    comboQty: 0,
+                    normalQty: 0,
+                    appliedProductOffer: null
+                };
+            }
+            grouped[id].quantity += item.quantity;
+            if (item.isComboItem) {
+                grouped[id].comboQty += item.quantity;
+            } else {
+                grouped[id].normalQty += item.quantity;
+                if (item.appliedProductOffer) {
+                    grouped[id].appliedProductOffer = item.appliedProductOffer;
+                }
+            }
+        });
+        return Object.values(grouped);
+    }, [cartItems]);
+
+    const mrpSubtotal = finalItems.reduce((acc: number, item: any) => acc + (item.product?.price || 0) * (item.quantity || 0), 0);
+    const totalIndividualDiscount = finalItems.reduce((acc: number, item: any) => {
+        if (item.appliedProductOffer?.finalUnitPrice !== undefined && item.normalQty > 0) {
+            const unitDiscount = (item.product?.price || 0) - item.appliedProductOffer.finalUnitPrice;
+            return acc + (unitDiscount * item.normalQty);
+        }
+        return acc;
+    }, 0);
+    const comboDiscount = appliedComboOffer?.discountValue || 0;
+    const finalTotal = Math.round((mrpSubtotal - totalIndividualDiscount - comboDiscount) * 100) / 100;
 
     return (
         <div className="page-content">
@@ -150,25 +213,42 @@ const Cart: React.FC = () => {
                                     <tbody >
                                         {loading ? (
                                             <tr><td colSpan={6} className="text-center p-4">Loading cart...</td></tr>
-                                        ) : cartItems.length === 0 ? (
+                                        ) : finalItems.length === 0 ? (
                                             <tr><td colSpan={6} className="text-center p-4">Your cart is empty. <Link to="/shop" className="text-primary">Continue Shopping</Link></td></tr>
                                         ) : (
-                                            cartItems.map((item) => {
+                                            finalItems.map((item: any) => {
                                                 const prod = item.product;
-                                                if (!prod) {
-                                                    console.warn('Malformed cart item structure detected:', item);
-                                                    return null; // Defensive check for malformed localStorage data
-                                                }
+                                                const offer = item.appliedProductOffer;
+                                                const originalPrice = prod.price || 0;
+                                                const quantity = item.quantity;
+                                                const finalUnitPrice = offer?.finalUnitPrice || originalPrice;
+                                                const comboQty = item.comboQty || 0;
+                                                const normalQty = item.normalQty || 0;
+                                                
                                                 const imgUrl = prod.images && prod.images.length > 0 ? prod.images[0] : product1;
+                                                const rowMRP = originalPrice * quantity;
+                                                const rowTotal = (comboQty * originalPrice) + (normalQty * finalUnitPrice);
+
                                                 return (
-                                                    <tr key={prod._id || Math.random().toString()}>
-                                                        <td className="product-item-img py-1 pe-1"><img src={imgUrl} alt={prod.productName} style={{ width: '60px', height: '60px' }} /></td>
+                                                    <tr key={prod._id}>
+                                                        <td className="product-item-img py-1 pe-1">
+                                                            <img src={imgUrl} alt={prod.productName} style={{ width: '60px', height: '60px', objectFit: 'cover' }} />
+                                                        </td>
                                                         <td className="product-item-name py-1 px-1" style={{ maxWidth: '250px', whiteSpace: 'normal', fontSize: '14px' }}>
                                                             <Link to={`/product/${prod._id}`}>{prod.productName}</Link>
                                                             <ul className="product-item-list">
                                                                 <li>Category: {prod.categoryId?.categoryName || 'N/A'}</li>
                                                                 {prod.subcategoryId && <li>Subcategory: {prod.subcategoryId.subcategoryName}</li>}
                                                             </ul>
+                                                            {(offer && offer.discountValue !== undefined && normalQty > 0) && (
+                                                                <div className="mt-1">
+                                                                    <span className="badge" style={{ fontSize: '11px', fontWeight: '500', padding: '2px 8px', background: '#fff3cd', color: '#826002', border: '1px solid #ffde80' }}>
+                                                                        <i className="fa fa-tag me-1"></i> {offer.offerName}
+                                                                        {comboQty > 0 && <span className="ms-1 fw-normal">(on {normalQty} items)</span>}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            {/* Mobile remove */}
                                                             <div className="d-block d-md-none mt-2">
                                                                 {itemToDelete === prod._id ? (
                                                                     <div style={{ background: '#fff', border: '1px solid #ddd', padding: '8px', borderRadius: '4px', display: 'inline-block', marginTop: '5px' }}>
@@ -179,42 +259,52 @@ const Cart: React.FC = () => {
                                                                         </div>
                                                                     </div>
                                                                 ) : (
-                                                                    <button
-                                                                        onClick={() => setItemToDelete(prod._id)}
-                                                                        className="btn btn-sm text-danger p-0"
-                                                                        style={{ textDecoration: 'underline', background: 'transparent', border: 'none' }}
-                                                                    >
+                                                                    <button onClick={() => setItemToDelete(prod._id)} className="btn btn-sm text-danger p-0" style={{ textDecoration: 'underline', background: 'transparent', border: 'none' }}>
                                                                         <i className="fa fa-trash me-1"></i> Remove
                                                                     </button>
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="product-item-price py-1 px-1" >₹{prod.price?.toFixed(2)}</td>
+                                                        <td className="product-item-price py-1 px-1">
+                                                            {(offer && offer.discountValue !== undefined && normalQty > 0) ? (
+                                                                <>
+                                                                    <div style={{ fontWeight: '500', color: '#888', textDecoration: 'line-through', fontSize: '12px' }}>
+                                                                        ₹{originalPrice.toFixed(2)}
+                                                                    </div>
+                                                                    <div className="text-success" style={{ fontSize: '12px', fontWeight: '700' }}>
+                                                                        {offer.discountType === 'percentage' 
+                                                                            ? `${offer.discountValue}% OFF` 
+                                                                            : `₹${offer.discountValue} OFF`
+                                                                        } → ₹{finalUnitPrice.toFixed(2)}
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <div style={{ fontWeight: '500' }}>₹{originalPrice.toFixed(2)}</div>
+                                                            )}
+                                                        </td>
                                                         <td className="product-item-quantity py-1 px-1">
                                                             <div className="quantity btn-quantity style-1 me-1">
                                                                 <div className="btn-quantity light quantity-sm" style={{ display: 'flex', alignItems: 'center' }}>
-                                                                    <button
-                                                                        className="btn btn-sm"
-                                                                        onClick={() => updateQty(prod._id, -1)}
-                                                                        style={{ background: '#1a1a1a', color: '#fff', border: 'none', width: '25px', height: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0' }}>
+                                                                    <button className="btn btn-sm" onClick={() => updateQty(prod._id, -1)} style={{ background: '#1a1a1a', color: '#fff', border: 'none', width: '25px', height: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0' }}>
                                                                         <span style={{ fontSize: '18px', fontWeight: '500' }}>−</span>
                                                                     </button>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={item.quantity}
-                                                                        readOnly
-                                                                        style={{ width: '25px', height: '25px', textAlign: 'center', border: '1px solid #eee', color: '#1a1a1a', background: '#fff', margin: '0', borderRadius: '0', fontSize: '14px' }}
-                                                                    />
-                                                                    <button
-                                                                        className="btn btn-sm"
-                                                                        onClick={() => updateQty(prod._id, 1)}
-                                                                        style={{ background: '#1a1a1a', color: '#fff', border: 'none', width: '25px', height: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0' }}>
+                                                                    <input type="text" value={quantity} readOnly style={{ width: '25px', height: '25px', textAlign: 'center', border: '1px solid #eee', color: '#1a1a1a', background: '#fff', margin: '0', borderRadius: '0', fontSize: '14px' }} />
+                                                                    <button className="btn btn-sm" onClick={() => updateQty(prod._id, 1)} style={{ background: '#1a1a1a', color: '#fff', border: 'none', width: '25px', height: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0' }}>
                                                                         <span style={{ fontSize: '18px', fontWeight: '500' }}>+</span>
                                                                     </button>
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td className="product-item-totle py-1 px-1">₹{((prod.price || 0) * item.quantity).toFixed(2)}</td>
+                                                        <td className="product-item-totle py-1 px-1">
+                                                            {(offer && offer.discountValue !== undefined && normalQty > 0) ? (
+                                                                <>
+                                                                    <div style={{ fontWeight: '600', fontSize: '15px' }}>₹{rowTotal.toFixed(2)}</div>
+                                                                    <div className="text-muted" style={{ fontSize: '11px', textDecoration: 'line-through' }}>₹{rowMRP.toFixed(2)}</div>
+                                                                </>
+                                                            ) : (
+                                                                <div style={{ fontWeight: '600', fontSize: '15px' }}>₹{rowTotal.toFixed(2)}</div>
+                                                            )}
+                                                        </td>
                                                         <td className="product-item-close py-1 px-1" style={{ position: 'relative' }}>
                                                             {itemToDelete === prod._id ? (
                                                                 <div style={{ position: 'absolute', right: '100%', top: '50%', transform: 'translateY(-50%)', background: '#fff', border: '1px solid #ddd', padding: '10px', borderRadius: '4px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', zIndex: 100, display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '130px', marginRight: '10px' }}>
@@ -239,6 +329,8 @@ const Cart: React.FC = () => {
                                                 );
                                             })
                                         )}
+
+
                                     </tbody>
                                 </table>
                             </div>
@@ -281,8 +373,32 @@ const Cart: React.FC = () => {
                                 <table>
                                     <tbody>
                                         <tr className="total">
-                                            <td><h6 className="mb-0 title">Total Amount</h6></td>
-                                            <td className="price">₹{subtotal.toFixed(2)}</td>
+                                            <td><h6 className="mb-0 title">Subtotal (MRP)</h6></td>
+                                            <td className="price">₹{mrpSubtotal.toFixed(2)}</td>
+                                        </tr>
+                                        {totalIndividualDiscount > 0 && (
+                                            <tr className="total">
+                                                <td><h6 className="mb-0 title" style={{ color: '#e67e00' }}>Offer Discount</h6></td>
+                                                <td className="price" style={{ color: '#e67e00' }}>-₹{totalIndividualDiscount.toFixed(2)}</td>
+                                            </tr>
+                                        )}
+                                        {appliedComboOffer && (
+                                            <tr className="total" style={{ border: '2px dashed #28a745', background: '#f8fff8', borderRadius: '10px' }}>
+                                                <td style={{ padding: '15px 10px' }}>
+                                                    <h6 className="mb-0 title text-success" style={{ fontWeight: '700' }}>
+                                                        <i className="fa fa-gift me-2"></i>
+                                                        {appliedComboOffer.offerName}
+                                                    </h6>
+                                                    <div className="small text-muted" style={{ fontSize: '12px' }}>Combo Discount Applied</div>
+                                                </td>
+                                                <td className="price text-success" style={{ fontWeight: '700', padding: '15px 10px', fontSize: '18px' }}>
+                                                    -₹{comboDiscount.toFixed(2)}
+                                                </td>
+                                            </tr>
+                                        )}
+                                        <tr className="total">
+                                            <td><h4 className="mb-0 title">Total Amount</h4></td>
+                                            <td className="price"><h4>₹{finalTotal.toFixed(2)}</h4></td>
                                         </tr>
                                     </tbody>
                                 </table>

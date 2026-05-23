@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { handleAddToCartGlobal, handleToggleWishlistGlobal } from '../../utils/CartHelper';
+import axios from 'axios';
 
-// Asset Imports
-import product1 from '../../assets/images/shop/product/1.png';
-import product2 from '../../assets/images/shop/product/2.png';
-import product3 from '../../assets/images/shop/product/3.png';
+
 
 const ProductDetails: React.FC = () => {
     const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
@@ -15,20 +13,43 @@ const ProductDetails: React.FC = () => {
     const [quantity, setQuantity] = useState(1);
     const [activeTab, setActiveTab] = useState('description');
 
-    // PRODUCT DATA
-    const product: any = {
-        _id: '67c191a99859f5188f98ed61', // Using a valid-looking ObjectId for mock testing
-        productName: 'Metavya',
-        sku: 'PRT584E63A',
-        price: 125.75,
-        oldPrice: '₹132.17',
-        images: [product1, product2, product3],
-        rating: 4.7,
-        reviews: 5,
-        description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.",
-        tags: ['Skincare', 'Makeup', 'Accessories'],
-        categories: ['Skincare', 'Makeup', 'Beauty Tools', 'Gift Sets']
-    };
+    const { id } = useParams<{ id: string }>();
+    const [product, setProduct] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchProduct = async () => {
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/products/${id}`);
+                if (response.data.success) {
+                    setProduct(response.data.data);
+                }
+            } catch (error) {
+                console.error("Error fetching product details:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchProduct();
+        }
+    }, [id]);
+
+    if (loading) {
+        return <div className="page-content bg-light d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
+            <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+            </div>
+        </div>;
+    }
+
+    if (!product) {
+        return <div className="page-content bg-light text-center py-5">
+            <h2>Product Not Found</h2>
+            <Link to="/shop" className="btn btn-primary mt-3">Back to Shop</Link>
+        </div>;
+    }
 
     const handleAddToCart = () => {
         handleAddToCartGlobal(product, quantity, isUser, navigate, true);
@@ -44,7 +65,7 @@ const ProductDetails: React.FC = () => {
                 <nav aria-label="breadcrumb" className="breadcrumb-row style-1">
                     <ul className="breadcrumb mb-0">
                         <li className="breadcrumb-item"><Link to="/"> Home</Link></li>
-                        <li className="breadcrumb-item">{product.name}</li>
+                        <li className="breadcrumb-item">{product.productName}</li>
                     </ul>
                 </nav>
             </div>
@@ -57,22 +78,32 @@ const ProductDetails: React.FC = () => {
                                 <div className="swiper-btn-center-lr">
                                     <div className="swiper product-gallery-swiper2">
                                         <div className="swiper-wrapper">
-                                            {product.images.map((img: string, index: number) => (
+                                            {product.images && product.images.length > 0 ? product.images.map((img: string, index: number) => (
                                                 <div className="swiper-slide" key={index}>
                                                     <div className="dz-media DZoomImage">
-                                                        <img src={img} alt={product.name} />
+                                                        <img src={img} alt={product.productName} />
                                                     </div>
                                                 </div>
-                                            ))}
+                                            )) : (
+                                                <div className="swiper-slide">
+                                                    <div className="dz-media DZoomImage">
+                                                        <img src="https://via.placeholder.com/600x600?text=No+Image" alt="Placeholder" />
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="swiper product-gallery-swiper thumb-swiper-lg">
                                         <div className="swiper-wrapper">
-                                            {product.images.map((img: string, index: number) => (
+                                            {product.images && product.images.length > 0 ? product.images.map((img: string, index: number) => (
                                                 <div className="swiper-slide" key={index}>
-                                                    <img src={img} alt={product.name} />
+                                                    <img src={img} alt={product.productName} />
                                                 </div>
-                                            ))}
+                                            )) : (
+                                                <div className="swiper-slide">
+                                                    <img src="https://via.placeholder.com/150x150?text=No+Image" alt="Placeholder Thumb" />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -84,33 +115,33 @@ const ProductDetails: React.FC = () => {
                                 <div className="dz-content">
                                     <div className="dz-content-footer">
                                         <div className="dz-content-start m-b5">
-                                            <span className="badge mb-2">SALE 20% Off</span>
-                                            <h4 className="title mb-0">{product.name}</h4>
+                                            {product.unit && <span className="badge mb-2">{product.unit.unitName || product.unit}</span>}
+                                            <h4 className="title mb-0">{product.productName}</h4>
                                             <div className="review-num">
                                                 <ul className="dz-rating me-2">
-                                                    {[1, 2, 3, 4].map(i => (
+                                                    {[1, 2, 3, 4, 5].map(i => (
                                                         <li key={i}>
                                                             <svg width="14" height="13" viewBox="0 0 14 13" fill="none">
                                                                 <path d="M6.74805 0.234375L8.72301 4.51608L13.4054 5.07126L9.9436 8.27267L10.8625 12.8975L6.74805 10.5944L2.63355 12.8975L3.5525 8.27267L0.090651 5.07126L4.77309 4.51608L6.74805 0.234375Z" fill="#000" />
                                                             </svg>
                                                         </li>
                                                     ))}
-                                                    <li>
-                                                        <svg width="14" height="13" viewBox="0 0 14 13" fill="none">
-                                                            <path opacity="0.2" d="M6.74805 0.234375L8.72301 4.51608L13.4054 5.07126L9.9436 8.27267L10.8625 12.8975L6.74805 10.5944L2.63355 12.8975L3.5525 8.27267L0.090651 5.07126L4.77309 4.51608L6.74805 0.234375Z" fill="#5E626F" />
-                                                        </svg>
-                                                    </li>
                                                 </ul>
-                                                <span className="text-secondary me-2">{product.rating} Rating</span>
-                                                <a href="javascript:void(0);">({product.reviews} customer reviews)</a>
+                                                <span className="text-secondary me-2">5.0 Rating</span>
+                                                <a href="javascript:void(0);">(10 customer reviews)</a>
                                             </div>
                                         </div>
                                     </div>
-                                    <p className="para-text m-b25">{product.description}</p>
+                                    <p className="para-text m-b25">{product.description || 'No description available for this product.'}</p>
                                     <div className="meta-content m-b20 d-flex align-items-end">
                                         <div className="me-3">
                                             <span className="price-name">Price</span>
-                                            <span className="price">{product.price} <del>{product.oldPrice}</del></span>
+                                            <span className="price">
+                                                ₹{product.offerPrice ? product.offerPrice.toFixed(2) : product.price.toFixed(2)} 
+                                                {product.offerPrice && product.offerPrice < product.price && (
+                                                    <del className="ms-2 text-muted">₹{product.price.toFixed(2)}</del>
+                                                )}
+                                            </span>
                                         </div>
                                     </div>
 
@@ -134,20 +165,32 @@ const ProductDetails: React.FC = () => {
                                     <div className="dz-info">
                                         <ul>
                                             <li><strong>SKU:</strong></li>
-                                            <li>{product.sku}</li>
+                                            <li>{product.sku || 'N/A'}</li>
                                         </ul>
                                         <ul>
                                             <li><strong>Category:</strong></li>
-                                            <li>{product.categories.map((cat: any, i: number) => (
-                                                <span key={i}><Link to="/shop">{cat}</Link>{i < product.categories.length - 1 ? ', ' : ''}</span>
-                                            ))}</li>
+                                            <li>
+                                                <span><Link to="/shop">{product.categoryId?.categoryName || 'Uncategorized'}</Link></span>
+                                            </li>
                                         </ul>
-                                        <ul>
-                                            <li><strong>Tags:</strong></li>
-                                            <li>{product.tags.map((tag: string, i: number) => (
-                                                <span key={i}><Link to="/shop">{tag}</Link>{i < product.tags.length - 1 ? ', ' : ''}</span>
-                                            ))}</li>
-                                        </ul>
+                                        {product.tags && product.tags.length > 0 && (
+                                            <ul>
+                                                <li><strong>Tags:</strong></li>
+                                                <li>{product.tags.map((tag: string, i: number) => (
+                                                    <span key={i}><Link to="/shop">{tag}</Link>{i < product.tags.length - 1 ? ', ' : ''}</span>
+                                                ))}</li>
+                                            </ul>
+                                        )}
+                                        {product.specifications && Object.keys(product.specifications).length > 0 && (
+                                            <ul>
+                                                <li><strong>Specifications:</strong></li>
+                                                <li>
+                                                    {Object.entries(product.specifications).map(([key, val]: any, i: number) => (
+                                                        <div key={i}>{key}: {val}</div>
+                                                    ))}
+                                                </li>
+                                            </ul>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -172,8 +215,8 @@ const ProductDetails: React.FC = () => {
                                 {activeTab === 'description' ? (
                                     <div className="tab-pane fade show active">
                                         <div className="detail-bx text-center">
-                                            <h5 className="title">Eco-friendly Beauty Revolution</h5>
-                                            <p className="para-text">{product.description}</p>
+                                            <h5 className="title">{product.productName}</h5>
+                                            <p className="para-text">{product.description || 'No detailed description available.'}</p>
                                         </div>
                                     </div>
                                 ) : (

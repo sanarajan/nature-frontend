@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { Link, useNavigate } from 'react-router-dom';
 import userApiClient from '../../services/userApiClient';
 import { useSelector } from 'react-redux';
@@ -96,13 +97,18 @@ const Home: React.FC = () => {
     const navigate = useNavigate();
     const [categories, setCategories] = useState<any[]>([]);
     const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+    const [comboOffers, setComboOffers] = useState<any[]>([]);
+    const [offerProductsData, setOfferProductsData] = useState<{ products: any[], maxPercent: number, maxAmount: number }>({ products: [], maxPercent: 0, maxAmount: 0 });
+    const [quickViewProduct, setQuickViewProduct] = useState<any | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [catRes, prodRes] = await Promise.all([
+                const [catRes, prodRes, comboRes, offerRes] = await Promise.all([
                     userApiClient.get('/user/categories'),
-                    userApiClient.get('/user/products/featured')
+                    userApiClient.get('/user/products/featured'),
+                    userApiClient.get('/user/products/combo-offers'),
+                    userApiClient.get('/user/products/offer-products')
                 ]);
 
                 if (catRes.data.success) {
@@ -110,6 +116,12 @@ const Home: React.FC = () => {
                 }
                 if (prodRes.data.success) {
                     setFeaturedProducts(prodRes.data.data);
+                }
+                if (comboRes.data.success) {
+                    setComboOffers(comboRes.data.data);
+                }
+                if (offerRes.data.success) {
+                    setOfferProductsData(offerRes.data.data);
                 }
             } catch (err) {
                 console.error('Error fetching home data:', err);
@@ -137,6 +149,59 @@ const Home: React.FC = () => {
         if (prod.isPopular) badges.push('POPULAR');
         if (prod.isTrending) badges.push('TRENDING');
         return badges;
+    };
+
+    const handleCollectOffer = async (offer: any) => {
+        if (!offer.products || offer.products.length === 0) return;
+
+        const cartItemsToAdd = offer.products.map((p: any) => ({
+            product: p.productId, // This is the populated product object
+            quantity: p.requiredQuantity
+        }));
+
+        if (isUser) {
+            try {
+                // Using sync endpoint to add multiple items at once
+                const apiItems = cartItemsToAdd.map((i: any) => ({
+                    product: i.product._id,
+                                        quantity: i.quantity
+                }));
+                const res = await userApiClient.post('/user/cart/sync', { cartItems: apiItems });
+                if (res.data.success) {
+                    toast.success(`Combo "${offer.offerName}" added to cart!`);
+                    window.dispatchEvent(new Event('cart-updated'));
+                }
+            } catch (err) {
+                console.error('Failed to add combo to cart:', err);
+                toast.error('Failed to add combo to cart');
+            }
+        } else {
+            // Offline logic
+            const localCartStr = localStorage.getItem('offlineCart');
+            let offlineItems: any[] = [];
+            if (localCartStr) {
+                try {
+                    offlineItems = JSON.parse(localCartStr);
+                } catch (err) {
+                    offlineItems = [];
+                }
+            }
+
+            cartItemsToAdd.forEach((newItem: any) => {
+                const existsIndex = offlineItems.findIndex(p => p.product?._id === newItem.product?._id);
+                if (existsIndex > -1) {
+                    offlineItems[existsIndex].quantity += newItem.quantity;
+                } else {
+                    offlineItems.push(newItem);
+                }
+            });
+
+            localStorage.setItem('offlineCart', JSON.stringify(offlineItems));
+            toast.success(`Combo "${offer.offerName}" added to offline cart!`);
+            window.dispatchEvent(new Event('cart-updated'));
+        }
+
+        navigate('/shop-cart');
     };
 
     return (
@@ -167,31 +232,33 @@ const Home: React.FC = () => {
                                 </div>
                                 <div className="row gx-0">
                                     <div className="col-sm-12 col-md-6 col-lg-5 mb-3 wow fadeInUp" data-wow-delay="0.1s">
-                                        <div className="product-card">
+                                        <div className="product-card" onClick={() => featuredProducts[0] && setQuickViewProduct(featuredProducts[0])} style={{ cursor: 'pointer' }}>
                                             <div className="dz-media">
-                                                <img src={smallPic1} alt="/" />
+                                                <img src={featuredProducts[0]?.images?.[0] || smallPic1} alt="/" />
                                             </div>
                                             <div className="dz-content">
-                                                <Link to="/shop">
-                                                    <h5 className="dz-title">Metavya</h5>
-                                                </Link>
+                                                <h5 className="dz-title">{featuredProducts[0]?.productName || 'Metavya'}</h5>
                                                 <span className="price">
-                                                    ₹18 <del>₹27</del>
+                                                    ₹{featuredProducts[0]?.offerPrice?.toFixed(2) || featuredProducts[0]?.price?.toFixed(2) || '18.00'} 
+                                                    {featuredProducts[0]?.offerPrice && featuredProducts[0]?.offerPrice < featuredProducts[0]?.price && (
+                                                        <del className="ms-1">₹{featuredProducts[0]?.price?.toFixed(2)}</del>
+                                                    )}
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="col-sm-12 col-md-6 col-lg-5 wow fadeInUp" data-wow-delay="0.1s">
-                                        <div className="product-card">
+                                        <div className="product-card" onClick={() => featuredProducts[1] && setQuickViewProduct(featuredProducts[1])} style={{ cursor: 'pointer' }}>
                                             <div className="dz-media">
-                                                <img src={smallPic2} alt="/" />
+                                                <img src={featuredProducts[1]?.images?.[0] || smallPic2} alt="/" />
                                             </div>
                                             <div className="dz-content">
-                                                <Link to="/shop">
-                                                    <h5 className="dz-title">Femroot</h5>
-                                                </Link>
+                                                <h5 className="dz-title">{featuredProducts[1]?.productName || 'Femroot'}</h5>
                                                 <span className="price">
-                                                    ₹18 <del>₹27</del>
+                                                    ₹{featuredProducts[1]?.offerPrice?.toFixed(2) || featuredProducts[1]?.price?.toFixed(2) || '18.00'} 
+                                                    {featuredProducts[1]?.offerPrice && featuredProducts[1]?.offerPrice < featuredProducts[1]?.price && (
+                                                        <del className="ms-1">₹{featuredProducts[1]?.price?.toFixed(2)}</del>
+                                                    )}
                                                 </span>
                                             </div>
                                         </div>
@@ -474,10 +541,13 @@ const Home: React.FC = () => {
                                         <div className="dz-media media-overlay">
                                             <img src={prod.images && prod.images.length > 0 ? prod.images[0] : product1} alt="image" />
                                             <div className="shop-meta">
-                                                <Link to={`/product/${prod._id}`} className="btn btn-secondary btn-icon">
+                                                <button 
+                                                    onClick={(e) => { e.preventDefault(); setQuickViewProduct(prod); }}
+                                                    className="btn btn-secondary btn-icon"
+                                                >
                                                     <i className="fa-solid fa-eye d-md-none d-block"></i>
                                                     <span className="d-md-block d-none">Quick View</span>
-                                                </Link>
+                                                </button>
                                                 <div className="btn btn-primary meta-icon dz-carticon">
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M20.531 5.47097L17.531 2.47097C17.238 2.17797 16.763 2.17797 16.47 2.47097C16.177 2.76397 16.177 3.23897 16.47 3.53197L18.19 5.25197H6.00098C4.48398 5.25197 3.25098 6.48497 3.25098 8.00197V11.001C3.25098 11.415 3.58698 11.751 4.00098 11.751C4.41498 11.751 4.75098 11.415 4.75098 11.001V8.00197C4.75098 7.31297 5.31198 6.75197 6.00098 6.75197H18.19L16.47 8.47197C16.177 8.76497 16.177 9.23997 16.47 9.53297C16.616 9.67897 16.808 9.75297 17 9.75297C17.192 9.75297 17.384 9.67997 17.53 9.53297L20.53 6.53297C20.823 6.23997 20.823 5.76497 20.53 5.47197L20.531 5.47097Z" fill="black" />
@@ -515,7 +585,12 @@ const Home: React.FC = () => {
                                         </div>
                                         <div className="dz-content">
                                             <h5 className="title"><Link to={`/product/${prod._id}`}>{prod.productName}</Link></h5>
-                                            <h6 className="price">₹{prod.price.toFixed(2)}</h6>
+                                            <h6 className="price">
+                                                ₹{prod.offerPrice ? prod.offerPrice.toFixed(2) : prod.price.toFixed(2)}
+                                                {prod.offerPrice && prod.offerPrice < prod.price && (
+                                                    <del className="ms-2 text-muted" style={{ fontSize: '0.85em' }}>₹{prod.price.toFixed(2)}</del>
+                                                )}
+                                            </h6>
                                             <div className="shop-cart-btn">
                                                 <Link to="#" onClick={(e) => { e.preventDefault(); handleAddToCartGlobal(prod, 1, isUser, navigate, true); }}>
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -630,53 +705,75 @@ const Home: React.FC = () => {
 
 
             {/* Saving Section */}
-            < section className="content-inner-1 bg-light" >
+            <section className="content-inner-1 bg-light">
                 <div className="container">
-                    <div className="row ">
-                        <div className="col-lg-6 col-md-12 align-self-center">
-                            <div className="row">
-                                {[
-                                    { img: product4, title: 'Vayura Hair Shampoo', price: '₹30', sale: 'Up to 40% Off' },
-                                    { img: product5, title: 'DarkLeaf Hair Oil', price: '₹60', sale: 'Up to 40% Off', badge: true },
-                                    { img: product1, title: 'Metavya', price: '₹50', sale: 'Up to 40% Off' },
-                                    { img: product2, title: 'Femroot', price: '₹40', sale: 'Up to 40% Off' }
-                                ].map((prod, idx) => (
-                                    <div key={idx} className="col-lg-6 col-md-6 col-sm-6">
-                                        <div className="shop-card style-3 wow fadeInUp" data-wow-delay={`${0.2 + idx * 0.1}s`}>
-                                            <div className="dz-media">
-                                                <img src={prod.img} alt="image" />
-                                            </div>
-                                            <div className="dz-content">
-                                                <div>
-                                                    <span className="sale-title">{prod.sale}</span>
-                                                    <h6 className="title"><Link to="/shop">{prod.title}</Link></h6>
-                                                </div>
-                                                <h6 className="price">{prod.price} <del>₹95</del></h6>
-                                            </div>
-                                            {prod.badge && <span className="sale-badge">50%<br />Sale <img src={starPng} alt="" /></span>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                    <div className="row">
+                        {/* Banner on the Left side */}
                         <div className="col-lg-6 col-md-12 m-b30">
-                            <div className="about-box style-1 clearfix h-100 right">
+                            <div className="about-box style-1 clearfix h-100">
                                 <div className="dz-media h-100">
-                                    <img src={aboutPic1} alt="" />
+                                    <img src={aboutPic1} alt="Big Saving" />
                                     <div className="media-contant">
-                                        <h2 className="title">Great saving on everyday essentials</h2>
-                                        <h5 className="sub-title">Up to 60% off + up to ₹107 cashback</h5>
-                                        <Link to="/shop" className="btn btn-white btn-hover-1">See All</Link>
+                                        <h2 className="title">Big Saving On Everyday Essentials</h2>
+                                        <h5 className="sub-title">
+                                            Up to {offerProductsData.maxPercent || 60}% off + up to ₹{offerProductsData.maxAmount || 107} cashback
+                                        </h5>
+                                        <Link to="/shop?offers=true" className="btn btn-white btn-hover-1">See All</Link>
                                     </div>
                                     <svg className="title animation-text" viewBox="0 0 1320 300">
-                                        <text x="0" y="">Great saving</text>
+                                        <text x="0" y="70%">DISCOUNT</text>
                                     </svg>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Products on the Right side */}
+                        <div className="col-lg-6 col-md-12 align-self-center">
+                            <div className="row">
+                                {(offerProductsData.products.length > 0 ? offerProductsData.products : [
+                                    { img: product4, productName: 'Vayura Hair Shampoo', price: 95, offerPrice: 30, appliedOffer: { discountValue: 40, discountType: 'percentage' } },
+                                    { img: product5, productName: 'DarkLeaf Hair Oil', price: 95, offerPrice: 60, appliedOffer: { discountValue: 40, discountType: 'percentage' } },
+                                    { img: product1, productName: 'Metavya', price: 95, offerPrice: 50, appliedOffer: { discountValue: 40, discountType: 'percentage' } },
+                                    { img: product2, productName: 'Femroot', price: 95, offerPrice: 40, appliedOffer: { discountValue: 40, discountType: 'percentage' } }
+                                ]).map((prod, idx) => {
+                                    const discountLabel = prod.appliedOffer 
+                                        ? (prod.appliedOffer.discountType === 'percentage' 
+                                            ? `Up To ${prod.appliedOffer.discountValue}% Off` 
+                                            : `₹${prod.appliedOffer.discountValue} Off`)
+                                        : 'Up To 40% Off';
+                                    
+                                    return (
+                                        <div key={idx} className="col-lg-6 col-md-6 col-sm-6">
+                                            <div className="shop-card style-3 wow fadeInUp" data-wow-delay={`${0.2 + idx * 0.1}s`}>
+                                                <div className="dz-media">
+                                                    <Link to={`/product/${prod._id || '#'}`}>
+                                                        <img src={prod.images?.[0] || prod.img} alt={prod.productName} />
+                                                    </Link>
+                                                </div>
+                                                <div className="dz-content">
+                                                    <div>
+                                                        <span className="sale-title">{discountLabel}</span>
+                                                        <h6 className="title">
+                                                            <Link to={`/product/${prod._id || '#'}`}>{prod.productName}</Link>
+                                                        </h6>
+                                                    </div>
+                                                    <h6 className="price">₹{prod.offerPrice || prod.price} <del>₹{prod.price}</del></h6>
+                                                </div>
+                                                {prod.appliedOffer && prod.appliedOffer.discountType === 'percentage' && (
+                                                    <span className="sale-badge">
+                                                        {prod.appliedOffer.discountValue}%<br />Sale 
+                                                        <img src={starPng} alt="" />
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </section >
+            </section>
 
             {/* Map-Section Start */}
             < section className="content-inner bg-light overflow-hidden" id="Maping" >
@@ -879,9 +976,9 @@ const Home: React.FC = () => {
                 <div className="container">
                     <div className="section-head style-1 mb-2 wow fadeInUp" data-wow-delay="0.2s">
                         <div className="left-content">
-                            <h2 className="title">Featured offer for you</h2>
+                            <h2 className="title">Featured Combo Offer For You</h2>
                         </div>
-                        <Link to="/shop" className="btn btn-outline-secondary">View All</Link>
+                        <Link to="/combo-offers" className="btn btn-outline-secondary">View All</Link>
                     </div>
                 </div>
                 <div className="container-fluid p-3">
@@ -904,24 +1001,35 @@ const Home: React.FC = () => {
                             },
                         }}
                     >
-                        {[
-                            { img: cosmeticLarge5, offer: '20% Off', title: 'Unique Deals', btn: 'Collect Now', style: 'style-1' },
-                            { img: cosmeticLarge6, offer: 'Sale Up to 50% Off', subtitle: 'Summer', year: '2024', btn: 'Collect Now', style: 'style-1' },
-                            { img: cosmeticLarge7, offer: '20% Off', subtitle2: 'Unbeatable', bgTitle: 'Sale', btn: 'Collect Now', style: 'style-1' },
-                            { img: cosmeticLarge5, offer: '20% Off', title: 'Unique Deals', btn: 'Collect Now', style: 'style-1' }
-                        ].map((item, idx) => (
+                        {(comboOffers.length > 0 ? comboOffers : [
+                            { imageUrl: cosmeticLarge5, discountValue: 10, discountType: 'percentage', offerName: 'BUMBER SUMMER COMBO' },
+                            { imageUrl: cosmeticLarge6, discountValue: 50, discountType: 'percentage', offerName: 'BEST OFFER' },
+                            { imageUrl: cosmeticLarge7, discountValue: 100, discountType: 'fixed', offerName: 'UNBEATABLE 2026' },
+                            { imageUrl: cosmeticLarge5, discountValue: 10, discountType: 'percentage', offerName: 'BUMBER SUMMER COMBO' }
+                        ]).map((offer, idx) => (
                             <SwiperSlide key={idx}>
-                                <div className="product-box style-1 wow fadeInUp" data-wow-delay={`${0.4 + idx * 0.2}s`}>
-                                    <div className="product-media" style={{ backgroundImage: `url(${item.img})` }}></div>
+                                <div 
+                                    className="product-box style-1 wow fadeInUp" 
+                                    data-wow-delay={`${0.4 + idx * 0.2}s`}
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => navigate('/combo-offers')}
+                                >
+                                    <div className="product-media" style={{ backgroundImage: `url(${offer.imageUrl || offer.img || cosmeticLarge5})` }}></div>
                                     <div className="product-content">
                                         <div className="main-content">
-                                            <span className="offer">{item.offer}</span>
-                                            {item.title && <h2 className="product-name">{item.title}</h2>}
-                                            {item.subtitle && <h4 className="sub-title1">{item.subtitle}</h4>}
-                                            {item.year && <span className="year">{item.year}</span>}
-                                            {item.subtitle2 && <h4 className="sub-title2">{item.subtitle2}</h4>}
-                                            {item.bgTitle && <span className="bg-title">{item.bgTitle}</span>}
-                                            <Link to="/shop" className="btn btn-outline-secondary btn-rounded btn-lg">{item.btn}</Link>
+                                            <span className="offer">
+                                                {offer.discountType === 'percentage' 
+                                                    ? `${offer.discountValue}% OFF` 
+                                                    : (offer.offer ? offer.offer : `₹${offer.discountValue} OFF`)
+                                                }
+                                            </span>
+                                            <h2 className="product-name" style={{ textTransform: 'uppercase' }}>{offer.offerName || offer.title}</h2>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleCollectOffer(offer); }}
+                                                className="btn btn-outline-secondary btn-rounded btn-lg"
+                                            >
+                                                Collect Now
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -986,53 +1094,77 @@ const Home: React.FC = () => {
             </section>
             {/* Featured2-Section End */}
 
-            {/* Saving-Secthion Start */}
+            {/* Saving-Section Start */}
             <section className="content-inner-2 overflow-hidden bg-light">
                 <div className="container">
-                    <div className="row ">
+                    <div className="row">
+                        {/* Banner on the Left side */}
                         <div className="col-lg-6 col-md-12 m-b30">
                             <div className="about-box style-1 clearfix h-100">
                                 <div className="dz-media h-100">
-                                    <img src={aboutPic2} alt="" />
+                                    <img src={aboutPic2} alt="Big Saving" />
                                     <div className="media-contant">
-                                        <h2 className="title">Recent Additions to Your Shortlist</h2>
-                                        <Link to="/shop" className="btn btn-white btn-hover-1">See All</Link>
+                                        <h2 className="title" style={{ fontSize: '40px' }}>Big Saving On Everyday Essentials</h2>
+                                        <p className="text-white mb-4">
+                                            Up To {offerProductsData.maxPercent || 60}% Off + Up To ₹{offerProductsData.maxAmount || 107} Cashback
+                                        </p>
+                                        <Link to="/shop?offers=true" className="btn btn-white btn-hover-1">See All</Link>
                                     </div>
                                     <svg className="title animation-text" viewBox="0 0 1320 300">
-                                        <text x="0" y="">ShortList</text>
+                                        <text x="0" y="70%">DISCOUNT</text>
                                     </svg>
                                 </div>
                             </div>
                         </div>
-                        <div className="col-lg-6 col-md-12 align-self-center">
+
+                        {/* Products on the Right side */}
+                        <div className="col-lg-6 col-md-12 align-self-center m-b30">
                             <div className="row">
-                                {[
-                                    { img: product4, title: 'Vayura Hair Shampoo', price: '₹30', sale: 'Up to 40% Off' },
-                                    { img: product5, title: 'DarkLeaf Hair Oil', price: '₹60', sale: 'Up to 40% Off', badge: true },
-                                    { img: product1, title: 'Metavya', price: '₹50', sale: 'Up to 40% Off' },
-                                    { img: product2, title: 'Femroot', price: '₹40', sale: 'Up to 40% Off' }
-                                ].map((prod, idx) => (
-                                    <div key={idx} className="col-lg-6 col-md-6 col-sm-6">
-                                        <div className="shop-card style-3 wow fadeInUp" data-wow-delay={`${0.2 + idx * 0.1}s`}>
-                                            <div className="dz-media">
-                                                <img src={prod.img} alt="image" />
-                                            </div>
-                                            <div className="dz-content">
-                                                <div>
-                                                    <span className="sale-title">{prod.sale}</span>
-                                                    <h6 className="title"><Link to="/shop">{prod.title}</Link></h6>
+                                {(offerProductsData.products.length > 0 ? offerProductsData.products : [
+                                    { img: product4, productName: 'Vayura Hair Shampoo', price: 95, offerPrice: 30, appliedOffer: { discountValue: 40, discountType: 'percentage' } },
+                                    { img: product5, productName: 'DarkLeaf Hair Oil', price: 95, offerPrice: 60, appliedOffer: { discountValue: 40, discountType: 'percentage' } },
+                                    { img: product1, productName: 'Metavya', price: 95, offerPrice: 50, appliedOffer: { discountValue: 40, discountType: 'percentage' } },
+                                    { img: product2, productName: 'Femroot', price: 95, offerPrice: 40, appliedOffer: { discountValue: 40, discountType: 'percentage' } }
+                                ]).map((prod, idx) => {
+                                    const discountLabel = prod.appliedOffer 
+                                        ? (prod.appliedOffer.discountType === 'percentage' 
+                                            ? `Up To ${prod.appliedOffer.discountValue}% Off` 
+                                            : `₹${prod.appliedOffer.discountValue} Off`)
+                                        : 'Special Offer';
+                                    
+                                    return (
+                                        <div key={idx} className="col-lg-6 col-md-6 col-sm-6">
+                                            <div className="shop-card style-3 wow fadeInUp" data-wow-delay={`${0.2 + idx * 0.1}s`}>
+                                                <div className="dz-media">
+                                                    <Link to={`/product/${prod._id || '#'}`}>
+                                                        <img src={prod.images?.[0] || prod.img} alt={prod.productName} />
+                                                    </Link>
                                                 </div>
-                                                <h6 className="price">{prod.price} <del>₹95</del></h6>
+                                                <div className="dz-content">
+                                                    <div>
+                                                        <span className="sale-title">{discountLabel}</span>
+                                                        <h6 className="title">
+                                                            <Link to={`/product/${prod._id || '#'}`}>{prod.productName}</Link>
+                                                        </h6>
+                                                    </div>
+                                                    <h6 className="price">₹{prod.offerPrice || prod.price} <del>₹{prod.price}</del></h6>
+                                                </div>
+                                                {prod.appliedOffer && prod.appliedOffer.discountType === 'percentage' && (
+                                                    <span className="sale-badge">
+                                                        {prod.appliedOffer.discountValue}%<br />Sale 
+                                                        <img src={starPng} alt="" />
+                                                    </span>
+                                                )}
                                             </div>
-                                            {prod.badge && <span className="sale-badge">50%<br />Sale <img src={starPng} alt="" /></span>}
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
+            {/* Saving-Section End */}
 
             {/* Sponsored / Company Swiper */}
             <section className="content-inner-2 bg-light">
@@ -1203,7 +1335,10 @@ const Home: React.FC = () => {
             </div>
 
             {/* Quick View Modal Container */}
-            <QuickViewModal />
+            <QuickViewModal 
+                product={quickViewProduct} 
+                onClose={() => setQuickViewProduct(null)} 
+            />
         </>
     );
 };

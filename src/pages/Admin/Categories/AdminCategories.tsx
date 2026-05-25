@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, X, Eye } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Search, Edit2, Trash2, X, Eye, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/adminApiClient';
 import { formatDate } from '../../../utils/formatDate';
@@ -11,6 +11,7 @@ interface Category {
     description: string;
     isActive: boolean;
     createdAt: string;
+    imageUrl?: string;
 }
 
 const AdminCategories: React.FC = () => {
@@ -20,6 +21,9 @@ const AdminCategories: React.FC = () => {
     // Form State
     const [categoryName, setCategoryName] = useState('');
     const [description, setDescription] = useState('');
+    const [imageUrl, setImageUrl] = useState(''); // Holds existing cloudinary URL (for edit/view)
+    const [imagePreview, setImagePreview] = useState<string>(''); // Base64 preview of new file, or existing URL
+    const imageInputRef = useRef<HTMLInputElement>(null);
     const [isActive, setIsActive] = useState(true);
     const [loading, setLoading] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit' | 'view'>('add');
@@ -43,7 +47,10 @@ const AdminCategories: React.FC = () => {
     const resetForm = () => {
         setCategoryName('');
         setDescription('');
+        setImageUrl('');
+        setImagePreview('');
         setIsActive(true);
+        if (imageInputRef.current) imageInputRef.current.value = '';
     };
 
     const handleOpenModal = (mode: 'add' | 'edit' | 'view', cat?: Category) => {
@@ -52,12 +59,30 @@ const AdminCategories: React.FC = () => {
             setSelectedCategoryId(cat._id);
             setCategoryName(cat.categoryName);
             setDescription(cat.description || '');
+            setImageUrl(cat.imageUrl || '');
+            setImagePreview(cat.imageUrl || '');
             setIsActive(cat.isActive);
         } else {
             resetForm();
             setSelectedCategoryId(null);
         }
         setIsModalOpen(true);
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveImage = () => {
+        setImagePreview('');
+        setImageUrl('');
+        if (imageInputRef.current) imageInputRef.current.value = '';
     };
 
     const handleCloseModal = () => {
@@ -115,13 +140,19 @@ const AdminCategories: React.FC = () => {
             return;
         }
 
+        // Determine final image value: new base64 file takes priority, else existing URL
+        const finalImageValue = imagePreview && imagePreview.startsWith('data:image')
+            ? imagePreview
+            : imageUrl.trim();
+
         setLoading(true);
         try {
             if (modalMode === 'edit' && selectedCategoryId) {
                 const res = await apiClient.put(`/admin/categories/${selectedCategoryId}`, {
                     categoryName: categoryName.trim(),
                     description: description.trim(),
-                    isActive
+                    isActive,
+                    imageUrl: finalImageValue
                 });
 
                 if (res.data.success) {
@@ -133,7 +164,8 @@ const AdminCategories: React.FC = () => {
                 const res = await apiClient.post('/admin/categories', {
                     categoryName: categoryName.trim(),
                     description: description.trim(),
-                    isActive
+                    isActive,
+                    imageUrl: finalImageValue
                 });
 
                 if (res.data.success) {
@@ -181,6 +213,7 @@ const AdminCategories: React.FC = () => {
                         <thead>
                             <tr>
                                 <th>Category Name</th>
+                                <th>Image</th>
                                 <th>Description</th>
                                 <th>Status</th>
                                 <th>Created</th>
@@ -191,6 +224,13 @@ const AdminCategories: React.FC = () => {
                             {categories.map((cat) => (
                                 <tr key={cat._id}>
                                     <td style={{ fontWeight: 600 }}>{cat.categoryName}</td>
+                                    <td style={{ width: 80 }}>
+                                        {cat.imageUrl ? (
+                                            <img src={cat.imageUrl} alt={cat.categoryName} style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 6 }} />
+                                        ) : (
+                                            <div style={{ width: 60, height: 40, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, color: '#94a3b8', fontSize: 12 }}>No</div>
+                                        )}
+                                    </td>
                                     <td>{cat.description || '--'}</td>
                                     <td>{getStatusBadge(cat.isActive)}</td>
                                     <td>{formatDate(cat.createdAt)}</td>
@@ -211,7 +251,7 @@ const AdminCategories: React.FC = () => {
                             ))}
                             {categories.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} style={{ textAlign: 'center', padding: '30px' }}>
+                                    <td colSpan={6} style={{ textAlign: 'center', padding: '30px' }}>
                                         No categories found. Click "Add Category" to create one.
                                     </td>
                                 </tr>
@@ -266,6 +306,78 @@ const AdminCategories: React.FC = () => {
                                     placeholder="Optional description"
                                     disabled={modalMode === 'view'}
                                 ></textarea>
+                            </div>
+
+                            <div className="form-group mb-3">
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '0.9rem' }}>Category Image</label>
+
+                                {/* Image Preview */}
+                                {imagePreview ? (
+                                    <div style={{ position: 'relative', display: 'block', marginBottom: 10, width: '100%' }}>
+                                        <img
+                                            src={imagePreview}
+                                            alt="category preview"
+                                            style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 10, border: '1px solid #e2e8f0', display: 'block' }}
+                                        />
+                                        {modalMode !== 'view' && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRemoveImage}
+                                                title="Remove image"
+                                                style={{
+                                                    position: 'absolute', top: 6, right: 6,
+                                                    background: 'rgba(220,38,38,0.85)', border: 'none',
+                                                    borderRadius: '50%', width: 26, height: 26,
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    cursor: 'pointer', color: '#fff'
+                                                }}
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : null}
+
+                                {/* Upload Button – shown in add/edit mode only */}
+                                {modalMode !== 'view' && (
+                                    <>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            ref={imageInputRef}
+                                            id="categoryImageUpload"
+                                            style={{ display: 'none' }}
+                                            onChange={handleImageChange}
+                                        />
+                                        <label
+                                            htmlFor="categoryImageUpload"
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                gap: 8, padding: '10px 16px', borderRadius: 8,
+                                                border: '1.5px dashed #94a3b8', background: '#f8fafc',
+                                                cursor: 'pointer', color: '#475569', fontSize: '0.9rem',
+                                                fontWeight: 500, transition: 'border-color 0.2s'
+                                            }}
+                                        >
+                                            <Upload size={16} />
+                                            {imagePreview ? 'Change Image' : 'Upload Image'}
+                                        </label>
+                                        <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 6, marginBottom: 0 }}>
+                                            Recommended: JPG or PNG, up to 5 MB
+                                        </p>
+                                    </>
+                                )}
+
+                                {/* No image placeholder in view mode */}
+                                {modalMode === 'view' && !imagePreview && (
+                                    <div style={{
+                                        width: '100%', height: 80, background: '#f1f5f9',
+                                        borderRadius: 8, display: 'flex', alignItems: 'center',
+                                        justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem'
+                                    }}>
+                                        No image set
+                                    </div>
+                                )}
                             </div>
 
                             <div className="form-group mb-4" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

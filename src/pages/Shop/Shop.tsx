@@ -665,7 +665,7 @@ const Shop: React.FC = () => {
                                                         <div className="dz-content">
                                                             <div className="dz-header">
                                                                 <div>
-                                                                    <h4 className="title mb-0"><Link to={`/product/${prod._id}`}>hhf</Link></h4>
+                                                                    <h4 className="title mb-0"><Link to={`/product/${prod._id}`}>{prod.productName}</Link></h4>
                                                                     <ul className="dz-tags"><li><a href="javascript:void(0);">{prod.categoryId?.categoryName}</a></li></ul>
                                                                 </div>
                                                                 <div className="review-num"><StarRating count={4} /><span> 150 Review</span></div>

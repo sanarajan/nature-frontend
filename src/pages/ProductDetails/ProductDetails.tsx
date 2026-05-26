@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { handleAddToCartGlobal, handleToggleWishlistGlobal } from '../../utils/CartHelper';
-import axios from 'axios';
+import userApiClient from '../../services/userApiClient';
 
 
 
@@ -20,7 +20,7 @@ const ProductDetails: React.FC = () => {
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/products/${id}`);
+                const response = await userApiClient.get(`/user/products/${id}`);
                 if (response.data.success) {
                     setProduct(response.data.data);
                 }

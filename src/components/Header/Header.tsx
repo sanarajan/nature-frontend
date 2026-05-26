@@ -20,20 +20,15 @@ const Header: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('user_accessToken'));
     const [cartCount, setCartCount] = useState(0);
     const [wishlistCount, setWishlistCount] = useState(0);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Close mobile nav when a link is clicked
     const closeNavbar = () => {
-        const navEl = document.getElementById('navbarNavDropdown');
-        if (navEl && navEl.classList.contains('show')) {
-            const bsCollapse = (window as any).bootstrap?.Collapse?.getInstance(navEl);
-            if (bsCollapse) {
-                bsCollapse.hide();
-            } else {
-                navEl.classList.remove('show');
-                const toggler = document.querySelector('.navbar-toggler');
-                if (toggler) toggler.classList.add('collapsed');
-            }
-        }
+        setIsMobileMenuOpen(false);
+    };
+
+    const toggleMenu = () => {
+        setIsMobileMenuOpen(!isMobileMenuOpen);
     };
 
     useEffect(() => {
@@ -114,6 +109,27 @@ const Header: React.FC = () => {
         };
     }, []);
 
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const navEl = document.getElementById('navbarNavDropdown');
+            const toggler = document.querySelector('.navbar-toggler');
+            
+            if (isMobileMenuOpen && navEl && !navEl.contains(event.target as Node)) {
+                if (toggler && !toggler.contains(event.target as Node)) {
+                    setIsMobileMenuOpen(false);
+                }
+            }
+        };
+
+        if (isMobileMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isMobileMenuOpen]);
+
     const confirmLogout = () => {
         toast(
             ({ closeToast }) => (
@@ -163,6 +179,24 @@ const Header: React.FC = () => {
 
     return (
         <header className={`site-header mo-left header style-1${isHome ? ' header-transparent' : ''}`}>
+            {/* Mobile Menu Overlay */}
+            {isMobileMenuOpen && (
+                <div 
+                    className="menu-backdrop" 
+                    onClick={closeNavbar}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        zIndex: 98,
+                        cursor: 'pointer',
+                        transition: 'opacity 0.3s'
+                    }}
+                />
+            )}
             {/* Main Header */}
             <div className={`sticky-header main-bar-wraper navbar-expand-lg ${isHeaderSticky ? 'is-fixed' : ''}`}>
                 <div className="main-bar clearfix">
@@ -173,16 +207,17 @@ const Header: React.FC = () => {
                         </div>
 
                         {/* Nav Toggle Button */}
-                        <button className="navbar-toggler collapsed navicon justify-content-end" type="button"
-                            data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
-                            aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                        <button className={`navbar-toggler navicon justify-content-end ${isMobileMenuOpen ? 'open' : 'collapsed'}`} type="button"
+                            onClick={toggleMenu}
+                            style={{ zIndex: 105, position: 'relative' }}
+                            aria-expanded={isMobileMenuOpen} aria-label="Toggle navigation">
                             <span></span>
                             <span></span>
                             <span></span>
                         </button>
 
                         {/* Main Nav */}
-                        <div className="header-nav navbar-collapse collapse justify-content-start" id="navbarNavDropdown">
+                        <div className={`header-nav navbar-collapse collapse justify-content-start ${isMobileMenuOpen ? 'show' : ''}`} id="navbarNavDropdown">
                             <div className="logo-header logo-dark">
                                 <Link to="/"><img src={logo} alt="" /></Link>
                             </div>

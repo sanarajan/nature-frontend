@@ -40,7 +40,7 @@ import Orders from './pages/Account/Orders'
 import OrderDetails from './pages/Account/OrderDetails'
 import AdminLogin from './pages/Admin/AdminLogin'
 
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { adminAuthService } from './services/admin/adminAuthService';
@@ -51,6 +51,11 @@ import GuestRoute from './components/Auth/GuestRoute';
 
 function App() {
   const dispatch = useDispatch();
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   useEffect(() => {
     const checkAuth = async () => {

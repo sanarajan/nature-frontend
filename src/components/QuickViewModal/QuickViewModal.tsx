@@ -50,13 +50,12 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
             style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
-            <div style={{ background: '#fff', width: '96vw', maxWidth: '1100px', height: '90vh', position: 'relative', boxShadow: '0 8px 40px rgba(0,0,0,0.25)', display: 'flex', overflow: 'hidden', borderRadius: '8px' }}>
-                <button onClick={onClose} aria-label="Close"
-                    style={{ position: 'absolute', top: '14px', right: '18px', background: 'none', border: 'none', fontSize: '28px', lineHeight: 1, cursor: 'pointer', color: '#222', zIndex: 20, fontWeight: 300 }}>
+            <div className="quick-view-modal-container" style={{ borderRadius: '8px' }}>
+                <button onClick={onClose} aria-label="Close" className="quick-view-close-btn">
                     ×
                 </button>
 
-                <div style={{ flex: '0 0 45%', background: '#f8f8f8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', position: 'relative' }}>
+                <div className="quick-view-image-container">
                     <img 
                         src={product.images && product.images.length > 0 ? product.images[0] : product1} 
                         alt={product.productName} 
@@ -64,9 +63,9 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose }) => 
                     />
                 </div>
 
-                <div style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+                <div className="quick-view-info-container">
                     <div>
-                        <h2 style={{ margin: 0, fontSize: '32px', fontWeight: 600, color: '#1a1a1a' }}>{product.productName}</h2>
+                        <h2 className="quick-view-title">{product.productName}</h2>
                         <div style={{ color: '#38996E', fontSize: '24px', fontWeight: 500, marginTop: '10px', display: 'flex', alignItems: 'baseline', gap: '10px' }}>
                             ₹{product.offerPrice ? product.offerPrice.toFixed(2) : product.price.toFixed(2)}
                             {product.offerPrice && product.offerPrice < product.price && (

@@ -71,13 +71,12 @@ const QuickViewModal = ({ prod, onClose, inWishlist, onToggleWishlist, handleAdd
             style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
-            <div style={{ background: '#fff', width: '96vw', maxWidth: '1100px', height: '100vh', position: 'relative', boxShadow: '0 8px 40px rgba(0,0,0,0.25)', display: 'flex', overflow: 'hidden' }}>
-                <button onClick={onClose} aria-label="Close"
-                    style={{ position: 'absolute', top: '14px', right: '18px', background: 'none', border: 'none', fontSize: '28px', lineHeight: 1, cursor: 'pointer', color: '#222', zIndex: 20, fontWeight: 300 }}>
+            <div className="quick-view-modal-container">
+                <button onClick={onClose} aria-label="Close" className="quick-view-close-btn">
                     ×
                 </button>
 
-                <div style={{ flex: '0 0 48%', background: '#f2f2f0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 32px', position: 'relative', overflow: 'hidden' }}>
+                <div className="quick-view-image-container">
                     {/* Badges in Quick View */}
                     {(prod.featured || prod.isBestSeller || prod.isPopular || prod.isTrending) && (
                         <div className="shop-badge-wrap" style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -94,8 +93,8 @@ const QuickViewModal = ({ prod, onClose, inWishlist, onToggleWishlist, handleAdd
                     </div>
                 </div>
 
-                <div style={{ flex: 1, padding: '28px 36px 24px 40px', display: 'flex', flexDirection: 'column', gap: '9px', overflowY: 'auto', borderLeft: '1px solid #e8e8e8' }}>
-                    <h2 style={{ margin: 0, fontSize: '42px', fontWeight: 400, lineHeight: 1.2, color: '#1a1a1a' }}>{prod.productName}</h2>
+                <div className="quick-view-info-container">
+                    <h2 className="quick-view-title">{prod.productName}</h2>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <StarRating count={4} />
@@ -707,7 +706,7 @@ const Shop: React.FC = () => {
                                                                 </div>
                                                             )}
                                                             <div className="shop-meta">
-                                                                <button className="btn btn-secondary btn-icon" onClick={() => setQuickViewProduct(prod)}>Quick View</button>
+                                                                <button className="btn btn-secondary quick-view-trigger" onClick={() => setQuickViewProduct(prod)}>Quick View</button>
                                                                 <button
                                                                     className="btn btn-primary meta-icon"
                                                                     onClick={(e) => { e.preventDefault(); handleToggleWishlist(prod); }}

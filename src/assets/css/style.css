@@ -63606,3 +63606,118 @@ footer.footer-dark .icon-bx-wraper {
   transition: none;
 }
 
+
+/* Quick View Responsiveness Fixes */
+.quick-view-modal-container {
+    background: #fff;
+    width: 96vw;
+    max-width: 1100px;
+    height: 90vh;
+    max-height: 800px;
+    position: relative;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+    display: flex;
+    overflow: hidden;
+}
+
+.quick-view-close-btn {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    color: #222;
+    z-index: 20;
+    font-weight: 300;
+}
+
+.quick-view-image-container {
+    flex: 0 0 48%;
+    background: #f2f2f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+}
+
+.quick-view-info-container {
+    flex: 1;
+    padding: 28px 36px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    overflow-y: auto;
+    border-left: 1px solid #e8e8e8;
+}
+
+.quick-view-title {
+    margin: 0;
+    font-size: 42px;
+    font-weight: 400;
+    line-height: 1.2;
+    color: #1a1a1a;
+}
+
+@media only screen and (max-width: 991px) {
+    .quick-view-modal-container {
+        flex-direction: column;
+        height: 85vh;
+        max-height: none;
+    }
+    
+    .quick-view-image-container {
+        flex: 0 0 45%;
+        padding: 20px;
+    }
+    
+    .quick-view-info-container {
+        flex: 1;
+        padding: 20px 25px;
+        border-left: none;
+        border-top: 1px solid #e8e8e8;
+    }
+    
+    .quick-view-title {
+        font-size: 28px;
+    }
+}
+
+@media only screen and (max-width: 767px) {
+    .shop-card .quick-view-trigger {
+        padding: 0 15px !important;
+        font-size: 13px !important;
+        width: auto !important;
+        height: 45px !important;
+        margin-right: 5px !important;
+    }
+    .shop-card .shop-meta .meta-icon {
+        width: 45px !important;
+        height: 45px !important;
+        margin: 0 2px !important;
+    }
+}
+
+@media only screen and (max-width: 575px) {
+    .quick-view-modal-container {
+        width: 95vw;
+        height: 90vh;
+    }
+    
+    .quick-view-image-container {
+        flex: 0 0 40%;
+        padding: 15px;
+    }
+    
+    .quick-view-info-container {
+        padding: 15px 20px;
+    }
+    
+    .quick-view-title {
+        font-size: 24px;
+    }
+}

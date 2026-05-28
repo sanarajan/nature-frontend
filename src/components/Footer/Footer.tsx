@@ -168,7 +168,7 @@ const Footer: React.FC = () => {
 </div>
                         <div className="col-lg-4 col-md-12 text-start">
                             <p className="copyright-text">© <span className="current-year">{new Date().getFullYear()}</span> <a
-                                href="https://www.indiankoder.com/">Calicut Web Designer</a> Theme.</p>
+                                href="https://www.indiankoder.com/">Calicut Web Designer</a> </p>
                         </div>
                         <div className="col-lg-4 col-md-12 text-end">
                             <div

@@ -1,0 +1,128 @@
+<div class="page-content bg-white">
+			<div class="dz-bnr-inr" style="background-image:url(images/background/bg1.jpg);">
+				<div class="container">
+					<div class="dz-bnr-inr-entry">
+						<h1>About us</h1>
+						<nav aria-label="breadcrumb" class="breadcrumb-row">
+							<ul class="breadcrumb">
+								<li class="breadcrumb-item"><a href="index.html"> Home</a></li>
+								<li class="breadcrumb-item">About us</li>
+							</ul>
+						</nav>
+					</div>
+				</div>
+			</div>
+
+			<!--Our Mission Section-->
+			<section class="content-inner bg-light">
+				<div class="container">
+					<div class="row about-style2 align-items-center">
+						<div class="col-lg-5 col-md-12 col-sm-12 m-b30">
+							<div class="about-thumb">
+								<img src="images/women.jpg" alt="">
+							</div>
+						</div>
+						<div class="col-lg-7 col-md-12 col-sm-12 m-b30">
+							<div class="about-content">
+								<div class="section-head mb-4">
+									<h3 class="title">ABOUT NATURALAYAM™</h3>
+									<p class="m-b20">Founded on the philosophy of nature-driven science, Naturalayam™
+										emerged in 2013 with a clear vision:
+										to transform traditional herbal wisdom into scientifically validated, premium
+										natural solutions for the modern world.</p>
+									<p class="m-b20">Headquartered in Kerala, India, Naturalayam™ is a fast-growing
+										international natural science–based brand, dedicated to developing high-quality
+										herbal and natural products that meet global expectations of safety, efficacy,
+										and excellence.</p>
+									<p class="m-b0">By integrating ancient botanical knowledge with advanced scientific
+										research, Naturalayam™ represents a new generation of Indian brands that elevate
+										herbal products to international premium standards.</p>
+								</div>
+								<div class="about-bx-detail">
+									<div class="about-bx-pic radius">
+										<img src="images/women2.jpg" alt="">
+									</div>
+									<div>
+										<h6 class="name">Shoaib</h6>
+										<span class="position">Ceo and founder</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Get In Touch -->
+			<section class="get-in-touch">
+				<div class="m-r100 m-md-r0 m-sm-r0">
+					<h3 class="dz-title mb-lg-0 mb-3">Questions ?
+						<span>Our experts will help find the grar thatâ€™s right for you</span>
+					</h3>
+				</div>
+				<a href="contact-us-1.html" class="btn btn-white btn-hover-1">Get In Touch</a>
+			</section>
+			<!-- Get In Touch End -->
+
+			<!-- Team1 Secthion Start-->
+			<section class="content-inner overlay-white-dark overflow-hidden">
+				<div class="container">
+					<div class="row align-items-center">
+						<div class="col-lg-6 mb-4 mb-lg-0 order-lg-1 order-2">
+							<div class="section-head style-2 wow fadeInUp m-md-r100 m-b30" data-wow-delay="0.1s">
+								<h2 class="title">OUR SCIENCE-DRIVEN APPROACH</h2>
+								<p>
+									At Naturalayam™, nature is not merely sourced — it is scientifically refined.Each
+									formulation is developed through:
+									</br>In-depth research on active herbal constituents
+									</br>Scientific standardization of ingredients
+									</br>Precision blending to ensure maximum bio-efficacy
+									</br>SLong-term formulation development focused on safety and synergy
+									</br>Our products are carefully engineered to deliver results without compromising
+									the body’s natural balance, ensuring no
+									harmful side effects when used as recommended.
+									</br>
+									</br>
+									All Naturalayam™ products are manufactured in facilities that strictly adhere to
+									GMP (Good Manufacturing Practice) guidelines, using advanced and modern production
+									technologies.
+									Our manufacturing process ensures:
+								</p>
+							</div>
+							<ul class="about-list">
+								<li>Controlled environments</li>
+								<li>Traceable raw material sourcing</li>
+								<li>Batch-wise quality assurance</li>
+								<li>International hygiene and safety protocols</li>
+
+							</ul>
+
+						</div>
+
+						<div class="col-lg-6  order-lg-2 order-1 mb-4 mb-xl-0">
+							<div class="row g-xl-4 g-md-4 g-3 m-0">
+								<div class="col-lg-12 wow fadeInUp" data-wow-delay="0.2s">
+									<div class="about-thumb radius-1">
+										<img src="images/about/pic3.jpg" alt="">
+									</div>
+								</div>
+								<div class="col-xl-5 col-lg-5 col-sm-5 col-5 wow fadeInUp gx-0 mt-2"
+									data-wow-delay="0.5s">
+									<div class="about-thumb radius-1">
+										<img src="images/about/pic4.jpg" alt="">
+									</div>
+								</div>
+								<div class="col-xl-7 col-lg-7 col-sm-7 col-7 wow fadeInUp mt-2" data-wow-delay="0.4s">
+									<div class="about-thumb radius-1">
+										<img src="images/about/pic5.jpg" alt="">
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+			<!--Team1 Secthion End-->
+
+
+		</div>

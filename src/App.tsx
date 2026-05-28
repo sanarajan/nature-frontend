@@ -21,6 +21,9 @@ import UserComboOffers from './pages/Shop/ComboOffers'
 import Header from './components/Header/Header'
 import Footer from './components/Footer/Footer'
 import Home from './pages/Home/Home'
+import About from './pages/About/About'
+import Contact from './pages/Contact/Contact'
+
 import Shop from './pages/Shop/Shop'
 import ProductDetails from './pages/ProductDetails/ProductDetails'
 import Offers from './pages/Offers/Offers'
@@ -157,6 +160,8 @@ function App() {
               <div className="page-content bg-white">
                 <Routes>
                   <Route path="/" element={<Home />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
                   <Route path="/shop" element={<Shop />} />
                   <Route path="/offers" element={<Offers />} />
                   <Route path="/combo-offers" element={<UserComboOffers />} />

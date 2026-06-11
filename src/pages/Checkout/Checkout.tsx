@@ -5,6 +5,7 @@ import userApiClient from '../../services/userApiClient';
 import type { RootState } from '../../store';
 import './Checkout.css';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 
 // Asset Imports
 import bg2 from '../../assets/images/background/bg2.jpg';
@@ -534,7 +535,13 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                         modal: {
                             ondismiss: function () {
                                 console.log("[Razorpay] Modal closed by user");
-                                toast.warning("Payment modal closed. If money was debited, it will be refunded or order will be updated shortly.");
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Payment Incomplete',
+                                    text: 'The payment process was closed before completion. If any amount was debited, it will generally be refunded by your bank according to their processing timeline.',
+                                    confirmButtonText: 'Try Again',
+                                    confirmButtonColor: '#0d6efd'
+                                });
                             }
                         }
                     };
@@ -542,7 +549,23 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                     const rzp = new (window as any).Razorpay(options);
                     rzp.on('payment.failed', function (response: any) {
                         console.error("[Razorpay] Payment failed event:", response.error);
-                        toast.error(`Payment failed: ${response.error.description}`);
+                        
+                        let errorTitle = 'Payment Failed';
+                        let errorMessage = response.error.description || 'An unknown error occurred during payment.';
+                        
+                        if (errorMessage.toLowerCase().includes('3dsecure is not enabled')) {
+                            errorMessage = 'Your bank or card could not complete authentication (3D Secure). Please try another card, use UPI or Net Banking, or contact your bank if the issue persists.';
+                        }
+
+                        errorMessage += '\n\nIf any amount was debited due to a failed payment attempt, it will generally be refunded by your bank according to their processing timeline.';
+                        
+                        Swal.fire({
+                            icon: 'error',
+                            title: errorTitle,
+                            text: errorMessage,
+                            confirmButtonText: 'Retry Payment',
+                            confirmButtonColor: '#0d6efd'
+                        });
                     });
                     rzp.open();
                 } else {
@@ -552,6 +575,7 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                     navigate('/checkout/success');
                 }
             } else {
+                console.log(res.data.message,"messagesfgf")
                 toast.error(res.data.message || "Failed to place order.");
             }
         } catch (error: any) {

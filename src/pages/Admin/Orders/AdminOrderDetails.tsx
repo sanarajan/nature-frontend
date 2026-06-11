@@ -457,7 +457,7 @@ const AdminOrderDetails: React.FC = () => {
                         <div className="billing-summary" style={{ fontSize: '0.95rem' }}>
                             <div className="d-flex justify-content-between mb-2">
                                 <span className="text-muted">Sub Total</span>
-                                <span className="fw-bold">₹{order.totalPrice.toFixed(2)}</span>
+                                <span className="fw-bold">₹{(order.totalMRP || order.totalPrice || 0).toFixed(2)}</span>
                             </div>
                             {order.couponName && (
                                 <div className="d-flex justify-content-between mb-2">
@@ -473,7 +473,7 @@ const AdminOrderDetails: React.FC = () => {
                             )}
                             <div className="d-flex justify-content-between mb-2">
                                 <span className="text-muted">Discount</span>
-                                <span className="fw-bold text-danger">- ₹{(order.discount || 0).toFixed(2)}</span>
+                                <span className="fw-bold text-danger">- ₹{(order.totalDiscount || order.discount || 0).toFixed(2)}</span>
                             </div>
                             <div className="d-flex justify-content-between mb-2">
                                 <span className="text-muted">Shipping Charge</span>

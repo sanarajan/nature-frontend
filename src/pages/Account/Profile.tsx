@@ -166,7 +166,9 @@ const Profile: React.FC = () => {
                 
                 // Update redux store with new user data (including role changes)
                 if (user) {
-                    dispatch(userLoginSuccess({ ...user, ...res.data.data.user }));
+                    const updatedUser = { ...user, ...res.data.data.user };
+                    dispatch(userLoginSuccess(updatedUser));
+                    localStorage.setItem('user_data', JSON.stringify(updatedUser));
                 }
                 
                 // Navigate to dashboard
@@ -225,7 +227,7 @@ const Profile: React.FC = () => {
                                         <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
                                         <ul className="account-info-list">
                                             <li className="active"><Link to="/account/profile">Profile</Link></li>
-                                            {user?.role === 'INFLUENCER' ? (
+                                            {user?.isInfluencer ? (
                                                 <li><Link to="/account/influencer">Influencer Dashboard</Link></li>
                                             ) : (
                                                 <li><a href="#" onClick={(e) => { e.preventDefault(); setShowInfluencerModal(true); }}>Become an Influencer</a></li>
@@ -302,7 +304,7 @@ const Profile: React.FC = () => {
                             </div>
 
                             {/* Become an Influencer Section */}
-                            {user?.role === 'USER' && (
+                            {!user?.isInfluencer && (
                                 <div className="account-card mt-4 p-4 border border-primary rounded" style={{ backgroundColor: '#f8faff' }}>
                                     <h4 className="mb-2 text-primary">Become an Influencer</h4>
                                     <p className="mb-3 text-muted">

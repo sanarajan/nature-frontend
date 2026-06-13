@@ -53,7 +53,9 @@ const Account: React.FC = () => {
                 toast.success('Successfully upgraded to Influencer!');
                 setShowInfluencerModal(false);
                 if (user) {
-                    dispatch({ type: 'auth/userLoginSuccess', payload: { ...user, ...res.data.data.user } });
+                    const updatedUser = { ...user, ...res.data.data.user };
+                    dispatch({ type: 'auth/userLoginSuccess', payload: updatedUser });
+                    localStorage.setItem('user_data', JSON.stringify(updatedUser));
                 }
                 navigate('/account/influencer');
             }
@@ -167,7 +169,7 @@ const Account: React.FC = () => {
                                         <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
                                         <ul className="account-info-list">
                                             <li><Link to="/account/profile">Profile</Link></li>
-                                            {user?.role === 'INFLUENCER' ? (
+                                            {user?.isInfluencer ? (
                                                 <li><Link to="/account/influencer">Influencer Dashboard</Link></li>
                                             ) : (
                                                 <li><a href="#" onClick={(e) => { e.preventDefault(); setShowInfluencerModal(true); }}>Become an Influencer</a></li>

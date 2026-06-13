@@ -8,6 +8,8 @@ export interface User {
     phone?: string;
     mobile?: string;
     role?: string;
+    isInfluencer?: boolean;
+    influencerCode?: string;
     token?: string;
     imageUrl?: string;
     referralId?: string;

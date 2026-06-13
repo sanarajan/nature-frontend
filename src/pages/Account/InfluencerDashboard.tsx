@@ -20,9 +20,9 @@ const InfluencerDashboard: React.FC = () => {
     useEffect(() => {
         if (!isAuthenticated && !localStorage.getItem('user_accessToken')) {
             navigate('/login');
-        } else if (user && user.role !== 'INFLUENCER') {
+        } else if (user && !user.isInfluencer) {
             navigate('/account/profile');
-        } else if (user && user.role === 'INFLUENCER') {
+        } else if (user && user.isInfluencer) {
             fetchDashboardData();
         }
     }, [isAuthenticated, navigate, user]);
@@ -119,7 +119,7 @@ const InfluencerDashboard: React.FC = () => {
                                         <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
                                         <ul className="account-info-list">
                                             <li><Link to="/account/profile">Profile</Link></li>
-                                            {user?.role === 'INFLUENCER' && <li className="active"><Link to="/account/influencer">Influencer Dashboard</Link></li>}
+                                            {user?.isInfluencer && <li className="active"><Link to="/account/influencer">Influencer Dashboard</Link></li>}
                                         </ul>
                                     </div>
                                 </div>

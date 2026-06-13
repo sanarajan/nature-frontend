@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../../store';
-import { userLogout } from '../../store/authSlice';
+import { userLogout, userLoginSuccess } from '../../store/authSlice';
 import { toast } from 'react-toastify';
 import ReactApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
@@ -52,11 +52,18 @@ const Account: React.FC = () => {
             if (res.data.success) {
                 toast.success('Successfully upgraded to Influencer!');
                 setShowInfluencerModal(false);
-                if (user) {
-                    const updatedUser = { ...user, ...res.data.data.user };
-                    dispatch({ type: 'auth/userLoginSuccess', payload: updatedUser });
-                    localStorage.setItem('user_data', JSON.stringify(updatedUser));
+                
+                try {
+                    const profileRes = await userApiClient.get('/user/auth/me');
+                    if (profileRes.data.success && profileRes.data.data.user) {
+                        const updatedUser = profileRes.data.data.user;
+                        dispatch(userLoginSuccess(updatedUser));
+                        localStorage.setItem('user_data', JSON.stringify(updatedUser));
+                    }
+                } catch (profileErr) {
+                    console.error("Failed to fetch updated profile", profileErr);
                 }
+
                 navigate('/account/influencer');
             }
         } catch (error: any) {

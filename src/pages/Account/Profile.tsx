@@ -164,11 +164,15 @@ const Profile: React.FC = () => {
                 toast.success('Successfully upgraded to Influencer!');
                 setShowInfluencerModal(false);
                 
-                // Update redux store with new user data (including role changes)
-                if (user) {
-                    const updatedUser = { ...user, ...res.data.data.user };
-                    dispatch(userLoginSuccess(updatedUser));
-                    localStorage.setItem('user_data', JSON.stringify(updatedUser));
+                try {
+                    const profileRes = await userApiClient.get('/user/auth/me');
+                    if (profileRes.data.success && profileRes.data.data.user) {
+                        const updatedUser = profileRes.data.data.user;
+                        dispatch(userLoginSuccess(updatedUser));
+                        localStorage.setItem('user_data', JSON.stringify(updatedUser));
+                    }
+                } catch (profileErr) {
+                    console.error("Failed to fetch updated profile", profileErr);
                 }
                 
                 // Navigate to dashboard

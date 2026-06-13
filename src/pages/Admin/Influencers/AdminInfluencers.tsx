@@ -1,0 +1,162 @@
+import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import adminApiClient from '../../../services/adminApiClient';
+import { Users, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import './AdminInfluencers.css';
+
+const AdminInfluencers: React.FC = () => {
+    const [influencers, setInfluencers] = useState<any[]>([]);
+    const [withdrawals, setWithdrawals] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'list' | 'withdrawals'>('list');
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const fetchData = async () => {
+        try {
+            const [influencerRes, withdrawalRes] = await Promise.all([
+                adminApiClient.get('/admin/influencers'),
+                adminApiClient.get('/admin/influencers/withdrawals')
+            ]);
+            
+            if (influencerRes.data.success) setInfluencers(influencerRes.data.data);
+            if (withdrawalRes.data.success) setWithdrawals(withdrawalRes.data.data);
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to fetch data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleProcessWithdrawal = async (id: string, status: 'Approved' | 'Rejected') => {
+        if (!window.confirm(`Are you sure you want to mark this request as ${status}?`)) return;
+        
+        try {
+            const res = await adminApiClient.put(`/admin/influencers/withdrawals/${id}`, { status, remarks: `Processed by Admin` });
+            if (res.data.success) {
+                toast.success(`Withdrawal ${status} successfully`);
+                fetchData();
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to process withdrawal');
+        }
+    };
+
+    if (loading) return <div>Loading...</div>;
+
+    return (
+        <div className="admin-influencers-container">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2>Influencer Management</h2>
+            </div>
+
+            <ul className="nav nav-tabs mb-4">
+                <li className="nav-item">
+                    <button className={`nav-link ${activeTab === 'list' ? 'active' : ''}`} onClick={() => setActiveTab('list')}>
+                        <Users size={18} className="me-2"/> Influencers
+                    </button>
+                </li>
+                <li className="nav-item">
+                    <button className={`nav-link ${activeTab === 'withdrawals' ? 'active' : ''}`} onClick={() => setActiveTab('withdrawals')}>
+                        <DollarSign size={18} className="me-2"/> Withdrawal Requests
+                    </button>
+                </li>
+            </ul>
+
+            {activeTab === 'list' && (
+                <div className="card shadow-sm">
+                    <div className="card-body">
+                        <table className="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Ref Code</th>
+                                    <th>Commission %</th>
+                                    <th>Wallet Balance</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {influencers.map(inf => (
+                                    <tr key={inf._id}>
+                                        <td>{inf.displayName || inf.username}</td>
+                                        <td>{inf.email}</td>
+                                        <td>{inf.influencerCode}</td>
+                                        <td>{inf.commissionPercentage}%</td>
+                                        <td>₹{inf.influencerWalletBalance?.toFixed(2) || '0.00'}</td>
+                                        <td>
+                                            <span className={`badge ${inf.influencerStatus === 'Active' ? 'bg-success' : 'bg-danger'}`}>
+                                                {inf.influencerStatus || 'Active'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {influencers.length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} className="text-center">No influencers found.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'withdrawals' && (
+                <div className="card shadow-sm">
+                    <div className="card-body">
+                        <table className="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Influencer</th>
+                                    <th>Amount</th>
+                                    <th>Current Balance</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {withdrawals.map(req => (
+                                    <tr key={req._id}>
+                                        <td>{new Date(req.requestedAt).toLocaleDateString()}</td>
+                                        <td>{req.influencerId?.displayName || req.influencerId?.email}</td>
+                                        <td>₹{req.amount.toFixed(2)}</td>
+                                        <td>₹{req.influencerId?.influencerWalletBalance?.toFixed(2)}</td>
+                                        <td>
+                                            <span className={`badge ${req.status === 'Approved' ? 'bg-success' : req.status === 'Pending' ? 'bg-warning text-dark' : 'bg-danger'}`}>
+                                                {req.status}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {req.status === 'Pending' && (
+                                                <div className="d-flex gap-2">
+                                                    <button className="btn btn-sm btn-success" onClick={() => handleProcessWithdrawal(req._id, 'Approved')}>
+                                                        <CheckCircle size={14}/> Approve
+                                                    </button>
+                                                    <button className="btn btn-sm btn-danger" onClick={() => handleProcessWithdrawal(req._id, 'Rejected')}>
+                                                        <XCircle size={14}/> Reject
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {withdrawals.length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} className="text-center">No withdrawal requests found.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default AdminInfluencers;

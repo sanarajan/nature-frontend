@@ -6,6 +6,7 @@ import EditProduct from './pages/Admin/Products/EditProduct'
 import AdminCategories from './pages/Admin/Categories/AdminCategories'
 import AdminSubcategories from './pages/Admin/Categories/AdminSubcategories'
 import AdminCustomers from './pages/Admin/Customers/AdminCustomers'
+import AdminInfluencers from './pages/Admin/Influencers/AdminInfluencers'
 import AdminOrders from './pages/Admin/Orders/AdminOrders'
 import AdminOrderDetails from './pages/Admin/Orders/AdminOrderDetails'
 import AdminCoupons from './pages/Admin/Coupons/AdminCoupons'
@@ -40,6 +41,7 @@ import Address from './pages/Account/Address'
 import ShippingAddress from './pages/Account/ShippingAddress'
 import Orders from './pages/Account/Orders'
 import OrderDetails from './pages/Account/OrderDetails'
+import InfluencerDashboard from './pages/Account/InfluencerDashboard'
 import AdminLogin from './pages/Admin/AdminLogin'
 
 import { Routes, Route, useLocation } from 'react-router-dom'
@@ -57,6 +59,19 @@ function App() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+
+    // Influencer Referral Tracking
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+    if (refCode) {
+      // Set cookie for 30 days
+      document.cookie = `influencer_ref=${refCode}; path=/; max-age=2592000`;
+      
+      // Clean up URL without refreshing the page
+      params.delete('ref');
+      const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+      window.history.replaceState({}, '', newUrl);
+    }
   }, [pathname]);
 
   useEffect(() => {
@@ -127,6 +142,7 @@ function App() {
           <Route path="/admin/coupons" element={<AdminCoupons />} />
           <Route path="/admin/coupons/add" element={<AddCoupon />} />
           <Route path="/admin/coupons/edit/:id" element={<AddCoupon />} />
+          <Route path="/admin/influencers" element={<AdminInfluencers />} />
           <Route path="/admin/offers/product-category" element={<ProductCategoryOffers />} />
           <Route path="/admin/offers/combo" element={<AdminComboOffers />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
@@ -199,6 +215,11 @@ function App() {
                   <Route path="/account/profile" element={
                     <ProtectedRoute type="user">
                       <Profile />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/account/influencer" element={
+                    <ProtectedRoute type="user">
+                      <InfluencerDashboard />
                     </ProtectedRoute>
                   } />
                   <Route path="/account/address" element={

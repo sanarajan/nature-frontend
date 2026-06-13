@@ -145,6 +145,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                         <span>Customers</span>
                     </NavLink>
 
+                    <NavLink to="/admin/influencers" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+                        <Users size={20} />
+                        <span>Influencers</span>
+                    </NavLink>
+
                     <NavLink to="/admin/products" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         <Package size={20} />
                         <span>Products</span>

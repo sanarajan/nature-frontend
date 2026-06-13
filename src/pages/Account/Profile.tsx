@@ -33,6 +33,10 @@ const Profile: React.FC = () => {
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
     const cropperRef = useRef<any>(null);
 
+    // Influencer State
+    const [showInfluencerModal, setShowInfluencerModal] = useState(false);
+    const [upgrading, setUpgrading] = useState(false);
+
     useEffect(() => {
         if (!isAuthenticated && !localStorage.getItem('user_accessToken')) {
             navigate('/login');
@@ -152,6 +156,29 @@ const Profile: React.FC = () => {
         }
     };
 
+    const handleUpgradeToInfluencer = async () => {
+        setUpgrading(true);
+        try {
+            const res = await userApiClient.post('/user/influencer/upgrade');
+            if (res.data.success) {
+                toast.success('Successfully upgraded to Influencer!');
+                setShowInfluencerModal(false);
+                
+                // Update redux store with new user data (including role changes)
+                if (user) {
+                    dispatch(userLoginSuccess({ ...user, ...res.data.data.user }));
+                }
+                
+                // Navigate to dashboard
+                navigate('/account/influencer');
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to upgrade account');
+        } finally {
+            setUpgrading(false);
+        }
+    };
+
     return (
         <div className="page-content bg-light position-relative">
             {/* Banner Section */}
@@ -198,6 +225,11 @@ const Profile: React.FC = () => {
                                         <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
                                         <ul className="account-info-list">
                                             <li className="active"><Link to="/account/profile">Profile</Link></li>
+                                            {user?.role === 'INFLUENCER' ? (
+                                                <li><Link to="/account/influencer">Influencer Dashboard</Link></li>
+                                            ) : (
+                                                <li><a href="#" onClick={(e) => { e.preventDefault(); setShowInfluencerModal(true); }}>Become an Influencer</a></li>
+                                            )}
                                             <li><Link to="/account/address">Address</Link></li>
                                             <li><Link to="/account/shipping">Shipping methods</Link></li>
                                             <li><Link to="/account/payment">Payment Methods</Link></li>
@@ -268,6 +300,20 @@ const Profile: React.FC = () => {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Become an Influencer Section */}
+                            {user?.role === 'USER' && (
+                                <div className="account-card mt-4 p-4 border border-primary rounded" style={{ backgroundColor: '#f8faff' }}>
+                                    <h4 className="mb-2 text-primary">Become an Influencer</h4>
+                                    <p className="mb-3 text-muted">
+                                        Earn commission by sharing your referral link.
+                                        Promote products and earn rewards when customers purchase through your link.
+                                    </p>
+                                    <button onClick={() => setShowInfluencerModal(true)} className="btn btn-primary">
+                                        Become an Influencer
+                                    </button>
+                                </div>
+                            )}
                         </section>
                     </div>
                 </div>
@@ -307,6 +353,36 @@ const Profile: React.FC = () => {
                         <div className="d-flex justify-content-end mt-4">
                             <button onClick={saveCroppedImage} style={{ padding: '10px 20px', background: 'var(--admin-primary)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600 }}>
                                 Save Photo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Influencer Upgrade Modal */}
+            {showInfluencerModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div style={{
+                        backgroundColor: '#fff', borderRadius: '12px',
+                        padding: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', width: '90%', maxWidth: '450px'
+                    }}>
+                        <h4 className="mb-3">Become an Influencer</h4>
+                        <p className="text-muted mb-4">
+                            You can earn commissions by sharing your unique referral link. 
+                            Customers who visit using your link and successfully complete 
+                            purchases will contribute towards your influencer earnings 
+                            according to the platform rules.
+                        </p>
+                        <div className="d-flex justify-content-end gap-3">
+                            <button onClick={() => setShowInfluencerModal(false)} disabled={upgrading} className="btn btn-light">
+                                Cancel
+                            </button>
+                            <button onClick={handleUpgradeToInfluencer} disabled={upgrading} className="btn btn-primary">
+                                {upgrading ? 'Processing...' : 'Confirm'}
                             </button>
                         </div>
                     </div>

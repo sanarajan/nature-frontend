@@ -35,6 +35,7 @@ const Cart: React.FC = () => {
     const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [appliedComboOffer, setAppliedComboOffer] = useState<any>(null);
+    const [cartPricing, setCartPricing] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
     const navigate = useNavigate();
@@ -47,6 +48,10 @@ const Cart: React.FC = () => {
                 if (res.data.success && res.data.data) {
                     setCartItems(res.data.data.products);
                     setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                    if (res.data.data.pricing) {
+                        (window as any).cartPricing = res.data.data.pricing;
+                        setCartPricing(res.data.data.pricing);
+                    }
                 }
             } catch (err) {
                 console.error("Failed to fetch cart", err);
@@ -60,6 +65,10 @@ const Cart: React.FC = () => {
                     if (res.data.success && res.data.data) {
                         setCartItems(res.data.data.products);
                         setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                        if (res.data.data.pricing) {
+                            (window as any).cartPricing = res.data.data.pricing;
+                            setCartPricing(res.data.data.pricing);
+                        }
                     }
                 } catch (e) {
                     setCartItems([]);
@@ -102,6 +111,10 @@ const Cart: React.FC = () => {
                 if (res.data.success && res.data.data) {
                     setCartItems(res.data.data.products);
                     setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                    if (res.data.data.pricing) {
+                        (window as any).cartPricing = res.data.data.pricing;
+                        setCartPricing(res.data.data.pricing);
+                    }
                 }
             } catch (err) {
                 toast.error('Failed to update quantity');
@@ -121,6 +134,10 @@ const Cart: React.FC = () => {
                 if (res.data.success && res.data.data) {
                     setCartItems(res.data.data.products);
                     setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                    if (res.data.data.pricing) {
+                        (window as any).cartPricing = res.data.data.pricing;
+                        setCartPricing(res.data.data.pricing);
+                    }
                 }
                 toast.success('Item removed');
             } catch (err) {
@@ -162,16 +179,17 @@ const Cart: React.FC = () => {
         return Object.values(grouped);
     }, [cartItems]);
 
-    const mrpSubtotal = finalItems.reduce((acc: number, item: any) => acc + (item.product?.price || 0) * (item.quantity || 0), 0);
-    const totalIndividualDiscount = finalItems.reduce((acc: number, item: any) => {
+    const mrpSubtotal = cartPricing?.originalPrice || finalItems.reduce((acc: number, item: any) => acc + (item.product?.price || 0) * (item.quantity || 0), 0);
+    const totalIndividualDiscount = cartPricing?.productDiscount !== undefined ? cartPricing.productDiscount : finalItems.reduce((acc: number, item: any) => {
         if (item.appliedProductOffer?.finalUnitPrice !== undefined && item.normalQty > 0) {
             const unitDiscount = (item.product?.price || 0) - item.appliedProductOffer.finalUnitPrice;
             return acc + (unitDiscount * item.normalQty);
         }
         return acc;
     }, 0);
-    const comboDiscount = appliedComboOffer?.discountValue || 0;
-    const finalTotal = Math.round((mrpSubtotal - totalIndividualDiscount - comboDiscount) * 100) / 100;
+    const comboDiscount = cartPricing?.comboDiscount !== undefined ? cartPricing.comboDiscount : (appliedComboOffer?.discountValue || 0);
+    const influencerDiscount = cartPricing?.influencerDiscountAmount || 0;
+    const finalTotal = cartPricing?.finalPrice !== undefined ? cartPricing.finalPrice : Math.round((mrpSubtotal - totalIndividualDiscount - comboDiscount - influencerDiscount) * 100) / 100;
 
     return (
         <div className="page-content">
@@ -396,9 +414,15 @@ const Cart: React.FC = () => {
                                                 </td>
                                             </tr>
                                         )}
+                                        {influencerDiscount > 0 && (
+                                            <tr className="total">
+                                                <td><h6 className="mb-0 title" style={{ color: '#007bff' }}>Influencer Discount</h6></td>
+                                                <td className="price" style={{ color: '#007bff' }}>-₹{influencerDiscount.toFixed(2)}</td>
+                                            </tr>
+                                        )}
                                         <tr className="total">
                                             <td><h4 className="mb-0 title">Total Amount</h4></td>
-                                            <td className="price"><h4>₹{finalTotal.toFixed(2)}</h4></td>
+                                            <td className="price"><h4 className="mb-0">₹{finalTotal.toFixed(2)}</h4></td>
                                         </tr>
                                     </tbody>
                                 </table>

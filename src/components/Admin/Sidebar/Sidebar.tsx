@@ -229,6 +229,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                         <span>Integrations</span>
                     </NavLink>
 
+                    <NavLink to="/admin/loyalty-settings" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+                        <Settings size={20} />
+                        <span>Loyalty Settings</span>
+                    </NavLink>
+
                     <NavLink to="/admin/settings" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         <Settings size={20} />
                         <span>Settings</span>

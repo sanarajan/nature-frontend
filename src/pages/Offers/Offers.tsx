@@ -3,12 +3,17 @@ import React, { useState, useRef } from 'react';
 import './Offers.css';
 import { Star } from 'lucide-react';
 
+import userApiClient from '../../services/userApiClient';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
+import { toast } from 'react-toastify';
+
 // The user requested only 4 offers to enter
 const uniqueOffers = [
-    { label: '10% OFF', code: 'SAVE10', desc: 'Get 10% Off on your next order!' },
-    { label: 'Free Shipping', code: 'SHIPFREE', desc: 'Enjoy Free Shipping on your next order!' },
-    { label: '20% OFF', code: 'NATURAL20', desc: 'Huge 20% discount just for you!' },
-    { label: 'Buy 1 Get 1', code: 'BOGO', desc: 'Buy 1 Get 1 Free on select items!' },
+    { label: '10% OFF', code: 'SAVE10', desc: 'Get 10% Off on your next order!', type: 'coupon' },
+    { label: '50 Points', code: '50 Nature Points', desc: 'You won 50 Nature Points!', type: 'points', value: 50 },
+    { label: '20% OFF', code: 'NATURAL20', desc: 'Huge 20% discount just for you!', type: 'coupon' },
+    { label: '100 Points', code: '100 Nature Points', desc: 'You won 100 Nature Points!', type: 'points', value: 100 },
 ];
 
 // Repeat 4 offers twice to fill 8 segments for a better aesthetic (like the reference image)
@@ -40,7 +45,14 @@ const Offers: React.FC = () => {
     // Reduced to 12 lights like the reference screenshot for exact matching
     const lights = Array.from({ length: 12 });
 
-    const spinWheel = () => {
+    const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
+
+    const spinWheel = async () => {
+        if (!isUser) {
+            toast.error('Please login to spin the wheel!');
+            return;
+        }
+
         if (spinning) return;
         
         setSpinning(true);
@@ -63,8 +75,22 @@ const Offers: React.FC = () => {
             const winningDegree = (90 - actualDeg + 360) % 360;
             const segmentIndex = Math.floor(winningDegree / 45); // 8 segments, 45 deg each
             
-            setResult(options[segmentIndex % 8]);
+            const wonOffer = options[segmentIndex % 8];
+            setResult(wonOffer);
             createConfetti();
+
+            if (wonOffer.type === 'points' && wonOffer.value) {
+                // Call API
+                userApiClient.post('/user/loyalty/wheel', { pointsWon: wonOffer.value })
+                    .then(res => {
+                        if (res.data.success) {
+                            toast.success(`You won ${wonOffer.value} Nature Points!`);
+                        }
+                    })
+                    .catch(err => {
+                        toast.error(err.response?.data?.message || 'Failed to claim points.');
+                    });
+            }
             
             setTimeout(() => {
                 resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -145,13 +171,15 @@ const Offers: React.FC = () => {
                         <p style={{ color: '#64748b' }}>{result.desc}</p>
                         
                         <div className="coupon-box">
-                            <span className="coupon-code">{result.code}</span>
-                            <button className="copy-btn" onClick={() => copyCoupon(result.code)}>
-                                {copied ? 'COPIED!' : 'COPY'}
-                            </button>
+                            <span className="coupon-code">{result.type === 'points' ? `${result.value} Points` : result.code}</span>
+                            {result.type !== 'points' && (
+                                <button className="copy-btn" onClick={() => copyCoupon(result.code)}>
+                                    {copied ? 'COPIED!' : 'COPY'}
+                                </button>
+                            )}
                         </div>
                         <p className="mt-3 text-muted small" style={{ fontSize: '11px' }}>
-                            *Terms and conditions apply. Use this code at checkout to claim your offer.
+                            {result.type === 'points' ? '*Points have been added to your Nature Points balance automatically.' : '*Terms and conditions apply. Use this code at checkout to claim your offer.'}
                         </p>
                     </div>
                 )}

@@ -22,12 +22,49 @@ const AdminOrderDetails: React.FC = () => {
     // const [showReturnModal, setShowReturnModal] = useState(false);
     // const [returnReason, setReturnReason] = useState('');
     const [agencies, setAgencies] = useState<any[]>([]);
+    
+    // Request Processing State
+    const [processRequestModal, setProcessRequestModal] = useState<{
+        isOpen: boolean;
+        type: 'cancel' | 'return';
+        productId: string;
+        action: 'accept' | 'reject' | 'complete' | null;
+        adminNotes: string;
+        rejectionReason: string;
+    }>({
+        isOpen: false,
+        type: 'cancel',
+        productId: '',
+        action: null,
+        adminNotes: '',
+        rejectionReason: ''
+    });
     const [shippingData, setShippingData] = useState({
         agencyName: '',
         trackingNumber: '',
-        agencyUrl: ''
+        agencyUrl: '',
+        expectedDeliveryDate: '',
+        isOutForDeliveryAction: false
     });
+    
+    // Delivery Delay State
+    const [showDeliveryDelayModal, setShowDeliveryDelayModal] = useState(false);
+    const [deliveryDelayData, setDeliveryDelayData] = useState({
+        productId: '',
+        newExpectedDate: '',
+        reason: ''
+    });
+
     const [viewReason, setViewReason] = useState<{ id: string; text: string } | null>(null);
+    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
+    useEffect(() => {
+        const handleClickOutside = () => {
+            if (activeDropdown) setActiveDropdown(null);
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, [activeDropdown]);
 
     // Refund Logic States
     const [showRefundModal, setShowRefundModal] = useState(false);
@@ -123,7 +160,7 @@ const AdminOrderDetails: React.FC = () => {
             // setShowReturnModal(false);
             setCancelReason('');
             // setReturnReason('');
-            setShippingData({ agencyName: '', trackingNumber: '', agencyUrl: '' });
+            setShippingData({ agencyName: '', trackingNumber: '', agencyUrl: '', expectedDeliveryDate: '', isOutForDeliveryAction: false });
         }
     };
 
@@ -136,11 +173,52 @@ const AdminOrderDetails: React.FC = () => {
     };
 
     const handleShipItem = () => {
-        if (!shippingData.agencyName || !shippingData.trackingNumber) {
+        if (!shippingData.expectedDeliveryDate) {
+            toast.warn('Please provide an expected delivery date');
+            return;
+        }
+
+        if (new Date(shippingData.expectedDeliveryDate) <= new Date()) {
+            toast.warn('Expected delivery date must be tomorrow or later');
+            return;
+        }
+
+        if (!shippingData.isOutForDeliveryAction && (!shippingData.agencyName || !shippingData.trackingNumber)) {
             toast.warn('Please provide agency name and tracking number');
             return;
         }
-        handleUpdateStatus('Shipped', undefined, selectedProductId || undefined, shippingData);
+
+        handleUpdateStatus(shippingData.isOutForDeliveryAction ? 'Out for Delivery' : 'Shipped', undefined, selectedProductId || undefined, shippingData);
+    };
+
+    const handleDeliveryDelay = async () => {
+        if (!deliveryDelayData.newExpectedDate || !deliveryDelayData.reason.trim()) {
+            toast.warn('Please provide both reason and new expected delivery date');
+            return;
+        }
+
+        if (new Date(deliveryDelayData.newExpectedDate) <= new Date()) {
+            toast.warn('New expected delivery date must be tomorrow or later');
+            return;
+        }
+
+        setUpdatingStatus(true);
+        try {
+            const res = await apiClient.patch(`/admin/orders/${id}/item/${deliveryDelayData.productId}/delivery-update`, {
+                newExpectedDate: deliveryDelayData.newExpectedDate,
+                reason: deliveryDelayData.reason
+            });
+            if (res.data.success) {
+                toast.success('Delivery delay updated successfully');
+                setOrder(res.data.data);
+            }
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to update delivery delay');
+        } finally {
+            setUpdatingStatus(false);
+            setShowDeliveryDelayModal(false);
+            setDeliveryDelayData({ productId: '', newExpectedDate: '', reason: '' });
+        }
     };
 
     const openCancelModal = (productId?: string) => {
@@ -155,13 +233,30 @@ const AdminOrderDetails: React.FC = () => {
         setShowCancelModal(true);
     };
 
-    const openShipModal = (productId?: string) => {
+    const openShipModal = (productId?: string, isOutForDelivery: boolean = false) => {
         if (productId) {
             setSelectedProductId(productId);
+            if (isOutForDelivery) {
+                const product = order?.orderedProducts?.find((p: any) => p.productId === productId || (p as any)._id === productId);
+                const prevDate = product?.shippingDetails?.expectedDeliveryDate;
+                setShippingData(prev => ({
+                    ...prev,
+                    isOutForDeliveryAction: true,
+                    expectedDeliveryDate: prevDate ? prevDate.split('T')[0] : ''
+                }));
+            } else {
+                setShippingData(prev => ({ ...prev, isOutForDeliveryAction: false }));
+            }
         } else {
             setSelectedProductId(null);
+            setShippingData(prev => ({ ...prev, isOutForDeliveryAction: false }));
         }
         setShowShipModal(true);
+    };
+
+    const openDeliveryDelayModal = (productId: string) => {
+        setDeliveryDelayData({ productId, newExpectedDate: '', reason: '' });
+        setShowDeliveryDelayModal(true);
     };
 
     /*
@@ -177,6 +272,34 @@ const AdminOrderDetails: React.FC = () => {
         handleUpdateStatus('Returned', returnReason, selectedProductId || undefined);
     };
     */
+
+    const handleProcessRequest = async () => {
+        const { productId, action, type, adminNotes, rejectionReason } = processRequestModal;
+        
+        if (!action) return;
+        
+        setUpdatingStatus(true);
+        try {
+            const payload: any = {};
+            if (adminNotes.trim()) payload.adminNotes = adminNotes;
+            if (rejectionReason.trim()) payload.rejectionReason = rejectionReason;
+            
+            // Construct the correct endpoint URL to match the backend routes
+            // Example: /admin/orders/:id/item/:productId/cancel/accept
+            const endpoint = `/admin/orders/${id}/item/${productId}/${type}/${action}`;
+            const res = await apiClient.patch(endpoint, payload);
+            
+            if (res.data.success) {
+                toast.success(res.data.message || 'Request processed successfully');
+                setOrder(res.data.data.order);
+                setProcessRequestModal(prev => ({ ...prev, isOpen: false }));
+            }
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to process request');
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
 
     const handleAgencyChange = (agencyName: string) => {
         const agency = agencies.find(a => a.name === agencyName);
@@ -266,23 +389,44 @@ const AdminOrderDetails: React.FC = () => {
                         <span className="text-muted">{formatDate(order.createdAt)} • {order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online Payment'}</span>
                         {(() => {
                             const gs = order.globalOrderStatus;
-                            const isCancelledOrReturned = gs === 'CANCELLED' || gs === 'RETURNED' || gs === 'PARTIALLY_RETURNED' || gs === 'PARTIALLY_CANCELLED' || gs === 'CANCELLATION_REQUEST' || gs === 'RETURN_REQUEST';
+                            
+                            // Check if all items are equal for bulk update
+                            const allEqual = order.orderedProducts && order.orderedProducts.length > 0 && order.orderedProducts.every((p: any) => p.orderStatus === order.orderedProducts[0].orderStatus);
+                            const productStatus = order.orderedProducts?.[0]?.orderStatus;
+                            
+                            let nextGlobalStatuses: string[] = [];
+                            if (allEqual) {
+                                if (productStatus === 'Order Placed' || productStatus === 'Pending') {
+                                    nextGlobalStatuses = ['Processing', 'Cancelled'];
+                                } else if (productStatus === 'Processing') {
+                                    nextGlobalStatuses = ['Shipped', 'Cancelled'];
+                                } else if (productStatus === 'Shipped') {
+                                    nextGlobalStatuses = ['Delivered', 'Cancelled'];
+                                }
+                            }
+                            
+                            const isBulkEditable = nextGlobalStatuses.length > 0;
+                            
+                            const isCancelledOrReturned = gs === 'Cancelled' || gs === 'Returned' || gs === 'Partially Returned' || gs === 'Partially Cancelled' || gs === 'Cancel Request Pending' || gs === 'Return Request Pending' || gs === 'Closed';
                             const reasonText = order.statusHistory?.slice().reverse().find((h: any) => h.comment || h.reason)?.comment ||
                                 order.orderedProducts?.find((p: any) => p.cancellation?.reason || p.returnStatus?.reason)?.cancellation?.reason;
 
-                            const badgeClass = gs === 'CANCELLED' ? 'badge-danger' :
-                                gs === 'COMPLETED' ? 'badge-success' :
-                                    (gs === 'PROCESSING' || gs === 'PARTIALLY_PROCESSING') ? 'badge-warning' :
-                                        (gs === 'RETURNED' || gs === 'PARTIALLY_RETURNED') ? 'badge-returned' :
+                            const badgeClass = gs === 'Cancelled' ? 'badge-danger' :
+                                (gs === 'Completed' || gs === 'Closed' || gs === 'Delivered') ? 'badge-success' :
+                                    (gs === 'Processing' || gs === 'Partially Processing' || gs === 'Action Required' || gs === 'Cancel Request Pending' || gs === 'Return Request Pending' || gs === 'Return Approved') ? 'badge-warning' :
+                                        (gs === 'Returned' || gs === 'Partially Returned') ? 'badge-returned' :
                                             'badge-info';
 
                             return (
                                 <div style={{ position: 'relative', display: 'inline-block' }}>
                                     <span
                                         className={`admin-badge ms-3 ${badgeClass}`}
-                                        style={{ cursor: (isCancelledOrReturned && reasonText) ? 'pointer' : 'default' }}
+                                        style={{ cursor: (isCancelledOrReturned && reasonText) || isBulkEditable ? 'pointer' : 'default' }}
                                         onClick={(e) => {
-                                            if (isCancelledOrReturned && reasonText) {
+                                            if (isBulkEditable) {
+                                                e.stopPropagation();
+                                                setActiveDropdown(activeDropdown === 'global' ? null : 'global');
+                                            } else if (isCancelledOrReturned && reasonText) {
                                                 e.stopPropagation();
                                                 setViewReason(viewReason && viewReason.id === 'global' ? null : { id: 'global', text: reasonText });
                                             }
@@ -294,12 +438,57 @@ const AdminOrderDetails: React.FC = () => {
                                         }}
                                         onMouseLeave={() => setViewReason(null)}
                                     >
-                                        {gs?.replace(/_/g, ' ')}
+                                        {gs?.replace(/_/g, ' ')} {isBulkEditable && <i className="fa-solid fa-chevron-down ms-1" style={{ fontSize: '0.65rem' }}></i>}
                                     </span>
                                     {viewReason && viewReason.id === 'global' && (
                                         <div className="reason-popup" style={{ left: '100%', right: 'auto', marginLeft: '10px', top: '0', bottom: 'auto' }}>
                                             <div className="reason-popup-arrow" style={{ top: '10px', right: '100%', borderRightColor: '#1e293b', borderTopColor: 'transparent' }}></div>
                                             <strong>Reason:</strong> {viewReason.text}
+                                        </div>
+                                    )}
+                                    {isBulkEditable && activeDropdown === 'global' && (
+                                        <div className="status-dropdown-menu" style={{
+                                            position: 'absolute',
+                                            top: '100%',
+                                            left: '1rem',
+                                            marginTop: '5px',
+                                            backgroundColor: '#fff',
+                                            borderRadius: '8px',
+                                            boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                                            border: '1px solid #e2e8f0',
+                                            zIndex: 100,
+                                            minWidth: '150px',
+                                            overflow: 'hidden'
+                                        }}>
+                                            <div style={{ padding: '6px 12px', fontSize: '0.7rem', backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: 600 }}>BULK UPDATE</div>
+                                            {nextGlobalStatuses.map(ns => (
+                                                <div 
+                                                    key={ns} 
+                                                    className="dropdown-item-status"
+                                                    style={{
+                                                        padding: '8px 12px',
+                                                        fontSize: '0.8rem',
+                                                        cursor: 'pointer',
+                                                        color: ns === 'Cancelled' ? '#ef4444' : '#334155',
+                                                        borderBottom: '1px solid #f1f5f9',
+                                                        transition: 'background-color 0.2s'
+                                                    }}
+                                                    onClick={() => {
+                                                        setActiveDropdown(null);
+                                                        if (ns === 'Shipped') {
+                                                            openShipModal();
+                                                        } else if (ns === 'Cancelled') {
+                                                            openCancelModal();
+                                                        } else {
+                                                            handleUpdateStatus(ns);
+                                                        }
+                                                    }}
+                                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                                >
+                                                    {ns}
+                                                </div>
+                                            ))}
                                         </div>
                                     )}
                                 </div>
@@ -308,46 +497,7 @@ const AdminOrderDetails: React.FC = () => {
                     </div>
                 </div>
                 <div className="header-actions">
-                    {/* Global Status Actions */}
-                    <div className="d-flex gap-2 me-3">
-                        {order.globalOrderStatus === 'PLACED' && (
-                            <button
-                                className="btn-primary-admin"
-                                onClick={() => handleUpdateStatus('Processing')}
-                                disabled={updatingStatus}
-                            >
-                                Process Order
-                            </button>
-                        )}
-                        {(order.globalOrderStatus === 'PLACED' || order.globalOrderStatus === 'PROCESSING' || order.globalOrderStatus === 'PARTIALLY_PROCESSING') && (
-                            <button
-                                className="btn-primary-admin"
-                                onClick={() => openShipModal()}
-                                disabled={updatingStatus}
-                            >
-                                Ship Order
-                            </button>
-                        )}
-                        {(order.globalOrderStatus === 'SHIPPED' || order.globalOrderStatus === 'PARTIALLY_SHIPPED') && (
-                            <button
-                                className="btn-primary-admin"
-                                onClick={() => handleUpdateStatus('Delivered')}
-                                disabled={updatingStatus}
-                            >
-                                Deliver Order
-                            </button>
-                        )}
-                        {['PLACED', 'PROCESSING', 'PARTIALLY_PROCESSING', 'PENDING'].includes(order.globalOrderStatus) && (
-                            <button
-                                className="btn btn-outline-danger"
-                                style={{ borderRadius: '12px', padding: '8px 20px', fontWeight: '600' }}
-                                onClick={() => openCancelModal()}
-                                disabled={updatingStatus}
-                            >
-                                Cancel Order
-                            </button>
-                        )}
-                    </div>
+                    {/* Old Global Status Actions Removed as per request */}
 
                     <button
                         className="btn-primary-admin secondary"
@@ -563,13 +713,32 @@ const AdminOrderDetails: React.FC = () => {
                                         <div className="d-flex flex-column align-items-end gap-2">
                                             {(() => {
                                                 const s = p.orderStatus;
-                                                const isCancelledOrReturned = s === 'Cancelled' || s === 'Return' || s === 'Returned';
-                                                const reasonText = p.cancellation?.reason || p.returnStatus?.reason;
+                                                const isCancelledOrReturned = s === 'Cancelled' || s === 'Return Request' || s === 'Cancellation Request' || s === 'Return' || s === 'Return Approved' || s === 'Returned' || s === 'Delivered';
+                                                const reasonText = p.cancellation?.reason || p.returnRequest?.reason;
+                                                const adminNotes = p.returnRequest?.adminNotes || p.cancellation?.adminNotes;
+                                                const rejectionReason = p.returnRequest?.rejectionReason || p.cancellation?.rejectionReason;
+                                                
                                                 const badgeClass = s === 'Cancelled' ? 'badge-danger' :
                                                     s === 'Delivered' ? 'badge-success' :
+                                                        s === 'Return Request' ? 'badge-warning' :
+                                                        s === 'Cancellation Request' ? 'badge-warning' :
+                                                        s === 'Return Approved' ? 'badge-warning' :
                                                         s === 'Return' ? 'badge-return' :
                                                             s === 'Returned' ? 'badge-returned' :
                                                                 'badge-info';
+
+                                                // Determine valid next statuses
+                                                let nextStatuses: string[] = [];
+                                                if (s === 'Order Placed' || s === 'Pending') {
+                                                    nextStatuses = ['Processing', 'Cancelled'];
+                                                } else if (s === 'Processing') {
+                                                    nextStatuses = ['Shipped', 'Cancelled'];
+                                                } else if (s === 'Shipped') {
+                                                    nextStatuses = ['Out for Delivery', 'Delivered', 'Cancelled'];
+                                                } else if (s === 'Out for Delivery') {
+                                                    nextStatuses = ['Delivered', 'Cancelled'];
+                                                }
+                                                const isEditable = nextStatuses.length > 0;
 
                                                 return (
                                                     <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -578,88 +747,155 @@ const AdminOrderDetails: React.FC = () => {
                                                             style={{
                                                                 fontSize: '0.75rem',
                                                                 padding: '4px 10px',
-                                                                cursor: (isCancelledOrReturned && reasonText) ? 'pointer' : 'default'
+                                                                cursor: (isCancelledOrReturned && (reasonText || adminNotes || rejectionReason)) || isEditable ? 'pointer' : 'default'
                                                             }}
                                                             onClick={(e) => {
-                                                                if (isCancelledOrReturned && reasonText) {
+                                                                if (isEditable) {
                                                                     e.stopPropagation();
-                                                                    setViewReason(viewReason && viewReason.id === p._id ? null : { id: p._id, text: reasonText });
+                                                                    setActiveDropdown(activeDropdown === p._id ? null : p._id);
+                                                                } else if (isCancelledOrReturned && (reasonText || adminNotes || rejectionReason)) {
+                                                                    e.stopPropagation();
+                                                                    const fullText = [
+                                                                        reasonText ? `User Reason: ${reasonText}` : null,
+                                                                        adminNotes ? `Admin Note: ${adminNotes}` : null,
+                                                                        rejectionReason ? `Rejection Reason: ${rejectionReason}` : null
+                                                                    ].filter(Boolean).join('\n');
+                                                                    setViewReason(viewReason && viewReason.id === p._id ? null : { id: p._id, text: fullText });
                                                                 }
                                                             }}
                                                             onMouseEnter={() => {
-                                                                if (isCancelledOrReturned && reasonText) {
-                                                                    setViewReason({ id: p._id, text: reasonText });
+                                                                if (isCancelledOrReturned && (reasonText || adminNotes || rejectionReason)) {
+                                                                    const fullText = [
+                                                                        reasonText ? `User Reason: ${reasonText}` : null,
+                                                                        adminNotes ? `Admin Note: ${adminNotes}` : null,
+                                                                        rejectionReason ? `Rejection Reason: ${rejectionReason}` : null
+                                                                    ].filter(Boolean).join('\n');
+                                                                    setViewReason({ id: p._id, text: fullText });
                                                                 }
                                                             }}
                                                             onMouseLeave={() => setViewReason(null)}
                                                         >
-                                                            {s}
+                                                            {s} {isEditable && <i className="fa-solid fa-chevron-down ms-1" style={{ fontSize: '0.65rem' }}></i>}
                                                         </span>
                                                         {viewReason && viewReason.id === p._id && (
                                                             <div className="reason-popup">
                                                                 <div className="reason-popup-arrow"></div>
-                                                                <strong>Reason:</strong> {viewReason.text}
+                                                                <div style={{ whiteSpace: 'pre-line' }}>{viewReason.text}</div>
+                                                            </div>
+                                                        )}
+                                                        {isEditable && activeDropdown === p._id && (
+                                                            <div className="status-dropdown-menu" style={{
+                                                                position: 'absolute',
+                                                                top: '100%',
+                                                                right: 0,
+                                                                marginTop: '5px',
+                                                                backgroundColor: '#fff',
+                                                                borderRadius: '8px',
+                                                                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                                                                border: '1px solid #e2e8f0',
+                                                                zIndex: 100,
+                                                                minWidth: '130px',
+                                                                overflow: 'hidden'
+                                                            }}>
+                                                                {nextStatuses.map(ns => (
+                                                                    <div 
+                                                                        key={ns} 
+                                                                        className="dropdown-item-status"
+                                                                        style={{
+                                                                            padding: '8px 12px',
+                                                                            fontSize: '0.8rem',
+                                                                            cursor: 'pointer',
+                                                                            color: ns === 'Cancelled' ? '#ef4444' : '#334155',
+                                                                            borderBottom: '1px solid #f1f5f9',
+                                                                            transition: 'background-color 0.2s'
+                                                                        }}
+                                                                        onClick={() => {
+                                                                            setActiveDropdown(null);
+                                                                            if (ns === 'Shipped') {
+                                                                                openShipModal(p._id || p.productId, false);
+                                                                            } else if (ns === 'Out for Delivery') {
+                                                                                openShipModal(p._id || p.productId, true);
+                                                                            } else if (ns === 'Cancelled') {
+                                                                                openCancelModal(p._id || p.productId);
+                                                                            } else {
+                                                                                handleUpdateStatus(ns, undefined, p._id || p.productId);
+                                                                            }
+                                                                        }}
+                                                                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                                                                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                                                    >
+                                                                        {ns}
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         )}
                                                     </div>
                                                 );
                                             })()}
-                                            {/* Status change buttons hidden as per request (Order-wise management only) */}
-                                            {/* {p.orderStatus !== 'Cancelled' && p.orderStatus !== 'Delivered' && p.orderStatus !== 'Returned' && (
-                                                <div className="d-flex gap-2">
-                                                    {p.orderStatus === 'Order Placed' && (
-                                                        <button
-                                                            className="btn btn-sm btn-outline-primary"
-                                                            style={{ borderRadius: '8px', fontSize: '0.8rem' }}
-                                                            onClick={() => handleUpdateStatus('Processing', undefined, p.productId)}
-                                                            disabled={updatingStatus}
-                                                        >
-                                                            Process
-                                                        </button>
-                                                    )}
-                                                    {(p.orderStatus === 'Order Placed' || p.orderStatus === 'Processing') && (
-                                                        <button
-                                                            className="btn btn-sm btn-outline-success"
-                                                            style={{ borderRadius: '8px', fontSize: '0.8rem' }}
-                                                            onClick={() => openShipModal(p.productId)}
-                                                            disabled={updatingStatus}
-                                                        >
-                                                            Ship
-                                                        </button>
-                                                    )}
-                                                    {p.orderStatus === 'Shipped' && (
-                                                        <button
-                                                            className="btn btn-sm btn-outline-success"
-                                                            style={{ borderRadius: '8px', fontSize: '0.8rem' }}
-                                                            onClick={() => handleUpdateStatus('Delivered', undefined, p.productId)}
-                                                            disabled={updatingStatus}
-                                                        >
-                                                            Deliver
-                                                        </button>
-                                                    )}
-                                                    {p.orderStatus !== 'Return' && (
-                                                        <button
-                                                            className="btn btn-sm btn-outline-danger"
-                                                            style={{ borderRadius: '8px', fontSize: '0.8rem' }}
-                                                            onClick={() => openCancelModal(p.productId)}
-                                                            disabled={updatingStatus}
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                    )}
-                                                    {p.orderStatus === 'Return' && (
-                                                        <button
-                                                            className="btn btn-sm btn-outline-warning"
-                                                            style={{ borderRadius: '8px', fontSize: '0.8rem', borderColor: '#f59e0b', color: '#f59e0b' }}
-                                                            onClick={() => openReturnModal(p.productId)}
-                                                            disabled={updatingStatus}
-                                                        >
-                                                            Confirm Return
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                
-                                            )} */}
+                                            <div className="d-flex flex-column gap-2 mt-2">
+                                                {p.orderStatus === 'Out for Delivery' && (
+                                                    <button 
+                                                        className="btn btn-sm btn-outline-primary" 
+                                                        style={{ borderRadius: '8px', fontSize: '0.7rem' }}
+                                                        onClick={() => openDeliveryDelayModal(p._id || p.productId)}
+                                                    >
+                                                        Update Expected Delivery
+                                                    </button>
+                                                )}
+                                                {p.orderStatus === 'Cancellation Request' && (
+                                                    <button
+                                                        className="btn btn-sm btn-outline-danger"
+                                                        style={{ borderRadius: '8px', fontSize: '0.8rem' }}
+                                                        onClick={() => setProcessRequestModal({
+                                                            isOpen: true,
+                                                            type: 'cancel',
+                                                            productId: p._id || p.productId,
+                                                            action: null,
+                                                            adminNotes: '',
+                                                            rejectionReason: ''
+                                                        })}
+                                                        disabled={updatingStatus}
+                                                    >
+                                                        Process Cancel
+                                                    </button>
+                                                )}
+                                                {p.orderStatus === 'Return Request' && (
+                                                    <button
+                                                        className="btn btn-sm btn-outline-warning"
+                                                        style={{ borderRadius: '8px', fontSize: '0.8rem', borderColor: '#f59e0b', color: '#f59e0b' }}
+                                                        onClick={() => setProcessRequestModal({
+                                                            isOpen: true,
+                                                            type: 'return',
+                                                            productId: p._id || p.productId,
+                                                            action: null,
+                                                            adminNotes: '',
+                                                            rejectionReason: ''
+                                                        })}
+                                                        disabled={updatingStatus}
+                                                    >
+                                                        Process Return
+                                                    </button>
+                                                )}
+                                                {(p.orderStatus === 'Return' || p.orderStatus === 'Return Approved') && (
+                                                    <button
+                                                        className="btn btn-sm btn-outline-success"
+                                                        style={{ borderRadius: '8px', fontSize: '0.8rem' }}
+                                                        onClick={() => {
+                                                            setProcessRequestModal({
+                                                                isOpen: true,
+                                                                type: 'return',
+                                                                productId: p._id || p.productId,
+                                                                action: 'complete',
+                                                                adminNotes: '',
+                                                                rejectionReason: ''
+                                                            });
+                                                        }}
+                                                        disabled={updatingStatus}
+                                                    >
+                                                        Mark as Returned
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -726,57 +962,113 @@ const AdminOrderDetails: React.FC = () => {
             {showShipModal && (
                 <div className="cancellation-reason-overlay">
                     <div className="cancellation-reason-box admin-card p-4" style={{ maxWidth: '450px' }}>
-                        <h5 className="fw-bold mb-3">Ship Item</h5>
-                        <p className="text-muted small mb-4">Select a shipping agency and enter the tracking details for this item.</p>
+                        <h5 className="fw-bold mb-3">{shippingData.isOutForDeliveryAction ? 'Out for Delivery' : 'Ship Item'}</h5>
+                        <p className="text-muted small mb-4">{shippingData.isOutForDeliveryAction ? 'Update expected delivery date for this item.' : 'Select a shipping agency and enter the tracking details for this item.'}</p>
 
-                        <div className="mb-3">
-                            <label className="form-label fw-bold small">Shipping Agency</label>
-                            <select
-                                className="admin-input w-100"
-                                value={shippingData.agencyName}
-                                onChange={(e) => handleAgencyChange(e.target.value)}
-                            >
-                                <option value="">Select Agency</option>
-                                {agencies.map(a => (
-                                    <option key={a._id} value={a.name}>{a.name}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {!shippingData.isOutForDeliveryAction && (
+                            <>
+                                <div className="mb-3">
+                                    <label className="form-label fw-bold small">Shipping Agency</label>
+                                    <select
+                                        className="admin-input w-100"
+                                        value={shippingData.agencyName}
+                                        onChange={(e) => handleAgencyChange(e.target.value)}
+                                    >
+                                        <option value="">Select Agency</option>
+                                        {agencies.map(a => (
+                                            <option key={a._id} value={a.name}>{a.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        <div className="mb-3">
-                            <label className="form-label fw-bold small">Tracking Number</label>
+                                <div className="mb-3">
+                                    <label className="form-label fw-bold small">Tracking Number</label>
+                                    <input
+                                        type="text"
+                                        className="admin-input w-100"
+                                        placeholder="Enter tracking number"
+                                        value={shippingData.trackingNumber}
+                                        onChange={(e) => setShippingData({ ...shippingData, trackingNumber: e.target.value })}
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        <div className="mb-4">
+                            <label className="form-label fw-bold small">Expected Delivery Date *</label>
                             <input
-                                type="text"
+                                type="date"
                                 className="admin-input w-100"
-                                placeholder="Enter tracking number"
-                                value={shippingData.trackingNumber}
-                                onChange={(e) => setShippingData({ ...shippingData, trackingNumber: e.target.value })}
+                                value={shippingData.expectedDeliveryDate}
+                                min={new Date(Date.now() + 86400000).toISOString().split('T')[0]} // Tomorrow
+                                onChange={(e) => setShippingData({ ...shippingData, expectedDeliveryDate: e.target.value })}
                             />
                         </div>
 
-                        <div className="mb-4">
-                            <label className="form-label fw-bold small">Tracking URL</label>
-                            <div
-                                className="admin-input w-100 d-flex align-items-center"
-                                style={{
-                                    backgroundColor: '#f8fafc',
-                                    borderColor: '#e2e8f0',
-                                    minHeight: '42px',
-                                    borderRadius: '12px',
-                                    padding: '8px 15px',
-                                    fontSize: '0.85rem',
-                                    color: shippingData.agencyUrl ? '#334155' : '#94a3b8',
-                                    wordBreak: 'break-all'
-                                }}
-                            >
-                                {shippingData.agencyUrl || 'Auto-generated URL'}
+                        {!shippingData.isOutForDeliveryAction && (
+                            <div className="mb-4">
+                                <label className="form-label fw-bold small">Tracking URL</label>
+                                <div
+                                    className="admin-input w-100 d-flex align-items-center"
+                                    style={{
+                                        backgroundColor: '#f8fafc',
+                                        borderColor: '#e2e8f0',
+                                        minHeight: '42px',
+                                        borderRadius: '12px',
+                                        padding: '8px 15px',
+                                        fontSize: '0.85rem',
+                                        color: shippingData.agencyUrl ? '#334155' : '#94a3b8',
+                                        wordBreak: 'break-all'
+                                    }}
+                                >
+                                    {shippingData.agencyUrl || 'Auto-generated URL'}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="d-flex gap-2 justify-content-end">
                             <button className="btn btn-light" style={{ borderRadius: '12px', padding: '8px 20px' }} onClick={() => setShowShipModal(false)} disabled={updatingStatus}>Cancel</button>
                             <button className="btn btn-primary" style={{ borderRadius: '12px', padding: '8px 20px', backgroundColor: 'var(--admin-primary)', border: 'none' }} onClick={handleShipItem} disabled={updatingStatus}>
                                 {updatingStatus ? 'Syncing...' : 'Confirm Shipping'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delivery Delay Modal */}
+            {showDeliveryDelayModal && (
+                <div className="cancellation-reason-overlay">
+                    <div className="cancellation-reason-box admin-card p-4" style={{ maxWidth: '450px' }}>
+                        <h5 className="fw-bold mb-3">Update Expected Delivery</h5>
+                        <p className="text-muted small mb-4">Postpone the expected delivery date for this product.</p>
+
+                        <div className="mb-3">
+                            <label className="form-label fw-bold small">New Expected Delivery Date *</label>
+                            <input
+                                type="date"
+                                className="admin-input w-100"
+                                value={deliveryDelayData.newExpectedDate}
+                                min={new Date(Date.now() + 86400000).toISOString().split('T')[0]} // Tomorrow
+                                onChange={(e) => setDeliveryDelayData({ ...deliveryDelayData, newExpectedDate: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="form-label fw-bold small">Delay Reason *</label>
+                            <textarea
+                                className="admin-input w-100"
+                                placeholder="e.g. Heavy Rain, Vehicle Breakdown"
+                                value={deliveryDelayData.reason}
+                                onChange={(e) => setDeliveryDelayData({ ...deliveryDelayData, reason: e.target.value })}
+                                rows={2}
+                            />
+                        </div>
+
+                        <div className="d-flex gap-2 justify-content-end">
+                            <button className="btn btn-light" style={{ borderRadius: '12px', padding: '8px 20px' }} onClick={() => setShowDeliveryDelayModal(false)} disabled={updatingStatus}>Cancel</button>
+                            <button className="btn btn-primary" style={{ borderRadius: '12px', padding: '8px 20px', backgroundColor: 'var(--admin-primary)', border: 'none' }} onClick={handleDeliveryDelay} disabled={updatingStatus}>
+                                {updatingStatus ? 'Updating...' : 'Confirm Update'}
                             </button>
                         </div>
                     </div>
@@ -937,29 +1229,120 @@ const AdminOrderDetails: React.FC = () => {
                 }
             `}</style>
 
-            {/* Return Confirmation Modal - Hidden until needed for per-product returns */}
-            {/* {showReturnModal && (
+            {/* Request Processing Modal */}
+            {processRequestModal.isOpen && (
                 <div className="cancellation-reason-overlay">
-                    <div className="cancellation-reason-box admin-card p-4" style={{ borderColor: '#fde68a !important' }}>
-                        <h5 className="fw-bold mb-3" style={{ color: '#92400e' }}>Confirm Customer Return</h5>
-                        <p className="text-muted small mb-3">Customer has requested a return for this product. Please review the reason below and confirm if you accept the return.</p>
+                    <div className="cancellation-reason-box admin-card p-4" style={{ maxWidth: '600px' }}>
+                        <h5 className="fw-bold mb-3">
+                            Process {processRequestModal.type === 'cancel' ? 'Cancellation' : 'Return'} Request
+                        </h5>
+                        
+                        {(() => {
+                            const p = order?.orderedProducts?.find((prod: any) => (prod._id || prod.productId) === processRequestModal.productId);
+                            const req = processRequestModal.type === 'cancel' ? p?.cancellation : p?.returnRequest;
+                            
+                            return (
+                                <>
+                                    <div className="mb-4">
+                                        <label className="form-label fw-bold small">User Reason</label>
+                                        <div className="admin-input w-100 mb-2" style={{ backgroundColor: '#f8fafc', color: '#334155' }}>
+                                            {req?.reason || 'No reason provided'}
+                                        </div>
+                                        {req?.remarks && (
+                                            <>
+                                                <label className="form-label fw-bold small mt-2">User Remarks</label>
+                                                <div className="admin-input w-100" style={{ backgroundColor: '#f8fafc', color: '#334155' }}>
+                                                    {req.remarks}
+                                                </div>
+                                            </>
+                                        )}
+                                        {req?.images && req.images.length > 0 && (
+                                            <div className="mt-3">
+                                                <label className="form-label fw-bold small">Uploaded Images</label>
+                                                <div className="d-flex gap-2 flex-wrap">
+                                                    {req.images.map((img: string, i: number) => (
+                                                        <img key={i} src={img} alt={`Request ${i+1}`} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
 
-                        <div className="mb-4">
-                            <label className="form-label fw-bold small">Customer's Reason</label>
-                            <div className="admin-input w-100" style={{ backgroundColor: '#fffbeb', color: '#92400e', minHeight: '80px', border: '1px solid #fde68a', paddingTop: '10px' }}>
-                                {returnReason}
+                                    {!processRequestModal.action ? (
+                                        <div className="d-flex gap-3 mb-4">
+                                            <button 
+                                                className="btn btn-outline-success flex-fill py-2"
+                                                onClick={() => setProcessRequestModal(prev => ({ ...prev, action: 'accept' }))}
+                                            >
+                                                Accept Request
+                                            </button>
+                                            <button 
+                                                className="btn btn-outline-danger flex-fill py-2"
+                                                onClick={() => setProcessRequestModal(prev => ({ ...prev, action: 'reject' }))}
+                                            >
+                                                Reject Request
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {!(processRequestModal.type === 'return' && processRequestModal.action === 'accept') && (
+                                                <div className="mb-3">
+                                                    <label className="form-label fw-bold small">Admin Notes (Internal)</label>
+                                                    <textarea
+                                                        className="admin-input w-100"
+                                                        rows={2}
+                                                        placeholder="Add any internal notes here..."
+                                                        value={processRequestModal.adminNotes}
+                                                        onChange={(e) => setProcessRequestModal(prev => ({ ...prev, adminNotes: e.target.value }))}
+                                                    />
+                                                </div>
+                                            )}
+                                            
+                                            {processRequestModal.action === 'reject' && (
+                                                <div className="mb-4">
+                                                    <label className="form-label fw-bold small text-danger">Rejection Reason (Visible to User) *</label>
+                                                    <textarea
+                                                        className="admin-input w-100"
+                                                        rows={2}
+                                                        placeholder="Please explain why the request is rejected..."
+                                                        value={processRequestModal.rejectionReason}
+                                                        onChange={(e) => setProcessRequestModal(prev => ({ ...prev, rejectionReason: e.target.value }))}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <div className="d-flex gap-2 justify-content-end">
+                                                <button 
+                                                    className="btn btn-light" 
+                                                    style={{ borderRadius: '12px', padding: '8px 20px' }} 
+                                                    onClick={() => setProcessRequestModal(prev => ({ ...prev, action: null, adminNotes: '', rejectionReason: '' }))} 
+                                                    disabled={updatingStatus}
+                                                >
+                                                    Back
+                                                </button>
+                                                <button 
+                                                    className={`btn ${processRequestModal.action === 'accept' ? 'btn-success' : processRequestModal.action === 'reject' ? 'btn-danger' : 'btn-primary'}`} 
+                                                    style={{ borderRadius: '12px', padding: '8px 20px' }} 
+                                                    onClick={handleProcessRequest} 
+                                                    disabled={updatingStatus || (processRequestModal.action === 'reject' && !processRequestModal.rejectionReason.trim())}
+                                                >
+                                                    {updatingStatus ? 'Processing...' : 'Confirm'}
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            );
+                        })()}
+                        
+                        {!processRequestModal.action && (
+                            <div className="d-flex justify-content-end mt-2">
+                                <button className="btn btn-light" style={{ borderRadius: '12px', padding: '8px 20px' }} onClick={() => setProcessRequestModal(prev => ({ ...prev, isOpen: false }))}>Close</button>
                             </div>
-                        </div>
-
-                        <div className="d-flex gap-2 justify-content-end">
-                            <button className="btn btn-light" style={{ borderRadius: '12px', padding: '8px 20px' }} onClick={() => setShowReturnModal(false)} disabled={updatingStatus}>Cancel</button>
-                            <button className="btn btn-warning" style={{ borderRadius: '12px', padding: '8px 20px', backgroundColor: '#f59e0b', color: 'white', border: 'none' }} onClick={handleConfirmReturn} disabled={updatingStatus}>
-                                {updatingStatus ? 'Updating...' : 'Confirm & Mark Returned'}
-                            </button>
-                        </div>
+                        )}
                     </div>
                 </div>
-            )} */}
+            )}
 
             {/* Cancellation Reason Modal */}
             {showCancelModal && (

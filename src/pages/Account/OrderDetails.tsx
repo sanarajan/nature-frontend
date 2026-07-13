@@ -18,14 +18,26 @@ const OrderDetails: React.FC = () => {
         productName: string;
         type: 'cancel' | 'return';
         reason: string;
+        remarks: string;
+        images: File[];
     }>({
         isOpen: false,
         productId: '',
         productName: '',
         type: 'cancel',
-        reason: ''
+        reason: '',
+        remarks: '',
+        images: []
     });
     const [viewReason, setViewReason] = useState<{ id: string; text: string } | null>(null);
+
+    const [journeyModal, setJourneyModal] = useState<{
+        isOpen: boolean;
+        product: any;
+    }>({
+        isOpen: false,
+        product: null
+    });
 
 
     useEffect(() => {
@@ -59,12 +71,14 @@ const OrderDetails: React.FC = () => {
             productId: 'all',
             productName: 'Full Order',
             type: 'return',
-            reason: ''
+            reason: '',
+            remarks: '',
+            images: []
         });
     };
 
     const handleItemAction = async () => {
-        const { productId, type, reason } = modalConfig;
+        const { productId, type, reason, remarks, images } = modalConfig;
         if (!reason.trim()) {
             toast.error("Please provide a reason.");
             return;
@@ -82,12 +96,28 @@ const OrderDetails: React.FC = () => {
                     : `/user/order/${id}/return-item/${productId}`;
             }
 
-            const res = await userApiClient.post(endpoint, { reason });
+            const base64Images: string[] = [];
+            if (images.length > 0) {
+                for (let i = 0; i < images.length; i++) {
+                    const file = images[i];
+                    const base64 = await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = () => resolve(reader.result as string);
+                        reader.onerror = error => reject(error);
+                    });
+                    base64Images.push(base64);
+                }
+            }
+
+            const payload = { reason, remarks, images: base64Images };
+
+            const res = await userApiClient.post(endpoint, payload);
 
             if (res.data.success) {
                 toast.success(res.data.message);
                 setOrder(res.data.data.order);
-                setModalConfig(prev => ({ ...prev, isOpen: false, reason: '' }));
+                setModalConfig(prev => ({ ...prev, isOpen: false, reason: '', remarks: '', images: [] }));
             } else {
                 toast.error(res.data.message || `Failed to ${type} ${productId === 'all' ? 'order' : 'item'}`);
             }
@@ -117,6 +147,7 @@ const OrderDetails: React.FC = () => {
             case 'PARTIALLY DELIVERED': return 'bg-success';
             case 'RETURN':
             case 'RETURN REQUEST':
+            case 'RETURN APPROVED':
             case 'PARTIALLY RETURNED': return 'bg-warning text-dark';
             case 'RETURNED': return 'bg-dark';
             default: return 'bg-light text-dark';
@@ -236,8 +267,8 @@ const OrderDetails: React.FC = () => {
                                                 const gs = order.globalOrderStatus;
                                                 const isCancelledOrReturned = gs === 'CANCELLED' || gs === 'RETURNED' || gs === 'PARTIALLY_RETURNED' || gs === 'PARTIALLY_CANCELLED' || gs === 'RETURN' || gs === 'CANCELLATION_REQUEST' || gs === 'RETURN_REQUEST';
                                                 const reasonText = order.statusHistory?.slice().reverse().find((h: any) => h.reason || h.comment)?.reason ||
-                                                    order.orderedProducts?.find((p: any) => p.cancellation?.reason || p.returnStatus?.reason)?.cancellation?.reason ||
-                                                    order.orderedProducts?.find((p: any) => p.returnStatus?.reason)?.returnStatus?.reason;
+                                                    order.orderedProducts?.find((p: any) => p.cancellation?.reason || p.returnRequest?.reason)?.cancellation?.reason ||
+                                                    order.orderedProducts?.find((p: any) => p.returnRequest?.reason)?.returnRequest?.reason;
 
                                                 if (isCancelledOrReturned && reasonText) {
                                                     return (
@@ -278,7 +309,9 @@ const OrderDetails: React.FC = () => {
                                                     productId: 'all',
                                                     productName: 'Full Order',
                                                     type: 'cancel',
-                                                    reason: ''
+                                                    reason: '',
+                                                    remarks: '',
+                                                    images: []
                                                 })}
                                                 className="btn btn-md btn-outline-danger btnhover20"
                                             >
@@ -324,8 +357,10 @@ const OrderDetails: React.FC = () => {
                                                                 <small className="text-muted d-block mb-1 text-uppercase fw-bold" style={{ fontSize: '10px' }}>Item Status</small>
                                                                 {(() => {
                                                                     const s = p.orderStatus;
-                                                                    const isCancelledOrReturned = s === 'Cancelled' || s === 'Return' || s === 'Returned';
-                                                                    const reasonText = p.cancellation?.reason || p.returnStatus?.reason;
+                                                                    const isCancelledOrReturned = s === 'Cancelled' || s === 'Return Request' || s === 'Cancellation Request' || s === 'Return Approved' || s === 'Return' || s === 'Returned' || s === 'Delivered';
+                                                                    const reasonText = p.cancellation?.reason || p.returnRequest?.reason;
+                                                                    const adminNotes = p.returnRequest?.adminNotes || p.cancellation?.adminNotes;
+                                                                    const rejectionReason = p.returnRequest?.rejectionReason || p.cancellation?.rejectionReason;
 
                                                                     return (
                                                                         <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -333,27 +368,42 @@ const OrderDetails: React.FC = () => {
                                                                                 className={`badge ${getStatusColor(s)}`}
                                                                                 style={{
                                                                                     position: 'static',
-                                                                                    cursor: (isCancelledOrReturned && reasonText) ? 'pointer' : 'default'
+                                                                                    cursor: 'pointer'
                                                                                 }}
                                                                                 onClick={(e) => {
-                                                                                    if (isCancelledOrReturned && reasonText) {
+                                                                                    if (isCancelledOrReturned && (reasonText || adminNotes || rejectionReason)) {
                                                                                         e.stopPropagation();
-                                                                                        setViewReason(viewReason && viewReason.id === (p._id || p.productId) ? null : { id: (p._id || p.productId), text: reasonText });
+                                                                                        const fullText = [
+                                                                                            reasonText ? `Your Reason: ${reasonText}` : null,
+                                                                                            adminNotes ? `Admin Note: ${adminNotes}` : null,
+                                                                                        ].filter(Boolean).join('\n');
+                                                                                        setViewReason(viewReason && viewReason.id === (p._id || p.productId) ? null : { id: (p._id || p.productId), text: fullText });
+                                                                                    } else {
+                                                                                        setJourneyModal({ isOpen: true, product: p });
                                                                                     }
                                                                                 }}
                                                                                 onMouseEnter={() => {
-                                                                                    if (isCancelledOrReturned && reasonText) {
-                                                                                        setViewReason({ id: (p._id || p.productId), text: reasonText });
+                                                                                    if (isCancelledOrReturned && (reasonText || adminNotes || rejectionReason)) {
+                                                                                        const fullText = [
+                                                                                            reasonText ? `Your Reason: ${reasonText}` : null,
+                                                                                            adminNotes ? `Admin Note: ${adminNotes}` : null,
+                                                                                            rejectionReason ? `Rejection Reason: ${rejectionReason}` : null
+                                                                                        ].filter(Boolean).join('\n');
+                                                                                        setViewReason({ id: (p._id || p.productId), text: fullText });
                                                                                     }
                                                                                 }}
                                                                                 onMouseLeave={() => setViewReason(null)}
                                                                             >
-                                                                                {s}
+                                                                                {s} <i className="fa-solid fa-circle-info ms-1" style={{ fontSize: '0.7rem' }}></i>
                                                                             </span>
                                                                             {viewReason && viewReason.id === (p._id || p.productId) && (
-                                                                                <div className="reason-popup-user">
+                                                                                <div className="reason-popup-user" style={{ minWidth: '180px' }}>
                                                                                     <div className="reason-popup-arrow-user"></div>
-                                                                                    <strong>Reason:</strong> {viewReason.text}
+                                                                                    {isCancelledOrReturned && (reasonText || adminNotes || rejectionReason) ? (
+                                                                                        <div style={{ whiteSpace: 'pre-line' }}>{viewReason.text}</div>
+                                                                                    ) : (
+                                                                                        <div>Click to view progress</div>
+                                                                                    )}
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -368,46 +418,106 @@ const OrderDetails: React.FC = () => {
                                                                     )}
                                                                 </small>
                                                                 <small className="d-block"><strong>Quantity</strong> : {p.quantity}</small>
-                                                                {p.shippingDetails && p.shippingDetails.trackingNumber && (
+                                                                {p.shippingDetails && p.shippingDetails.trackingNumber && p.shippingDetails.trackingNumber !== 'N/A' && (
                                                                     <div className="mt-2 p-2 bg-light rounded border">
                                                                         <small className="d-block text-primary"><strong>Tracking:</strong> {p.shippingDetails.agencyName}</small>
                                                                         <small className="d-block text-muted"><strong>ID:</strong> {p.shippingDetails.trackingNumber}</small>
+                                                                        {p.orderStatus === 'Returned' && (
+                                                                            <>
+                                                                                {p.shippingDetails.deliveredDate && (
+                                                                                    <small className="d-block text-success mt-1">
+                                                                                        <strong>Delivered On:</strong> {new Date(p.shippingDetails.deliveredDate).toLocaleDateString()}
+                                                                                    </small>
+                                                                                )}
+                                                                                {p.shippingDetails.returnedDate && (
+                                                                                    <small className="d-block text-info mt-1">
+                                                                                        <strong>Returned On:</strong> {new Date(p.shippingDetails.returnedDate).toLocaleDateString()}
+                                                                                    </small>
+                                                                                )}
+                                                                            </>
+                                                                        )}
+                                                                        
+                                                                        {['Delivered', 'Return Request', 'Return Approved', 'Return'].includes(p.orderStatus) && p.shippingDetails.deliveredDate && (
+                                                                            <small className="d-block text-success mt-1">
+                                                                                <strong>Delivered On:</strong> {new Date(p.shippingDetails.deliveredDate).toLocaleDateString()}
+                                                                            </small>
+                                                                        )}
+
+                                                                        {['Shipped', 'Out for Delivery'].includes(p.orderStatus) && p.shippingDetails.expectedDeliveryDate && (
+                                                                            <small className="d-block text-success mt-1">
+                                                                                <strong>Expected Arrival:</strong> {new Date(p.shippingDetails.expectedDeliveryDate).toLocaleDateString()}
+                                                                            </small>
+                                                                        )}
                                                                         {p.shippingDetails.agencyUrl && (
-                                                                            <a href={p.shippingDetails.agencyUrl} target="_blank" rel="noopener noreferrer" className="btn btn-link btn-sm p-0 text-primary">Track Order</a>
+                                                                            <a href={p.shippingDetails.agencyUrl} target="_blank" rel="noopener noreferrer" className="btn btn-link btn-sm p-0 text-primary mt-1">Track Package</a>
                                                                         )}
                                                                     </div>
                                                                 )}
-                                                                {/* Individual item buttons hidden temporarily per request */}
-                                                                {/* <div className="mt-3">
-                                                                     {(p.orderStatus === 'Order Placed' || p.orderStatus === 'Processing') && (
-                                                                         <button
-                                                                             onClick={() => setModalConfig({
-                                                                                 isOpen: true,
-                                                                                 productId: p._id,
-                                                                                 productName: p.productName,
-                                                                                 type: 'cancel',
-                                                                                 reason: ''
-                                                                             })}
-                                                                             className="btn btn-sm btn-outline-danger"
-                                                                         >
-                                                                             Cancel Item
-                                                                         </button>
-                                                                     )}
-                                                                     {isProductReturnable(p) && (
-                                                                         <button
-                                                                             onClick={() => setModalConfig({
-                                                                                 isOpen: true,
-                                                                                 productId: p._id,
-                                                                                 productName: p.productName,
-                                                                                 type: 'return',
-                                                                                 reason: ''
-                                                                             })}
-                                                                             className="btn btn-sm btn-outline-warning"
-                                                                         >
-                                                                             Return Item
-                                                                         </button>
-                                                                     )}
-                                                                </div> */}
+                                                                
+                                                                {p.orderStatus === 'Out for Delivery' && p.deliveryUpdates && p.deliveryUpdates.length > 0 && (
+                                                                    <div className="mt-3 p-3 bg-light border-info border rounded">
+                                                                        <h6 className="text-info mb-3"><i className="fas fa-truck me-2"></i>Delivery Updates</h6>
+                                                                        <div className="delivery-updates-timeline">
+                                                                            {p.deliveryUpdates.slice().reverse().map((update: any, idx: number) => (
+                                                                                <div key={idx} className="update-item mb-2 pb-2" style={{ borderBottom: idx !== p.deliveryUpdates.length - 1 ? '1px dashed #cbd5e1' : 'none' }}>
+                                                                                    <div className="small fw-bold text-dark">
+                                                                                        Expected Delivery changed
+                                                                                    </div>
+                                                                                    <div className="small text-muted mb-1">
+                                                                                        {update.previousExpectedDate ? new Date(update.previousExpectedDate).toLocaleDateString() : 'Unknown'} &rarr; {new Date(update.newExpectedDate).toLocaleDateString()}
+                                                                                    </div>
+                                                                                    <div className="small bg-white p-1 rounded border">
+                                                                                        <strong>Reason:</strong> {update.reason}
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                {p.orderStatus === 'Return Approved' && p.returnRequest?.adminNotes && (
+                                                                    <div className="mt-3 p-3 bg-light border-warning border rounded">
+                                                                        <h6 className="text-warning mb-2"><i className="fas fa-info-circle me-2"></i>Return Instructions</h6>
+                                                                        <div style={{ whiteSpace: 'pre-line', fontSize: '0.85rem' }} className="text-dark">
+                                                                            {p.returnRequest.adminNotes}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                <div className="mt-3">
+                                                                    {(p.orderStatus === 'Order Placed' || p.orderStatus === 'Processing' || p.orderStatus === 'Pending') && (
+                                                                        <button
+                                                                            onClick={() => setModalConfig({
+                                                                                isOpen: true,
+                                                                                productId: p._id || p.productId,
+                                                                                productName: p.productName,
+                                                                                type: 'cancel',
+                                                                                reason: '',
+                                                                                remarks: '',
+                                                                                images: []
+                                                                            })}
+                                                                            className="btn btn-sm btn-outline-danger"
+                                                                        >
+                                                                            Cancel Item
+                                                                        </button>
+                                                                    )}
+                                                                    {isProductReturnable(p) && (
+                                                                        <button
+                                                                            onClick={() => setModalConfig({
+                                                                                isOpen: true,
+                                                                                productId: p._id || p.productId,
+                                                                                productName: p.productName,
+                                                                                type: 'return',
+                                                                                reason: '',
+                                                                                remarks: '',
+                                                                                images: []
+                                                                            })}
+                                                                            className="btn btn-sm btn-outline-warning ms-2"
+                                                                        >
+                                                                            Return Item
+                                                                        </button>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -481,13 +591,61 @@ const OrderDetails: React.FC = () => {
                                     </div>
                                     <div className="mb-3">
                                         <label className="form-label-user text-muted small text-uppercase fw-bold mb-2">Reason for {modalConfig.type === 'cancel' ? 'Cancellation' : 'Return'} *</label>
-                                        <textarea
-                                            className="form-control-user"
-                                            rows={4}
-                                            placeholder={`Help us understand why you're requesting this ${modalConfig.type}...`}
+                                        <select
+                                            className="form-control-user mb-3"
                                             value={modalConfig.reason}
                                             onChange={(e) => setModalConfig(prev => ({ ...prev, reason: e.target.value }))}
+                                        >
+                                            <option value="">Select a reason</option>
+                                            {modalConfig.type === 'cancel' ? (
+                                                <>
+                                                    <option value="Changed my mind">Changed my mind</option>
+                                                    <option value="Ordered by mistake">Ordered by mistake</option>
+                                                    <option value="Found a better price elsewhere">Found a better price elsewhere</option>
+                                                    <option value="Expected delivery time is too long">Expected delivery time is too long</option>
+                                                    <option value="Other">Other</option>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <option value="Damaged product">Damaged product</option>
+                                                    <option value="Wrong item received">Wrong item received</option>
+                                                    <option value="Item not as described">Item not as described</option>
+                                                    <option value="Missing parts/accessories">Missing parts/accessories</option>
+                                                    <option value="Other">Other</option>
+                                                </>
+                                            )}
+                                        </select>
+
+                                        <label className="form-label-user text-muted small text-uppercase fw-bold mb-2">Additional Remarks (Optional)</label>
+                                        <textarea
+                                            className="form-control-user mb-3"
+                                            rows={2}
+                                            placeholder={`Any other details you'd like to provide...`}
+                                            value={modalConfig.remarks}
+                                            onChange={(e) => setModalConfig(prev => ({ ...prev, remarks: e.target.value }))}
                                         ></textarea>
+
+                                        {modalConfig.type === 'return' && (
+                                            <>
+                                                <label className="form-label-user text-muted small text-uppercase fw-bold mb-2">Upload Photos * (Max 3)</label>
+                                                <input
+                                                    type="file"
+                                                    className="form-control-user"
+                                                    accept="image/*"
+                                                    multiple
+                                                    onChange={(e) => {
+                                                        const files = Array.from(e.target.files || []);
+                                                        if (files.length > 3) {
+                                                            alert("You can only upload up to 3 images.");
+                                                            e.target.value = "";
+                                                            return;
+                                                        }
+                                                        setModalConfig(prev => ({ ...prev, images: files }));
+                                                    }}
+                                                />
+                                                <small className="text-muted d-block mt-1">Please provide clear photos showing the issue.</small>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="modal-footer-user p-4 pt-0 d-flex justify-content-between">
@@ -505,6 +663,100 @@ const OrderDetails: React.FC = () => {
                     </div>
                 )
             }
+
+            {/* Journey Modal */}
+            {journeyModal.isOpen && journeyModal.product && (
+                <div className="modal-overlay-user" onClick={() => setJourneyModal({ isOpen: false, product: null })}>
+                    <div className="modal-dialog-user" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                        <div className="modal-content-user">
+                            <div className="modal-header-user">
+                                <h3 className="modal-title-user fs-5">Delivery Progress</h3>
+                                <button className="btn-close-user" onClick={() => setJourneyModal({ isOpen: false, product: null })}>&times;</button>
+                            </div>
+                            <div className="modal-body p-4">
+                                <div className="d-flex align-items-center mb-4 pb-3 border-bottom">
+                                    <img 
+                                        src={journeyModal.product.image} 
+                                        alt={journeyModal.product.productName} 
+                                        style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} 
+                                        className="me-3 shadow-sm"
+                                    />
+                                    <div>
+                                        <h6 className="mb-1 fw-bold text-dark">{journeyModal.product.productName}</h6>
+                                        <div className="small text-muted">ID: {journeyModal.product.productId}</div>
+                                    </div>
+                                </div>
+
+                                <div className="status-progress-container-user mb-4">
+                                    <div className="progress-track-user"></div>
+                                    
+                                    {(() => {
+                                        const statusSteps = ['Order Placed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered'];
+                                        const pStatus = journeyModal.product.orderStatus;
+                                        
+                                        // Terminal alternate states
+                                        const isCancelled = pStatus === 'Cancelled' || pStatus === 'Cancellation Request';
+                                        const isReturned = pStatus === 'Return Request' || pStatus === 'Return Approved' || pStatus === 'Return' || pStatus === 'Returned';
+                                        
+                                        let currentIndex = statusSteps.indexOf(pStatus);
+                                        
+                                        if (isCancelled) currentIndex = statusSteps.indexOf('Processing'); // Show progression up to processing
+                                        if (isReturned) currentIndex = statusSteps.indexOf('Delivered'); // Usually returned after delivered
+                                        if (currentIndex === -1) currentIndex = 0;
+
+                                        const progressPercentage = (currentIndex / (statusSteps.length - 1)) * 100;
+
+                                        return (
+                                            <>
+                                                <div className="progress-track-fill-user" style={{ width: `${progressPercentage}%`, backgroundColor: isCancelled ? '#ef4444' : isReturned ? '#f59e0b' : '#82b440' }}></div>
+                                                <div className="status-steps-wrapper-user">
+                                                    {statusSteps.map((step, idx) => {
+                                                        const isCompleted = idx <= currentIndex;
+                                                        const isActive = idx === currentIndex;
+                                                        
+                                                        let dotColor = isCompleted ? '#82b440' : '#cbd5e1';
+                                                        if (isActive && isCancelled) dotColor = '#ef4444';
+                                                        if (isActive && isReturned) dotColor = '#f59e0b';
+
+                                                        return (
+                                                            <div key={idx} className={`status-step-item-user ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''}`}>
+                                                                <div className="step-dot-user" style={{ borderColor: dotColor, backgroundColor: isCompleted ? dotColor : '#fff' }}>
+                                                                    {isCompleted && !isActive && <i className="fa-solid fa-check text-white" style={{ fontSize: '10px' }}></i>}
+                                                                    {isActive && <div className="step-dot-inner-user" style={{ backgroundColor: isCompleted ? '#fff' : dotColor }}></div>}
+                                                                </div>
+                                                                <div className="step-label-user" style={{ color: isActive ? '#1e293b' : (isCompleted ? '#64748b' : '#94a3b8') }}>
+                                                                    {step}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                                
+                                {journeyModal.product.orderStatus === 'Out for Delivery' && (
+                                    <div className="text-center mt-3 mb-2">
+                                        <div className="d-inline-block px-3 py-2 bg-light rounded text-primary fw-bold small border border-primary">
+                                            <i className="fa-solid fa-truck-fast me-2"></i>
+                                            Your package is out for delivery!
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {['Cancelled', 'Cancellation Request', 'Return Request', 'Return Approved', 'Return', 'Returned'].includes(journeyModal.product.orderStatus) && (
+                                    <div className="alert alert-warning mt-3 mb-0 small">
+                                        <strong>Current Status:</strong> {journeyModal.product.orderStatus}
+                                    </div>
+                                )}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style>{`
                 /* Modal Styles */
                 .modal-overlay-user {
@@ -576,6 +828,67 @@ const OrderDetails: React.FC = () => {
                     border-width: 6px;
                     border-style: solid;
                     border-color: #1e293b transparent transparent transparent;
+                }
+
+                /* Journey Modal specific styles */
+                .status-progress-container-user {
+                    position: relative;
+                    padding: 20px 0 40px;
+                }
+                .progress-track-user {
+                    position: absolute;
+                    top: 35px;
+                    left: 40px;
+                    right: 40px;
+                    height: 4px;
+                    background-color: #e2e8f0;
+                    border-radius: 10px;
+                    z-index: 1;
+                }
+                .progress-track-fill-user {
+                    position: absolute;
+                    top: 35px;
+                    left: 40px;
+                    height: 4px;
+                    border-radius: 10px;
+                    transition: width 0.5s ease, background-color 0.3s;
+                    z-index: 1;
+                }
+                .status-steps-wrapper-user {
+                    display: flex;
+                    justify-content: space-between;
+                    position: relative;
+                    z-index: 2;
+                }
+                .status-step-item-user {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    flex: 1;
+                }
+                .step-dot-user {
+                    width: 26px;
+                    height: 26px;
+                    border-radius: 50%;
+                    background-color: #fff;
+                    border: 3px solid #cbd5e1;
+                    margin-bottom: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.3s ease;
+                }
+                .step-dot-inner-user {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                }
+                .step-label-user {
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    text-align: center;
+                    transition: color 0.3s ease;
+                    max-width: 80px;
                 }
             `}</style>
         </>

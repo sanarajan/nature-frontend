@@ -8,7 +8,9 @@ const AdminInfluencers: React.FC = () => {
     const [influencers, setInfluencers] = useState<any[]>([]);
     const [withdrawals, setWithdrawals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'list' | 'withdrawals'>('list');
+    const [activeTab, setActiveTab] = useState<'list' | 'withdrawals' | 'settings'>('list');
+    const [settings, setSettings] = useState({ influencerDiscountPercent: 20, influencerCommissionPercent: 20, influencerEnabled: true });
+    const [savingSettings, setSavingSettings] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -16,13 +18,17 @@ const AdminInfluencers: React.FC = () => {
 
     const fetchData = async () => {
         try {
-            const [influencerRes, withdrawalRes] = await Promise.all([
+            const [influencerRes, withdrawalRes, settingsRes] = await Promise.all([
                 adminApiClient.get('/admin/influencers'),
-                adminApiClient.get('/admin/influencers/withdrawals')
+                adminApiClient.get('/admin/influencers/withdrawals'),
+                adminApiClient.get('/admin/influencers/settings')
             ]);
             
             if (influencerRes.data.success) setInfluencers(influencerRes.data.data);
             if (withdrawalRes.data.success) setWithdrawals(withdrawalRes.data.data);
+            if (settingsRes.data.success && settingsRes.data.data) {
+                setSettings(settingsRes.data.data);
+            }
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Failed to fetch data');
         } finally {
@@ -44,6 +50,21 @@ const AdminInfluencers: React.FC = () => {
         }
     };
 
+    const handleSaveSettings = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingSettings(true);
+        try {
+            const res = await adminApiClient.put('/admin/influencers/settings', settings);
+            if (res.data.success) {
+                toast.success('Settings updated successfully');
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to save settings');
+        } finally {
+            setSavingSettings(false);
+        }
+    };
+
     if (loading) return <div>Loading...</div>;
 
     return (
@@ -61,6 +82,11 @@ const AdminInfluencers: React.FC = () => {
                 <li className="nav-item">
                     <button className={`nav-link ${activeTab === 'withdrawals' ? 'active' : ''}`} onClick={() => setActiveTab('withdrawals')}>
                         <DollarSign size={18} className="me-2"/> Withdrawal Requests
+                    </button>
+                </li>
+                <li className="nav-item">
+                    <button className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
+                        <CheckCircle size={18} className="me-2"/> Configuration
                     </button>
                 </li>
             </ul>
@@ -152,6 +178,61 @@ const AdminInfluencers: React.FC = () => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'settings' && (
+                <div className="card shadow-sm" style={{ maxWidth: '600px' }}>
+                    <div className="card-body">
+                        <form onSubmit={handleSaveSettings}>
+                            <h5 className="card-title mb-4">Global Influencer Settings</h5>
+                            
+                            <div className="mb-3">
+                                <label className="form-label">Influencer Discount (%)</label>
+                                <input 
+                                    type="number" 
+                                    className="form-control" 
+                                    min="0" 
+                                    max="100"
+                                    value={settings.influencerDiscountPercent} 
+                                    onChange={(e) => setSettings({...settings, influencerDiscountPercent: Number(e.target.value)})}
+                                    required
+                                />
+                                <div className="form-text">Discount percentage given to customers using an influencer code.</div>
+                            </div>
+                            
+                            <div className="mb-3">
+                                <label className="form-label">Influencer Commission (%)</label>
+                                <input 
+                                    type="number" 
+                                    className="form-control" 
+                                    min="0" 
+                                    max="100"
+                                    value={settings.influencerCommissionPercent} 
+                                    onChange={(e) => setSettings({...settings, influencerCommissionPercent: Number(e.target.value)})}
+                                    required
+                                />
+                                <div className="form-text">Commission percentage awarded to the influencer based on the order's final payable amount.</div>
+                            </div>
+
+                            <div className="mb-4 form-check form-switch">
+                                <input 
+                                    className="form-check-input" 
+                                    type="checkbox" 
+                                    id="enableInfluencer" 
+                                    checked={settings.influencerEnabled}
+                                    onChange={(e) => setSettings({...settings, influencerEnabled: e.target.checked})}
+                                />
+                                <label className="form-check-label" htmlFor="enableInfluencer">
+                                    Enable Influencer Feature System-wide
+                                </label>
+                            </div>
+
+                            <button type="submit" className="btn btn-primary" disabled={savingSettings}>
+                                {savingSettings ? 'Saving...' : 'Save Settings'}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}

@@ -172,6 +172,7 @@ const Account: React.FC = () => {
                                             <li><Link to="/account/orders">Orders</Link></li>
                                             <li><Link to="/account/downloads">Downloads</Link></li>
                                             <li><Link to="/account/return">Return request</Link></li>
+                                            <li><Link to="/account/nature-points">Nature Points</Link></li>
                                         </ul>
                                         <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
                                         <ul className="account-info-list">

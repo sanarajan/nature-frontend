@@ -24,6 +24,17 @@ const Checkout: React.FC = () => {
     const [appliedCode, setAppliedCode] = useState<{ code: string, type: 'referral' | 'coupon' | null }>({ code: '', type: null });
     const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
     const [appliedComboOffer, setAppliedComboOffer] = useState<any>(null);
+    
+    // Nature Points
+    const [useNaturePoints, setUseNaturePoints] = useState(false);
+    const [naturePointsDiscount, setNaturePointsDiscount] = useState(0);
+    const [availableNaturePoints, setAvailableNaturePoints] = useState(0);
+    
+    // Influencer logic
+    const [influencerDiscountPercent, setInfluencerDiscountPercent] = useState<number>(0);
+    const [influencerCookie, setInfluencerCookie] = useState<string | null>(null);
+    const [influencerDiscountAmount, setInfluencerDiscountAmount] = useState<number>(0);
+    
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [addressLoading, setAddressLoading] = useState(true);
 
@@ -74,6 +85,16 @@ const Checkout: React.FC = () => {
                             email: user.email || '',
                             phone: user.phoneNumber || user.phone || user.mobile || ''
                         }));
+                        
+                        // Fetch user nature points balance
+                        try {
+                            const pointsRes = await userApiClient.get('/user/loyalty/points');
+                            if (pointsRes.data.success) {
+                                setAvailableNaturePoints(pointsRes.data.data.points || 0);
+                            }
+                        } catch (err) {
+                            console.error('Failed to fetch nature points', err);
+                        }
                     }
                 } catch (err) {
                     console.error('Failed to fetch user data for checkout', err);
@@ -146,8 +167,29 @@ const Checkout: React.FC = () => {
             }
         };
 
+        const fetchInfluencerSettings = async () => {
+            try {
+                // Check if influencer cookie exists
+                const cookieValue = document.cookie.split('; ').find(row => row.startsWith('influencer_ref='))?.split('=')[1];
+                if (cookieValue) {
+                    setInfluencerCookie(cookieValue);
+                    console.log("[DEBUG] Influencer cookie found:", cookieValue);
+                    const res = await userApiClient.get('/user/influencer/settings/public');
+                    if (res.data.success) {
+                        setInfluencerDiscountPercent(res.data.data.influencerDiscountPercent);
+                        console.log("[DEBUG] Influencer settings fetched. Discount %:", res.data.data.influencerDiscountPercent);
+                    }
+                } else {
+                    console.log("[DEBUG] No influencer cookie found.");
+                }
+            } catch (err) {
+                console.log("[DEBUG] Failed to fetch influencer settings:", err);
+            }
+        };
+
         fetchUserData();
         fetchCartItems();
+        fetchInfluencerSettings();
     }, [isUser]);
 
     useEffect(() => {
@@ -167,6 +209,31 @@ const Checkout: React.FC = () => {
             }
         }
     }, [selectedAddressId, savedAddresses]);
+
+    useEffect(() => {
+        const fetchCartItems = async () => {
+            try {
+                const res = await userApiClient.get('/user/cart');
+                if (res.data.success && res.data.data) {
+                    setCartItems(res.data.data.products || []);
+                    setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                }
+            } catch (err) {
+                console.error("Failed to fetch cart", err);
+            }
+        };
+
+        fetchCartItems();
+
+        const handleCartUpdated = () => {
+            fetchCartItems();
+        };
+        window.addEventListener('cart-updated', handleCartUpdated);
+
+        return () => {
+            window.removeEventListener('cart-updated', handleCartUpdated);
+        };
+    }, [navigate]);
 
     useEffect(() => {
         const fetchStates = async () => {
@@ -296,64 +363,49 @@ const Checkout: React.FC = () => {
     };
 
     useEffect(() => {
-        // Use original MRP (product.price × qty) for shipping calculation,
-        // taking combo/individual discounts into account via the post-discount subtotal
-        const sub = cartItems.reduce((acc, item) => {
-            const price = item.finalPrice !== undefined ? item.finalPrice : (item.product?.price || 0);
-            return acc + (price * item.quantity);
-        }, 0);
-        setSubtotal(sub);
-    }, [cartItems]);
-
-    useEffect(() => {
-        const updateShipping = async () => {
-            if (subtotal === 0) {
+        const fetchCentralizedTotals = async () => {
+            if (cartItems.length === 0) {
+                setSubtotal(0);
+                setInfluencerDiscountAmount(0);
                 setShipping(0);
                 setTotal(0);
                 return;
             }
 
-            let currentState = '';
-
-            if (showNewAddressForm || editingAddressId) {
-                // If adding/editing, use the state from the form
-                currentState = editFormData.state;
-            } else if (isChanging && tempSelectedId) {
-                // If selecting from list, use the state of the highlighted one
-                const tempAddr = savedAddresses.find(a => (a._id || a.id) === tempSelectedId);
-                if (tempAddr) currentState = tempAddr.state;
-            } else {
-                // Otherwise use the confirmed address state
-                currentState = formData.state;
-            }
-
-            if (!currentState) {
-                const defaultShip = subtotal > 0 ? 50 : 0;
-                setShipping(defaultShip);
-                setTotal(subtotal + defaultShip);
-                return;
-            }
+            const activeAddrId = (showNewAddressForm || editingAddressId) ? null : (tempSelectedId || selectedAddressId);
 
             try {
-                const res = await userApiClient.get(`/user/order/shipping-charge/${encodeURIComponent(currentState)}`);
-                if (res.data.success && res.data.data) {
-                    const chargeData = res.data.data;
-                    setShipping(chargeData.charge);
-                    setTotal(subtotal + chargeData.charge);
-                } else {
-                    const defaultShip = subtotal > 0 ? 50 : 0;
-                    setShipping(defaultShip);
-                    setTotal(subtotal + defaultShip);
+                const payload = {
+                    addressId: activeAddrId,
+                    couponCode: appliedCode.type === 'coupon' ? appliedCode.code : '',
+                    referralCode: appliedCode.type === 'referral' ? appliedCode.code : '',
+                    useNaturePoints
+                };
+                
+                const res = await userApiClient.post('/user/order/checkout/totals', payload);
+                if (res.data.success) {
+                    const data = res.data.data;
+                    setSubtotal(data.originalPrice || data.subtotal);
+                    setInfluencerDiscountAmount(data.influencerDiscountAmount || 0);
+                    setShipping(data.deliveryCharge || 0);
+                    
+                    setNaturePointsDiscount(data.naturePointsDiscount || 0);
+                    setTotal(data.finalPrice || data.total);
+                    
+                    // Safely clear applied code if backend rejected it due to priority (e.g. combo offer appeared)
+                    if (appliedCode.code && !data.appliedDiscounts.coupon && !data.appliedDiscounts.referral) {
+                        setAppliedCode({ code: '', type: null });
+                        setAppliedDiscount(0);
+                        setCouponInput('');
+                    }
                 }
-            } catch (err) {
-                const defaultShip = subtotal > 0 ? 50 : 0;
-                setShipping(defaultShip);
-                setTotal(subtotal + defaultShip);
+            } catch (error) {
+                console.error("Failed to fetch checkout totals", error);
             }
         };
 
-        updateShipping();
-    }, [subtotal, formData.state, tempSelectedId, isChanging, showNewAddressForm, editingAddressId, editFormData.state]);
+        fetchCentralizedTotals();
+    }, [cartItems, influencerCookie, influencerDiscountPercent, appliedComboOffer, appliedDiscount, appliedCode, formData.state, tempSelectedId, isChanging, showNewAddressForm, editingAddressId, editFormData.state, selectedAddressId, savedAddresses, useNaturePoints]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -443,7 +495,8 @@ const Checkout: React.FC = () => {
             const orderData: any = {
                 addressId: selectedAddressId,
                 paymentMethod: paymentMethod === 'cod' ? 'COD' : paymentMethod,
-                isOnline: isOnline
+                isOnline: isOnline,
+                useNaturePoints
             };
 
             if (appliedCode.type === 'referral') {
@@ -853,12 +906,43 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                             <td>Shipping</td>
                                             <td className="price">{shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}</td>
                                         </tr>
+                                        {influencerDiscountAmount > 0 && (
+                                            <tr className="discount text-success">
+                                                <td>Influencer Discount</td>
+                                                <td className="price">-₹{influencerDiscountAmount.toFixed(2)}</td>
+                                            </tr>
+                                        )}
+                                        {naturePointsDiscount > 0 && (
+                                            <tr className="discount text-success">
+                                                <td>Nature Points Redeemed</td>
+                                                <td className="price">-₹{naturePointsDiscount.toFixed(2)}</td>
+                                            </tr>
+                                        )}
                                         <tr className="total">
                                             <td>Total</td>
-                                            <td className="price">₹{(total - appliedDiscount).toFixed(2)}</td>
+                                            <td className="price">₹{total.toFixed(2)}</td>
                                         </tr>
                                     </tbody>
                                 </table>
+
+                                {/* Nature Points Section */}
+                                {availableNaturePoints > 0 && (
+                                    <div className="coupon-input-container mb-3" style={{ background: '#f5fff5', borderColor: '#c3e6cb' }}>
+                                        <h6 className="mb-2 text-success"><i className="fas fa-leaf me-2"></i>Nature Points</h6>
+                                        <div className="form-check custom-checkbox mb-2">
+                                            <input 
+                                                type="checkbox" 
+                                                className="form-check-input" 
+                                                id="useNaturePoints"
+                                                checked={useNaturePoints}
+                                                onChange={(e) => setUseNaturePoints(e.target.checked)}
+                                            />
+                                            <label className="form-check-label ms-2" htmlFor="useNaturePoints" style={{ cursor: 'pointer' }}>
+                                                Use my Nature Points balance ({availableNaturePoints} Points)
+                                            </label>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Coupon / Referral Section */}
                                 <div className="coupon-input-container">

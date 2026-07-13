@@ -11,6 +11,7 @@ const AdminOrders: React.FC = () => {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterTab, setFilterTab] = useState<'All' | 'Return Requests' | 'Cancellation Requests'>('All');
 
     // Status Update State
     const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -334,11 +335,22 @@ const AdminOrders: React.FC = () => {
         );
     };
 
-    const filteredOrders = orders.filter(order =>
-        order.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (order.userId?.displayName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (order.userId?.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredOrders = orders.filter(order => {
+        const matchesSearch = (order.orderId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (order.userId?.displayName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (order.userId?.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        if (filterTab === 'Return Requests') {
+            return order.globalOrderStatus === 'RETURN_REQUEST' || order.orderedProducts?.some((p: any) => p.orderStatus === 'Return Request');
+        }
+        if (filterTab === 'Cancellation Requests') {
+            return order.globalOrderStatus === 'CANCELLATION_REQUEST' || order.orderedProducts?.some((p: any) => p.orderStatus === 'Cancellation Request');
+        }
+
+        return true;
+    });
 
     return (
         <div className="admin-page-container">
@@ -355,19 +367,44 @@ const AdminOrders: React.FC = () => {
             </div>
 
             <div className="admin-card">
-                <div className="card-filter-header">
-                    <div className="search-wrapper">
-                        <Search size={18} className="search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Search orders..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                <div className="card-filter-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '15px' }}>
+                    <div style={{ display: 'flex', gap: '10px', width: '100%', overflowX: 'auto', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                        <button 
+                            className={`btn ${filterTab === 'All' ? 'btn-primary' : 'btn-outline-primary'}`} 
+                            style={{ borderRadius: '20px', padding: '5px 15px', fontSize: '0.85rem' }}
+                            onClick={() => setFilterTab('All')}
+                        >
+                            All Orders
+                        </button>
+                        <button 
+                            className={`btn ${filterTab === 'Return Requests' ? 'btn-primary' : 'btn-outline-primary'}`} 
+                            style={{ borderRadius: '20px', padding: '5px 15px', fontSize: '0.85rem' }}
+                            onClick={() => setFilterTab('Return Requests')}
+                        >
+                            Return Requests
+                        </button>
+                        <button 
+                            className={`btn ${filterTab === 'Cancellation Requests' ? 'btn-primary' : 'btn-outline-primary'}`} 
+                            style={{ borderRadius: '20px', padding: '5px 15px', fontSize: '0.85rem' }}
+                            onClick={() => setFilterTab('Cancellation Requests')}
+                        >
+                            Cancellation Requests
+                        </button>
                     </div>
-                    <button className="action-btn" title="Filters">
-                        <Filter size={18} />
-                    </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                        <div className="search-wrapper">
+                            <Search size={18} className="search-icon" />
+                            <input
+                                type="text"
+                                placeholder="Search orders..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <button className="action-btn" title="Filters">
+                            <Filter size={18} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="admin-table-container" style={{ paddingBottom: '100px' }}>
@@ -407,9 +444,9 @@ const AdminOrders: React.FC = () => {
                                             </div>
                                         </td>
                                         <td>{formatDate(order.createdAt)}</td>
-                                        <td style={{ fontWeight: 700 }}>₹{order.totalAmount.toFixed(2)}</td>
+                                        <td style={{ fontWeight: 700 }}>₹{(order.totalAmount || 0).toFixed(2)}</td>
                                         <td style={{ fontWeight: 600, color: order.refundedAmount > 0 || order.returnedAmount > 0 ? '#dc2626' : '#94a3b8' }}>
-                                            {order.refundedAmount > 0 ? `₹${order.refundedAmount.toFixed(2)}` : (order.returnedAmount > 0 ? `₹${order.returnedAmount.toFixed(2)}` : '—')}
+                                            {order.refundedAmount > 0 ? `₹${(order.refundedAmount || 0).toFixed(2)}` : (order.returnedAmount > 0 ? `₹${(order.returnedAmount || 0).toFixed(2)}` : '—')}
                                         </td>
                                         <td>{getPaymentBadge(order.paymentStatus, order)}</td>
                                         <td style={{ position: 'relative' }}>

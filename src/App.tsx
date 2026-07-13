@@ -7,6 +7,7 @@ import AdminCategories from './pages/Admin/Categories/AdminCategories'
 import AdminSubcategories from './pages/Admin/Categories/AdminSubcategories'
 import AdminCustomers from './pages/Admin/Customers/AdminCustomers'
 import AdminInfluencers from './pages/Admin/Influencers/AdminInfluencers'
+import AdminLoyaltySettings from './pages/Admin/LoyaltySettings/AdminLoyaltySettings'
 import AdminOrders from './pages/Admin/Orders/AdminOrders'
 import AdminOrderDetails from './pages/Admin/Orders/AdminOrderDetails'
 import AdminCoupons from './pages/Admin/Coupons/AdminCoupons'
@@ -42,6 +43,7 @@ import ShippingAddress from './pages/Account/ShippingAddress'
 import Orders from './pages/Account/Orders'
 import OrderDetails from './pages/Account/OrderDetails'
 import InfluencerDashboard from './pages/Account/InfluencerDashboard'
+import NaturePoints from './pages/Account/NaturePoints'
 import AdminLogin from './pages/Admin/AdminLogin'
 
 import { Routes, Route, useLocation } from 'react-router-dom'
@@ -162,6 +164,8 @@ function App() {
           <Route path="/admin/shipping-agencies/edit/:id" element={<AgencyForm />} />
           <Route path="/admin/shipping-charges" element={<ShippingCharges />} />
 
+          <Route path="/admin/loyalty-settings" element={<AdminLoyaltySettings />} />
+
           <Route path="/admin/settings" element={<div className="p-4">Settings Page (Coming Soon)</div>} />
           <Route path="/admin/integrations" element={<div className="p-4">Integrations Page (Coming Soon)</div>} />
         </Route>
@@ -245,6 +249,11 @@ function App() {
                   <Route path="/account/orders/:id" element={
                     <ProtectedRoute type="user">
                       <OrderDetails />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/account/nature-points" element={
+                    <ProtectedRoute type="user">
+                      <NaturePoints />
                     </ProtectedRoute>
                   } />
                 </Routes>

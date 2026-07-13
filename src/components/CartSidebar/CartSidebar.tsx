@@ -41,6 +41,8 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
         }
     };
 
+    const [cartPricing, setCartPricing] = useState<any>(null);
+
     const fetchCartAndWishlist = async () => {
         if (isUser) {
             try {
@@ -50,6 +52,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
                 ]);
                 if (cartRes.data.success && cartRes.data.data) {
                     setCartItems(cartRes.data.data.products);
+                    if (cartRes.data.data.pricing) {
+                        setCartPricing(cartRes.data.data.pricing);
+                    }
                 }
                 if (wishRes.data.success) {
                     setWishlistItems(wishRes.data.data);
@@ -60,7 +65,15 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
         } else {
             const localCartStr = localStorage.getItem('offlineCart');
             if (localCartStr) {
-                try { setCartItems(JSON.parse(localCartStr)); } catch (e) { setCartItems([]); }
+                try { 
+                    const parsed = JSON.parse(localCartStr);
+                    setCartItems(parsed); 
+                    // To get correct totals for offline users in sidebar, we'd ideally call calculate
+                    const res = await userApiClient.post('/user/cart/calculate', { products: parsed });
+                    if (res.data.success && res.data.data && res.data.data.pricing) {
+                        setCartPricing(res.data.data.pricing);
+                    }
+                } catch (e) { setCartItems([]); }
             } else setCartItems([]);
 
             const localWishlistStr = localStorage.getItem('offlineWishlist');
@@ -141,7 +154,10 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
     };
 
     const validCartItems = cartItems.filter(item => item && item.product);
-    const cartSubtotal = validCartItems.reduce((acc, item) => acc + ((item.product?.price || 0) * (item.quantity || 1)), 0);
+    const cartSubtotal = cartPricing?.finalPrice !== undefined ? cartPricing.finalPrice : validCartItems.reduce((acc, item) => {
+        const price = item.finalUnitPrice !== undefined ? item.finalUnitPrice : (item.product?.price || 0);
+        return acc + (price * (item.quantity || 1));
+    }, 0);
 
     return (
         <div className="offcanvas dz-offcanvas offcanvas-end" tabIndex={-1} id="offcanvasRight" style={{ width: '450px' }}>
@@ -203,7 +219,13 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
                                                         <button onClick={() => updateQty(prod._id, 1)} type="button" style={{ width: '30px', height: '30px', background: '#fff', border: 'none', fontSize: '18px', color: '#333' }}>+</button>
                                                     </div>
                                                     <h6 className="dz-price" style={{ fontSize: '18px', fontWeight: '500', color: '#2D2E2F', marginLeft: '15px', marginBottom: 0 }}>
-                                                        ₹{prod.price?.toFixed(2)}
+                                                        {item.finalUnitPrice !== undefined && item.finalUnitPrice < (prod.price || 0) ? (
+                                                            <>
+                                                                ₹{item.finalUnitPrice.toFixed(2)} <del style={{ fontSize: '14px', color: '#999', marginLeft: '5px' }}>₹{prod.price?.toFixed(2)}</del>
+                                                            </>
+                                                        ) : (
+                                                            <>₹{prod.price?.toFixed(2)}</>
+                                                        )}
                                                     </h6>
                                                 </div>
                                             </div>

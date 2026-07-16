@@ -155,23 +155,36 @@ const OrderDetails: React.FC = () => {
     };
 
     const isProductReturnable = (p: any) => {
-        if (p.orderStatus !== 'Delivered') return false;
+        if (!['Delivered', 'DELIVERED', 'COMPLETED', 'Completed'].includes(p.orderStatus)) return false;
+
+        const expiryDateVal = p.returnExpiryDate || order?.returnExpiryDate;
+        if (expiryDateVal) {
+            const expiryDate = new Date(expiryDateVal);
+            if (!isNaN(expiryDate.getTime())) {
+                return Date.now() <= expiryDate.getTime();
+            }
+        }
 
         const historyEntry = order?.statusHistory?.slice().reverse().find((h: any) =>
             h.status.includes('Delivered') && (h.status.includes(p.productName) || h.status.includes('All Items'))
         );
 
-        if (!historyEntry) return true; // Safety
+        if (!historyEntry) {
+            const delivered = p.shippingDetails?.deliveredDate || order?.deliveredAt;
+            if (delivered) {
+                const deliveryDate = new Date(delivered);
+                if (!isNaN(deliveryDate.getTime())) {
+                    return Date.now() <= deliveryDate.getTime() + 7 * 24 * 60 * 60 * 1000;
+                }
+            }
+            return false;
+        }
 
         const deliveryDate = new Date(historyEntry.timestamp);
-        const now = new Date();
-        const diffTime = Math.abs(now.getTime() - deliveryDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        return diffDays <= 7;
+        return Date.now() <= deliveryDate.getTime() + 7 * 24 * 60 * 60 * 1000;
     };
 
-    const isOrderReturnable = order?.orderedProducts?.length > 0 && order.orderedProducts.every((p: any) => isProductReturnable(p));
+    const isOrderReturnable = order?.orderedProducts?.length > 0 && order.orderedProducts.every((p: any) => isProductReturnable(p)) && (!order?.returnExpiryDate || isNaN(new Date(order.returnExpiryDate).getTime()) || Date.now() <= new Date(order.returnExpiryDate).getTime());
 
     if (loading) {
         return (

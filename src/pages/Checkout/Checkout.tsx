@@ -21,7 +21,7 @@ const Checkout: React.FC = () => {
     const [total, setTotal] = useState(0);
     const [couponInput, setCouponInput] = useState('');
     const [appliedDiscount, setAppliedDiscount] = useState(0);
-    const [appliedCode, setAppliedCode] = useState<{ code: string, type: 'referral' | 'coupon' | null }>({ code: '', type: null });
+    const [appliedCode, setAppliedCode] = useState<{ code: string, type: 'referral' | 'coupon' | 'influencer' | null, source?: 'LINK' | 'CODE' | null }>({ code: '', type: null, source: null });
     const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
     const [appliedComboOffer, setAppliedComboOffer] = useState<any>(null);
     
@@ -29,6 +29,8 @@ const Checkout: React.FC = () => {
     const [useNaturePoints, setUseNaturePoints] = useState(false);
     const [naturePointsDiscount, setNaturePointsDiscount] = useState(0);
     const [availableNaturePoints, setAvailableNaturePoints] = useState(0);
+    const [naturePointsEligibility, setNaturePointsEligibility] = useState<any>(null);
+    const [naturePointsUsed, setNaturePointsUsed] = useState(0);
     
     // Influencer logic
     const [influencerDiscountPercent, setInfluencerDiscountPercent] = useState<number>(0);
@@ -377,8 +379,9 @@ const Checkout: React.FC = () => {
             try {
                 const payload = {
                     addressId: activeAddrId,
-                    couponCode: appliedCode.type === 'coupon' ? appliedCode.code : '',
+                    couponCode: (appliedCode.type === 'coupon' || (appliedCode.type === 'influencer' && appliedCode.source === 'CODE')) ? appliedCode.code : '',
                     referralCode: appliedCode.type === 'referral' ? appliedCode.code : '',
+                    influencerRef: (appliedCode.source === 'LINK' || (appliedCode.type === 'influencer' && appliedCode.source !== 'CODE') || (!appliedCode.source && influencerCookie && !appliedCode.code)) ? (influencerCookie || appliedCode.code || '') : '',
                     useNaturePoints
                 };
                 
@@ -390,13 +393,20 @@ const Checkout: React.FC = () => {
                     setShipping(data.deliveryCharge || 0);
                     
                     setNaturePointsDiscount(data.naturePointsDiscount || 0);
+                    setNaturePointsUsed(data.naturePointsUsed || 0);
+                    setNaturePointsEligibility(data.naturePointsEligibility || null);
                     setTotal(data.finalPrice || data.total);
                     
                     // Safely clear applied code if backend rejected it due to priority (e.g. combo offer appeared)
-                    if (appliedCode.code && !data.appliedDiscounts.coupon && !data.appliedDiscounts.referral) {
-                        setAppliedCode({ code: '', type: null });
+                    if (appliedCode.code && !data.appliedDiscounts?.coupon && !data.appliedDiscounts?.referral && !data.influencerApplied && !(data.appliedDiscounts && data.appliedDiscounts.influencer) && !data.influencerDiscountAmount) {
+                        setAppliedCode({ code: '', type: null, source: null });
                         setAppliedDiscount(0);
                         setCouponInput('');
+                    } else if (!appliedCode.code && (data.influencerApplied || data.influencerDiscountAmount > 0) && data.influencerCode) {
+                        setAppliedCode({ code: data.influencerCode, type: 'influencer', source: influencerCookie ? 'LINK' : 'CODE' });
+                        setCouponInput(data.influencerCode);
+                    } else if (appliedCode.code && appliedCode.type === 'influencer' && !appliedCode.source) {
+                        setAppliedCode(prev => ({ ...prev, source: influencerCookie ? 'LINK' : 'CODE' }));
                     }
                 }
             } catch (error) {
@@ -431,14 +441,45 @@ const Checkout: React.FC = () => {
         const code = (codeToApply || couponInput).trim().toUpperCase();
         if (!code) return;
 
+        // Check if link-based attribution is active and protected
+        const isLinkActive = appliedCode.source === 'LINK' || (influencerCookie && (appliedCode.type === 'influencer' || !appliedCode.code) && appliedCode.source !== 'CODE');
+        if (isLinkActive) {
+            toast.warning("Link-based influencer discount is already active and cannot be replaced.");
+            return;
+        }
+
         try {
+            // 0. Check if it's an influencer code first via checkout totals or active validation
+            const activeAddrId = (showNewAddressForm || editingAddressId) ? null : (tempSelectedId || selectedAddressId);
+            try {
+                const testRes = await userApiClient.post('/user/order/checkout/totals', {
+                    addressId: activeAddrId,
+                    couponCode: code,
+                    useNaturePoints
+                });
+                if (testRes.data?.success) {
+                    const totalsData = testRes.data.data;
+                    if (totalsData.influencerApplied || totalsData.influencerDiscountAmount > 0) {
+                        setAppliedDiscount(totalsData.influencerDiscountAmount);
+                        setAppliedCode({ code: totalsData.influencerCode || code, type: 'influencer', source: 'CODE' });
+                        setCouponInput(totalsData.influencerCode || code);
+                        setInfluencerDiscountAmount(totalsData.influencerDiscountAmount);
+                        toast.success(`Influencer code "${totalsData.influencerCode || code}" applied!`);
+                        setIsModalOpen(false);
+                        return;
+                    }
+                }
+            } catch (infErr) {
+                // Ignore and continue checking regular coupons/referrals
+            }
+
             // 1. Try validating as a regular coupon first
             try {
                 const couponRes = await userApiClient.post('/user/coupon/validate', { code, amount: subtotal });
                 if (couponRes.data.success) {
                     const coupon = couponRes.data.data.coupon;
                     setAppliedDiscount(coupon.discountValue);
-                    setAppliedCode({ code: coupon.couponName, type: 'coupon' });
+                    setAppliedCode({ code: coupon.couponName, type: 'coupon', source: 'CODE' });
                     setCouponInput(coupon.couponName);
                     toast.success(`Coupon "${coupon.couponName}" applied!`);
                     setIsModalOpen(false);
@@ -472,7 +513,7 @@ const Checkout: React.FC = () => {
                 // For referral codes, the backend placeOrder handles the actual validation.
                 // We'll apply it here for UI feedback, but it's "tentative".
                 setAppliedDiscount(subtotal * 0.20);
-                setAppliedCode({ code: code, type: 'referral' });
+                setAppliedCode({ code: code, type: 'referral', source: 'CODE' });
                 setCouponInput(code);
                 toast.success("Referral discount applied!");
                 setIsModalOpen(false);
@@ -501,7 +542,7 @@ const Checkout: React.FC = () => {
 
             if (appliedCode.type === 'referral') {
                 orderData.referralCode = appliedCode.code;
-            } else if (appliedCode.type === 'coupon') {
+            } else if (appliedCode.type === 'coupon' || appliedCode.type === 'influencer') {
                 orderData.couponCode = appliedCode.code;
             }
 
@@ -885,7 +926,7 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                             <td>Subtotal (MRP)</td>
                                             <td className="price">₹{cartItems.reduce((a, item) => a + ((item.product?.price || 0) * item.quantity), 0).toFixed(2)}</td>
                                         </tr>
-                                        {appliedDiscount > 0 && (
+                                        {appliedDiscount > 0 && appliedCode.type !== 'influencer' && (
                                             <tr className="discount text-success">
                                                 <td>{appliedCode.type === 'referral' ? 'Referral' : 'Coupon'} Discount</td>
                                                 <td className="price">-₹{appliedDiscount.toFixed(2)}</td>
@@ -908,7 +949,7 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                         </tr>
                                         {influencerDiscountAmount > 0 && (
                                             <tr className="discount text-success">
-                                                <td>Influencer Discount</td>
+                                                <td>Influencer Discount {appliedCode.type === 'influencer' && appliedCode.code ? `(${appliedCode.code})` : influencerCookie ? `(${influencerCookie})` : ''}</td>
                                                 <td className="price">-₹{influencerDiscountAmount.toFixed(2)}</td>
                                             </tr>
                                         )}
@@ -928,19 +969,64 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                 {/* Nature Points Section */}
                                 {availableNaturePoints > 0 && (
                                     <div className="coupon-input-container mb-3" style={{ background: '#f5fff5', borderColor: '#c3e6cb' }}>
-                                        <h6 className="mb-2 text-success"><i className="fas fa-leaf me-2"></i>Nature Points</h6>
-                                        <div className="form-check custom-checkbox mb-2">
-                                            <input 
-                                                type="checkbox" 
-                                                className="form-check-input" 
-                                                id="useNaturePoints"
-                                                checked={useNaturePoints}
-                                                onChange={(e) => setUseNaturePoints(e.target.checked)}
-                                            />
-                                            <label className="form-check-label ms-2" htmlFor="useNaturePoints" style={{ cursor: 'pointer' }}>
-                                                Use my Nature Points balance ({availableNaturePoints} Points)
-                                            </label>
-                                        </div>
+                                        {useNaturePoints && (naturePointsUsed > 0 || naturePointsDiscount > 0) ? (
+                                            <div>
+                                                <h6 className="mb-3 text-success fw-bold">
+                                                    <i className="fas fa-leaf me-2"></i>Nature Points Applied ✅
+                                                </h6>
+                                                <div className="small mb-3">
+                                                    <div className="d-flex justify-content-between mb-1">
+                                                        <span className="text-muted">Available Balance:</span>
+                                                        <span className="fw-bold">{availableNaturePoints} Points</span>
+                                                    </div>
+                                                    <div className="d-flex justify-content-between mb-1">
+                                                        <span className="text-muted">Redeemed:</span>
+                                                        <span className="fw-bold text-danger">
+                                                            -{naturePointsUsed > 0 ? naturePointsUsed : naturePointsDiscount} Points
+                                                        </span>
+                                                    </div>
+                                                    <div className="d-flex justify-content-between border-top pt-1 mt-1">
+                                                        <span className="text-muted">Remaining Balance:</span>
+                                                        <span className="fw-bold text-success">
+                                                            {availableNaturePoints - (naturePointsUsed > 0 ? naturePointsUsed : naturePointsDiscount)} Points
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    type="button" 
+                                                    className="btn btn-outline-danger btn-sm w-100"
+                                                    onClick={() => {
+                                                        setUseNaturePoints(false);
+                                                        setNaturePointsUsed(0);
+                                                        setNaturePointsDiscount(0);
+                                                    }}
+                                                >
+                                                    Remove Applied Nature Points
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <h6 className="mb-2 text-success"><i className="fas fa-leaf me-2"></i>Nature Points</h6>
+                                                <div className="form-check custom-checkbox mb-2">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="form-check-input" 
+                                                        id="useNaturePoints"
+                                                        checked={useNaturePoints}
+                                                        disabled={naturePointsEligibility && !naturePointsEligibility.isEligible}
+                                                        onChange={(e) => setUseNaturePoints(e.target.checked)}
+                                                    />
+                                                    <label className="form-check-label ms-2" htmlFor="useNaturePoints" style={{ cursor: 'pointer' }}>
+                                                        Use my Nature Points ({availableNaturePoints} Available)
+                                                    </label>
+                                                </div>
+                                                {naturePointsEligibility && !naturePointsEligibility.isEligible && naturePointsEligibility.disabledReason && (
+                                                    <small className="text-danger d-block mt-1">
+                                                        <i className="fas fa-info-circle me-1"></i> {naturePointsEligibility.disabledReason}
+                                                    </small>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -984,23 +1070,37 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                             Show all active coupons
                                         </div>
                                     )}
-                                    {appliedCode.code && (
-                                        <div className="mt-2 text-success" style={{ fontSize: '13px' }}>
-                                            <i className="fas fa-check-circle me-1"></i>
-                                            Applied: <strong>{appliedCode.code}</strong>
-                                            <span
-                                                className="ms-2 text-danger cursor-pointer"
-                                                style={{ textDecoration: 'underline', cursor: 'pointer' }}
-                                                onClick={() => {
-                                                    setAppliedDiscount(0);
-                                                    setAppliedCode({ code: '', type: null });
-                                                    setCouponInput('');
-                                                }}
-                                            >
-                                                Remove
-                                            </span>
-                                        </div>
-                                    )}
+                                    {(appliedCode.code || (influencerCookie && influencerDiscountAmount > 0)) && (() => {
+                                        const isLinkAttribution = appliedCode.source === 'LINK' || (appliedCode.type === 'influencer' && !appliedCode.source && influencerCookie) || (!appliedCode.code && influencerCookie && influencerDiscountAmount > 0);
+                                        return (
+                                            <div className="mt-2 text-success d-flex align-items-center justify-content-between bg-light p-2 rounded border border-success-subtle" style={{ fontSize: '13px' }}>
+                                                <div>
+                                                    <i className="fas fa-check-circle me-1 text-success"></i>
+                                                    Applied: <strong>{appliedCode.code || influencerCookie}</strong>
+                                                    <span className="badge bg-success-subtle text-success border border-success ms-2">
+                                                        {appliedCode.type === 'coupon' ? 'Coupon' : appliedCode.type === 'referral' ? 'Referral' : 'Influencer'}
+                                                    </span>
+                                                </div>
+                                                {!isLinkAttribution && (
+                                                    <span
+                                                        className="text-danger fw-medium cursor-pointer ms-3"
+                                                        style={{ textDecoration: 'underline', cursor: 'pointer' }}
+                                                        onClick={() => {
+                                                            setAppliedDiscount(0);
+                                                            setAppliedCode({ code: '', type: null, source: null });
+                                                            setCouponInput('');
+                                                            if (appliedCode.type === 'influencer') {
+                                                                setInfluencerDiscountAmount(0);
+                                                            }
+                                                            toast.info('Discount removed.');
+                                                        }}
+                                                    >
+                                                        Remove
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 <div className="accordion dz-accordion accordion-sm mt-3">

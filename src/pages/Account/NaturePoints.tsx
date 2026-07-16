@@ -78,8 +78,10 @@ const NaturePoints: React.FC = () => {
                                         <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
                                         <ul className="account-info-list">
                                             <li><Link to="/account/profile">Profile</Link></li>
-                                            {user?.isInfluencer ? (
+                                            {user?.isInfluencer && (!user?.influencerRequestStatus || user?.influencerRequestStatus === 'APPROVED') ? (
                                                 <li><Link to="/account/influencer">Influencer Dashboard</Link></li>
+                                            ) : user?.influencerRequestStatus === 'PENDING' ? (
+                                                <li><span className="text-muted d-block py-1" style={{ cursor: 'not-allowed', fontSize: '14px' }}>Influencer (Pending Review)</span></li>
                                             ) : (
                                                 <li><Link to="/account/profile">Become an Influencer</Link></li>
                                             )}

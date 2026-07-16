@@ -10,6 +10,7 @@ const AdminCustomers: React.FC = () => {
     const [customers, setCustomers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState<string>('all');
 
     useEffect(() => {
         fetchCustomers();
@@ -87,11 +88,16 @@ const AdminCustomers: React.FC = () => {
             : <span className="admin-badge badge-danger">Inactive</span>;
     };
 
-    const filteredCustomers = customers.filter(c => 
-        (c.displayName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.phoneNumber || '').includes(searchTerm)
-    );
+    const filteredCustomers = customers.filter(c => {
+        const matchesSearch = (c.displayName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (c.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (c.phoneNumber || '').includes(searchTerm);
+        if (!matchesSearch) return false;
+        if (filterStatus === 'pending') return c.influencerRequestStatus === 'PENDING';
+        if (filterStatus === 'approved') return c.isInfluencer || c.influencerRequestStatus === 'APPROVED';
+        if (filterStatus === 'rejected') return c.influencerRequestStatus === 'REJECTED';
+        return true;
+    });
 
     return (
         <div className="admin-page-container">
@@ -108,7 +114,7 @@ const AdminCustomers: React.FC = () => {
             </div>
 
             <div className="admin-card">
-                <div className="card-filter-header">
+                <div className="card-filter-header d-flex justify-content-between align-items-center">
                     <div className="search-wrapper">
                         <Search size={18} className="search-icon" />
                         <input 
@@ -118,9 +124,22 @@ const AdminCustomers: React.FC = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <button className="action-btn" title="Filters">
-                        <Filter size={18} />
-                    </button>
+                    <div className="d-flex align-items-center gap-2">
+                        <select 
+                            className="form-select form-select-sm" 
+                            style={{ width: '200px', borderRadius: '6px', border: '1px solid #e2e8f0', padding: '6px 12px', fontSize: '0.9rem' }}
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                            <option value="all">All Influencer Status</option>
+                            <option value="pending">Pending Request</option>
+                            <option value="approved">Approved Influencer</option>
+                            <option value="rejected">Rejected Request</option>
+                        </select>
+                        <button className="action-btn" title="Filters">
+                            <Filter size={18} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="admin-table-container">
@@ -132,15 +151,16 @@ const AdminCustomers: React.FC = () => {
                                 <th>Location</th>
                                 <th>Joined Date</th>
                                 <th>Orders</th>
+                                <th>Influencer Req</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={7} className="text-center p-4">Loading customers...</td></tr>
+                                <tr><td colSpan={8} className="text-center p-4">Loading customers...</td></tr>
                             ) : filteredCustomers.length === 0 ? (
-                                <tr><td colSpan={7} className="text-center p-4">No customers found.</td></tr>
+                                <tr><td colSpan={8} className="text-center p-4">No customers found.</td></tr>
                             ) : (
                                 filteredCustomers.map((customer) => (
                                     <tr key={customer._id}>
@@ -176,6 +196,17 @@ const AdminCustomers: React.FC = () => {
                                         </td>
                                         <td>{formatDate(customer.createdAt)}</td>
                                         <td style={{ fontWeight: 600 }}>{customer.orderCount} orders</td>
+                                        <td>
+                                            {customer.influencerRequestStatus === 'PENDING' ? (
+                                                <span className="admin-badge badge-warning text-dark" style={{ background: '#fef08a', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Pending</span>
+                                            ) : customer.isInfluencer || customer.influencerRequestStatus === 'APPROVED' ? (
+                                                <span className="admin-badge badge-success" style={{ background: '#bbf7d0', color: '#166534', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Influencer</span>
+                                            ) : customer.influencerRequestStatus === 'REJECTED' ? (
+                                                <span className="admin-badge badge-danger" style={{ background: '#fecaca', color: '#991b1b', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Rejected</span>
+                                            ) : (
+                                                <span className="text-muted small">None</span>
+                                            )}
+                                        </td>
                                         <td onClick={() => toggleStatus(customer._id, customer.isActive)} style={{ cursor: 'pointer' }}>
                                             {getStatusBadge(customer.isActive)}
                                         </td>

@@ -54,10 +54,11 @@ import { userAuthService } from './services/user/userAuthService';
 import { adminLoginSuccess, userLoginSuccess, adminLogout, userLogout } from './store/authSlice';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import GuestRoute from './components/Auth/GuestRoute';
+import userApiClient from './services/userApiClient';
 
 function App() {
   const dispatch = useDispatch();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -66,15 +67,40 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const refCode = params.get('ref');
     if (refCode) {
-      // Set cookie for 30 days
+      // Set cookie for 30 days (preserves existing attribution logic unchanged)
       document.cookie = `influencer_ref=${refCode}; path=/; max-age=2592000`;
-      
+
+      // sessionStorage guard: only fire track-visit once per (refCode, browser session)
+      const trackKey = `inf_tracked_${refCode.toUpperCase()}`;
+      const alreadyTracked = sessionStorage.getItem(trackKey);
+
+      if (!alreadyTracked) {
+        // Generate or retrieve a stable session identifier for this browser tab session.
+        // sessionStorage is cleared when the tab is closed, so new sessions get a new ID.
+        let sessionId = sessionStorage.getItem('inf_session_id');
+        if (!sessionId) {
+          sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+          sessionStorage.setItem('inf_session_id', sessionId);
+        }
+
+        // Fire the backend visit record (backend also deduplicates via unique index)
+        userApiClient
+          .post('/user/influencer/track-visit', { code: refCode, sessionId })
+          .then(() => {
+            // Mark as tracked in this session so route changes don't re-fire
+            sessionStorage.setItem(trackKey, '1');
+          })
+          .catch(() => {
+            // Silently ignore — tracking must never block the user
+          });
+      }
+
       // Clean up URL without refreshing the page
       params.delete('ref');
       const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
       window.history.replaceState({}, '', newUrl);
     }
-  }, [pathname]);
+  }, [pathname, search]);
 
   useEffect(() => {
     const checkAuth = async () => {

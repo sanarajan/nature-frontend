@@ -32,3 +32,9 @@
 .admin-influencers-container .table td {
     vertical-align: middle;
 }
+
+.admin-influencers-container .table td .badge,
+.admin-influencers-container .badge {
+    position: static !important;
+    display: inline-block;
+}

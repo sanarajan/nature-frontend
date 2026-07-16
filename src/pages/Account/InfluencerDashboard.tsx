@@ -20,9 +20,10 @@ const InfluencerDashboard: React.FC = () => {
     useEffect(() => {
         if (!isAuthenticated && !localStorage.getItem('user_accessToken')) {
             navigate('/login');
-        } else if (user && !user.isInfluencer) {
+        } else if (user && (!user.isInfluencer || (user.influencerRequestStatus && user.influencerRequestStatus !== 'APPROVED'))) {
+            toast.error('Influencer dashboard is only accessible after admin approval.');
             navigate('/account/profile');
-        } else if (user && user.isInfluencer) {
+        } else if (user && user.isInfluencer && (!user.influencerRequestStatus || user.influencerRequestStatus === 'APPROVED')) {
             fetchDashboardData();
         }
     }, [isAuthenticated, navigate, user]);
@@ -31,7 +32,13 @@ const InfluencerDashboard: React.FC = () => {
         try {
             const res = await userApiClient.get('/user/influencer/dashboard');
             if (res.data.success) {
-                setDashboardData(res.data.data);
+                const data = res.data.data;
+                setDashboardData(data);
+                if (['INACTIVE', 'Inactive'].includes(data?.status || user?.influencerStatus)) {
+                    toast.warn('Your influencer account is currently inactive. Referral commissions and withdrawals are disabled.');
+                } else if (['BLOCKED', 'Blocked'].includes(data?.status || user?.influencerStatus)) {
+                    toast.error('Your influencer account has been blocked. Referral commissions and withdrawals are disabled.');
+                }
             }
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Failed to fetch dashboard data');
@@ -42,6 +49,15 @@ const InfluencerDashboard: React.FC = () => {
 
     const handleWithdraw = async (e: React.FormEvent) => {
         e.preventDefault();
+        const currentStatus = dashboardData?.status || user?.influencerStatus;
+        if (['INACTIVE', 'Inactive'].includes(currentStatus)) {
+            toast.error('Your influencer account is currently inactive. Withdrawals are disabled.');
+            return;
+        }
+        if (['BLOCKED', 'Blocked'].includes(currentStatus)) {
+            toast.error('Your influencer account has been blocked. Withdrawals are disabled.');
+            return;
+        }
         const amount = Number(withdrawAmount);
         if (!amount || amount <= 0) {
             toast.error('Please enter a valid amount');
@@ -119,7 +135,7 @@ const InfluencerDashboard: React.FC = () => {
                                         <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
                                         <ul className="account-info-list">
                                             <li><Link to="/account/profile">Profile</Link></li>
-                                            {user?.isInfluencer && <li className="active"><Link to="/account/influencer">Influencer Dashboard</Link></li>}
+                                            {user?.isInfluencer && (!user?.influencerRequestStatus || user?.influencerRequestStatus === 'APPROVED') && <li className="active"><Link to="/account/influencer">Influencer Dashboard</Link></li>}
                                         </ul>
                                     </div>
                                 </div>
@@ -128,29 +144,91 @@ const InfluencerDashboard: React.FC = () => {
 
                         {/* Main Content */}
                         <section className="col-xl-9 account-wrapper mt-4 mt-xl-0">
+                            {['INACTIVE', 'Inactive'].includes(dashboardData?.status || user?.influencerStatus) && (
+                                <div className="alert alert-warning d-flex align-items-center mb-4" role="alert">
+                                    <div>
+                                        <strong>Account Inactive:</strong> Your influencer account is currently inactive. Referral link tracking and withdrawals are temporarily disabled.
+                                    </div>
+                                </div>
+                            )}
+                            {['BLOCKED', 'Blocked'].includes(dashboardData?.status || user?.influencerStatus) && (
+                                <div className="alert alert-danger d-flex align-items-center mb-4" role="alert">
+                                    <div>
+                                        <strong>Account Blocked:</strong> Your influencer account has been blocked by the administrator. Referral link tracking and withdrawals are disabled.
+                                    </div>
+                                </div>
+                            )}
                             <div className="row mb-4">
                                 <div className="col-md-3">
-                                    <div className="card text-center p-3">
+                                    <div className="card text-center p-3 mb-3">
                                         <h5>Wallet Balance</h5>
                                         <h3 className="text-primary">₹{dashboardData?.walletBalance?.toFixed(2) || '0.00'}</h3>
                                     </div>
                                 </div>
                                 <div className="col-md-3">
-                                    <div className="card text-center p-3">
-                                        <h5>Pending Balance</h5>
+                                    <div className="card text-center p-3 mb-3">
+                                        <h5>Pending Commission</h5>
                                         <h3 className="text-warning">₹{dashboardData?.pendingBalance?.toFixed(2) || '0.00'}</h3>
                                     </div>
                                 </div>
                                 <div className="col-md-3">
-                                    <div className="card text-center p-3">
-                                        <h5>Total Earned</h5>
+                                    <div className="card text-center p-3 mb-3">
+                                        <h5>Approved Commission</h5>
                                         <h3 className="text-success">₹{dashboardData?.totalEarned?.toFixed(2) || '0.00'}</h3>
                                     </div>
                                 </div>
                                 <div className="col-md-3">
-                                    <div className="card text-center p-3">
+                                    <div className="card text-center p-3 mb-3">
                                         <h5>Total Withdrawn</h5>
                                         <h3 className="text-info">₹{dashboardData?.totalWithdrawn?.toFixed(2) || '0.00'}</h3>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="row mb-4">
+                                <div className="col-md-4">
+                                    <div className="card text-center p-3 mb-3 border-start border-4 border-info">
+                                        <h6 className="text-muted mb-1">Referral Visits</h6>
+                                        <h4 className="fw-bold mb-0">{dashboardData?.referralVisits || 0}</h4>
+                                    </div>
+                                </div>
+                                <div className="col-md-4">
+                                    <div className="card text-center p-3 mb-3 border-start border-4 border-success">
+                                        <h6 className="text-muted mb-1">Unique Customers</h6>
+                                        <h4 className="fw-bold mb-0">{dashboardData?.uniqueCustomers || 0}</h4>
+                                    </div>
+                                </div>
+                                <div className="col-md-4">
+                                    <div className="card text-center p-3 mb-3 border-start border-4 border-primary">
+                                        <h6 className="text-muted mb-1">Total Orders</h6>
+                                        <h4 className="fw-bold mb-0">{dashboardData?.totalOrders || 0}</h4>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="row mb-4">
+                                <div className="col-6 col-md-3">
+                                    <div className="card text-center p-2 mb-2 bg-light">
+                                        <small className="text-muted">Completed Orders</small>
+                                        <span className="fs-5 fw-bold text-success">{dashboardData?.completedOrders || 0}</span>
+                                    </div>
+                                </div>
+                                <div className="col-6 col-md-3">
+                                    <div className="card text-center p-2 mb-2 bg-light">
+                                        <small className="text-muted">Pending Orders</small>
+                                        <span className="fs-5 fw-bold text-warning">{dashboardData?.pendingOrders || 0}</span>
+                                    </div>
+                                </div>
+                                <div className="col-6 col-md-3">
+                                    <div className="card text-center p-2 mb-2 bg-light">
+                                        <small className="text-muted">Cancelled Orders</small>
+                                        <span className="fs-5 fw-bold text-secondary">{dashboardData?.cancelledOrders || 0}</span>
+                                    </div>
+                                </div>
+                                <div className="col-6 col-md-3">
+                                    <div className="card text-center p-2 mb-2 bg-light">
+                                        <small className="text-muted">Returned Orders</small>
+                                        <span className="fs-5 fw-bold text-danger">{dashboardData?.returnedOrders || 0}</span>
                                     </div>
                                 </div>
                             </div>
@@ -176,6 +254,43 @@ const InfluencerDashboard: React.FC = () => {
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+
+                            <div className="card p-4 mb-4">
+                                <h4 className="mb-3">Top Selling Products</h4>
+                                {(!dashboardData?.topProducts || dashboardData?.topProducts?.length === 0) ? (
+                                    <p className="text-muted">No products sold via your referral links yet.</p>
+                                ) : (
+                                    <div className="table-responsive">
+                                        <table className="table table-hover align-middle">
+                                            <thead>
+                                                <tr>
+                                                    <th>Product</th>
+                                                    <th className="text-center">Total Sold</th>
+                                                    <th className="text-end">Revenue Generated</th>
+                                                    <th className="text-end">Commission Earned</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {dashboardData.topProducts.map((prod: any, idx: number) => (
+                                                    <tr key={prod._id || idx}>
+                                                        <td className="d-flex align-items-center">
+                                                            {prod.image && (
+                                                                <img src={prod.image} alt={prod.productName} className="rounded me-3" style={{ width: '45px', height: '45px', objectFit: 'cover' }} />
+                                                            )}
+                                                            <strong>{prod.productName || `Product #${prod._id}`}</strong>
+                                                        </td>
+                                                        <td className="text-center">
+                                                            <span className="badge bg-secondary rounded-pill px-3 py-2">{prod.totalSold}</span>
+                                                        </td>
+                                                        <td className="text-end">₹{Number(prod.totalRevenue || 0).toFixed(2)}</td>
+                                                        <td className="text-end text-success fw-bold">₹{Number(prod.totalCommission || 0).toFixed(2)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="row">

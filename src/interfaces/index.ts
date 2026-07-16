@@ -10,6 +10,15 @@ export interface User {
     role?: string;
     isInfluencer?: boolean;
     influencerCode?: string;
+    influencerRequestStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+    influencerRequestDate?: Date | string;
+    influencerSocialProfiles?: {
+        facebook?: string;
+        instagram?: string;
+        youtube?: string;
+    };
+    influencerRejectionReason?: string;
+    influencerStatus?: string;
     token?: string;
     imageUrl?: string;
     referralId?: string;

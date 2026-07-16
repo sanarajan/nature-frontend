@@ -36,6 +36,16 @@ const Profile: React.FC = () => {
     // Influencer State
     const [showInfluencerModal, setShowInfluencerModal] = useState(false);
     const [upgrading, setUpgrading] = useState(false);
+    const [socialForm, setSocialForm] = useState({
+        facebook: '',
+        instagram: '',
+        youtube: ''
+    });
+
+    const handleSocialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setSocialForm(prev => ({ ...prev, [name]: value }));
+    };
 
     useEffect(() => {
         if (!isAuthenticated && !localStorage.getItem('user_accessToken')) {
@@ -157,11 +167,28 @@ const Profile: React.FC = () => {
     };
 
     const handleUpgradeToInfluencer = async () => {
+        const fbRegex = /^https?:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9(\.\?)?(_)?\-]+(\/)?.*$/i;
+        const igRegex = /^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9_\-\.]+.*$/i;
+        const ytRegex = /^https?:\/\/(www\.)?youtube\.com\/(@[a-zA-Z0-9_\-\.]+|channel\/[a-zA-Z0-9_\-]+|c\/[a-zA-Z0-9_\-]+|user\/[a-zA-Z0-9_\-]+|.*)/i;
+
+        if (!socialForm.facebook || !fbRegex.test(socialForm.facebook.trim())) {
+            toast.error('Please enter a valid Facebook profile URL (e.g., https://facebook.com/yourusername).');
+            return;
+        }
+        if (!socialForm.instagram || !igRegex.test(socialForm.instagram.trim())) {
+            toast.error('Please enter a valid Instagram profile URL (e.g., https://instagram.com/yourusername).');
+            return;
+        }
+        if (!socialForm.youtube || !ytRegex.test(socialForm.youtube.trim())) {
+            toast.error('Please enter a valid YouTube channel/profile URL (e.g., https://youtube.com/@yourchannel).');
+            return;
+        }
+
         setUpgrading(true);
         try {
-            const res = await userApiClient.post('/user/influencer/upgrade');
+            const res = await userApiClient.post('/user/influencer/upgrade', { socialProfiles: socialForm });
             if (res.data.success) {
-                toast.success('Successfully upgraded to Influencer!');
+                toast.success('Your Influencer request has been submitted successfully. Our team will review your request.');
                 setShowInfluencerModal(false);
                 
                 try {
@@ -174,12 +201,9 @@ const Profile: React.FC = () => {
                 } catch (profileErr) {
                     console.error("Failed to fetch updated profile", profileErr);
                 }
-                
-                // Navigate to dashboard
-                navigate('/account/influencer');
             }
         } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to upgrade account');
+            toast.error(error.response?.data?.message || 'Failed to submit request');
         } finally {
             setUpgrading(false);
         }
@@ -231,8 +255,10 @@ const Profile: React.FC = () => {
                                         <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
                                         <ul className="account-info-list">
                                             <li className="active"><Link to="/account/profile">Profile</Link></li>
-                                            {user?.isInfluencer ? (
+                                            {user?.isInfluencer && (!user?.influencerRequestStatus || user?.influencerRequestStatus === 'APPROVED') ? (
                                                 <li><Link to="/account/influencer">Influencer Dashboard</Link></li>
+                                            ) : user?.influencerRequestStatus === 'PENDING' ? (
+                                                <li><span className="text-muted d-block py-1" style={{ cursor: 'not-allowed', fontSize: '14px' }}>Influencer (Pending Review)</span></li>
                                             ) : (
                                                 <li><a href="#" onClick={(e) => { e.preventDefault(); setShowInfluencerModal(true); }}>Become an Influencer</a></li>
                                             )}
@@ -309,16 +335,54 @@ const Profile: React.FC = () => {
 
                             {/* Become an Influencer Section */}
                             {!user?.isInfluencer && (
-                                <div className="account-card mt-4 p-4 border border-primary rounded" style={{ backgroundColor: '#f8faff' }}>
-                                    <h4 className="mb-2 text-primary">Become an Influencer</h4>
-                                    <p className="mb-3 text-muted">
-                                        Earn commission by sharing your referral link.
-                                        Promote products and earn rewards when customers purchase through your link.
-                                    </p>
-                                    <button onClick={() => setShowInfluencerModal(true)} className="btn btn-primary">
-                                        Become an Influencer
-                                    </button>
-                                </div>
+                                <>
+                                    {user?.influencerRequestStatus === 'PENDING' ? (
+                                        <div className="account-card mt-4 p-4 border border-warning rounded" style={{ backgroundColor: '#fffdf5' }}>
+                                            <div className="d-flex align-items-center mb-2">
+                                                <span className="badge bg-warning text-dark me-2">Pending Review</span>
+                                                <h4 className="mb-0 text-dark">Influencer Request Under Review</h4>
+                                            </div>
+                                            <p className="mb-2 text-muted">
+                                                Your request submitted on {user.influencerRequestDate ? new Date(user.influencerRequestDate).toLocaleDateString() : 'recently'} is currently being reviewed by our Admin team.
+                                            </p>
+                                            <p className="mb-0 text-muted small">
+                                                We will notify you via email once your social profiles have been verified and approved. Your normal account remains completely active for shopping and rewards.
+                                            </p>
+                                        </div>
+                                    ) : user?.influencerRequestStatus === 'REJECTED' ? (
+                                        <div className="account-card mt-4 p-4 border border-danger rounded" style={{ backgroundColor: '#fff8f8' }}>
+                                            <div className="d-flex align-items-center mb-2">
+                                                <span className="badge bg-danger text-white me-2">Not Approved</span>
+                                                <h4 className="mb-0 text-danger">Update on Your Influencer Request</h4>
+                                            </div>
+                                            <p className="mb-2 text-muted">
+                                                Thank you for your interest. After careful review, our team was unable to approve your request at this time.
+                                            </p>
+                                            {user?.influencerRejectionReason && (
+                                                <div className="alert alert-danger p-2 mb-3 small" role="alert">
+                                                    <strong>Reason:</strong> {user.influencerRejectionReason}
+                                                </div>
+                                            )}
+                                            <p className="mb-3 text-muted small">
+                                                Your regular user account status remains completely unaffected. If you have updated your social profile links or grown your audience, you are welcome to submit a new request below.
+                                            </p>
+                                            <button onClick={() => setShowInfluencerModal(true)} className="btn btn-primary btn-sm">
+                                                Submit New Request
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="account-card mt-4 p-4 border border-primary rounded" style={{ backgroundColor: '#f8faff' }}>
+                                            <h4 className="mb-2 text-primary">Become an Influencer</h4>
+                                            <p className="mb-3 text-muted">
+                                                Earn commission by sharing your referral link.
+                                                Promote products on Facebook, Instagram, and YouTube, and earn rewards when customers purchase through your link.
+                                            </p>
+                                            <button onClick={() => setShowInfluencerModal(true)} className="btn btn-primary">
+                                                Become an Influencer
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </section>
                     </div>
@@ -374,23 +438,60 @@ const Profile: React.FC = () => {
                 }}>
                     <div style={{
                         backgroundColor: '#fff', borderRadius: '12px',
-                        padding: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', width: '90%', maxWidth: '450px'
+                        padding: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', width: '90%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto'
                     }}>
-                        <h4 className="mb-3">Become an Influencer</h4>
-                        <p className="text-muted mb-4">
-                            You can earn commissions by sharing your unique referral link. 
-                            Customers who visit using your link and successfully complete 
-                            purchases will contribute towards your influencer earnings 
-                            according to the platform rules.
+                        <h4 className="mb-2">Become a Naturalayam Influencer</h4>
+                        <p className="text-muted mb-3 small">
+                            Submit your social media profile URLs for verification. Our admin team will review your application to grant you influencer status and unique referral links.
                         </p>
-                        <div className="d-flex justify-content-end gap-3">
-                            <button onClick={() => setShowInfluencerModal(false)} disabled={upgrading} className="btn btn-light">
-                                Cancel
-                            </button>
-                            <button onClick={handleUpgradeToInfluencer} disabled={upgrading} className="btn btn-primary">
-                                {upgrading ? 'Processing...' : 'Confirm'}
-                            </button>
-                        </div>
+
+                        <form onSubmit={(e) => { e.preventDefault(); handleUpgradeToInfluencer(); }}>
+                            <div className="mb-3">
+                                <label className="form-label fw-bold small">Facebook Profile URL <span className="text-danger">*</span></label>
+                                <input
+                                    type="url"
+                                    name="facebook"
+                                    className="form-control"
+                                    placeholder="https://facebook.com/yourusername"
+                                    value={socialForm.facebook}
+                                    onChange={handleSocialChange}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label className="form-label fw-bold small">Instagram Profile URL <span className="text-danger">*</span></label>
+                                <input
+                                    type="url"
+                                    name="instagram"
+                                    className="form-control"
+                                    placeholder="https://instagram.com/yourusername"
+                                    value={socialForm.instagram}
+                                    onChange={handleSocialChange}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="form-label fw-bold small">YouTube Channel URL <span className="text-danger">*</span></label>
+                                <input
+                                    type="url"
+                                    name="youtube"
+                                    className="form-control"
+                                    placeholder="https://youtube.com/@yourchannel"
+                                    value={socialForm.youtube}
+                                    onChange={handleSocialChange}
+                                    required
+                                />
+                            </div>
+
+                            <div className="d-flex justify-content-end gap-3">
+                                <button type="button" onClick={() => setShowInfluencerModal(false)} disabled={upgrading} className="btn btn-light">
+                                    Cancel
+                                </button>
+                                <button type="submit" disabled={upgrading} className="btn btn-primary">
+                                    {upgrading ? 'Submitting...' : 'Submit Request'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

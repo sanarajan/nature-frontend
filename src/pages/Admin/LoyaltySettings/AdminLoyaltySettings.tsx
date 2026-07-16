@@ -5,10 +5,16 @@ import { Save, RefreshCcw } from 'lucide-react';
 
 interface LoyaltySettings {
     isLoyaltyEnabled: boolean;
+    isEarningEnabled: boolean;
+    isRedemptionEnabled: boolean;
     purchaseRewardSpendAmount: number;
     purchaseRewardEarnPoints: number;
+    minOrderAmountToEarn: number;
+    maxPointsEarnedPerOrder: number;
     pointValueInRupees: number;
     maxRedeemablePerOrder: number;
+    minOrderAmountToRedeem: number;
+    minPointsRequiredToRedeem: number;
     pointValidityDays: number;
     isWheelEnabled: boolean;
 }
@@ -16,10 +22,16 @@ interface LoyaltySettings {
 const AdminLoyaltySettings: React.FC = () => {
     const [settings, setSettings] = useState<LoyaltySettings>({
         isLoyaltyEnabled: true,
+        isEarningEnabled: true,
+        isRedemptionEnabled: true,
         purchaseRewardSpendAmount: 100,
         purchaseRewardEarnPoints: 1,
+        minOrderAmountToEarn: 0,
+        maxPointsEarnedPerOrder: 0,
         pointValueInRupees: 1,
         maxRedeemablePerOrder: 20,
+        minOrderAmountToRedeem: 0,
+        minPointsRequiredToRedeem: 0,
         pointValidityDays: 30,
         isWheelEnabled: true
     });
@@ -88,7 +100,8 @@ const AdminLoyaltySettings: React.FC = () => {
                             <h5 className="mb-0 fw-bold text-primary">General Configuration</h5>
                         </div>
                         <div className="card-body">
-                            <div className="form-check form-switch mb-4">
+                            <h6 className="fw-bold mb-3">Program Controls</h6>
+                            <div className="form-check form-switch mb-3">
                                 <input
                                     className="form-check-input"
                                     type="checkbox"
@@ -98,7 +111,33 @@ const AdminLoyaltySettings: React.FC = () => {
                                     onChange={handleChange}
                                 />
                                 <label className="form-check-label ms-2 fw-bold" htmlFor="isLoyaltyEnabled">
-                                    Enable Nature Points Loyalty Program
+                                    Enable Nature Points Program
+                                </label>
+                            </div>
+                            <div className="form-check form-switch mb-3">
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    id="isEarningEnabled"
+                                    name="isEarningEnabled"
+                                    checked={settings.isEarningEnabled}
+                                    onChange={handleChange}
+                                />
+                                <label className="form-check-label ms-2 fw-bold" htmlFor="isEarningEnabled">
+                                    Enable Point Earning
+                                </label>
+                            </div>
+                            <div className="form-check form-switch mb-4">
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    id="isRedemptionEnabled"
+                                    name="isRedemptionEnabled"
+                                    checked={settings.isRedemptionEnabled}
+                                    onChange={handleChange}
+                                />
+                                <label className="form-check-label ms-2 fw-bold" htmlFor="isRedemptionEnabled">
+                                    Enable Point Redemption
                                 </label>
                             </div>
 
@@ -133,6 +172,33 @@ const AdminLoyaltySettings: React.FC = () => {
                                     />
                                     <small className="text-muted d-block mt-1">E.g., Earn 1 Point</small>
                                 </div>
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-muted small">Minimum Order Amount To Earn Points</label>
+                                    <div className="input-group">
+                                        <span className="input-group-text">₹</span>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            name="minOrderAmountToEarn"
+                                            value={settings.minOrderAmountToEarn}
+                                            onChange={handleChange}
+                                            min="0"
+                                        />
+                                    </div>
+                                    <small className="text-muted d-block mt-1">Orders below this amount will not earn Nature Points.</small>
+                                </div>
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-muted small">Maximum Nature Points Earned Per Order</label>
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        name="maxPointsEarnedPerOrder"
+                                        value={settings.maxPointsEarnedPerOrder}
+                                        onChange={handleChange}
+                                        min="0"
+                                    />
+                                    <small className="text-muted d-block mt-1">Maximum Nature Points a customer can earn from a single order.</small>
+                                </div>
                             </div>
 
                             <hr />
@@ -165,6 +231,33 @@ const AdminLoyaltySettings: React.FC = () => {
                                         min="0"
                                     />
                                     <small className="text-muted d-block mt-1">Fixed max points limit per checkout</small>
+                                </div>
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-muted small">Minimum Order Amount To Redeem</label>
+                                    <div className="input-group">
+                                        <span className="input-group-text">₹</span>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            name="minOrderAmountToRedeem"
+                                            value={settings.minOrderAmountToRedeem}
+                                            onChange={handleChange}
+                                            min="0"
+                                        />
+                                    </div>
+                                    <small className="text-muted d-block mt-1">Orders below this amount cannot redeem Nature Points.</small>
+                                </div>
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-muted small">Minimum Nature Points Required To Redeem</label>
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        name="minPointsRequiredToRedeem"
+                                        value={settings.minPointsRequiredToRedeem}
+                                        onChange={handleChange}
+                                        min="0"
+                                    />
+                                    <small className="text-muted d-block mt-1">Customers must have at least this many Nature Points before redemption is allowed.</small>
                                 </div>
                             </div>
 

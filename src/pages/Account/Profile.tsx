@@ -42,9 +42,24 @@ const Profile: React.FC = () => {
         youtube: ''
     });
 
+    // Bank Details State
+    const [bankForm, setBankForm] = useState({
+        accountHolderName: '',
+        bankName: '',
+        accountNumber: '',
+        ifscCode: '',
+        upiId: ''
+    });
+    const [savingBank, setSavingBank] = useState(false);
+
     const handleSocialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setSocialForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleBankChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setBankForm(prev => ({ ...prev, [name]: value }));
     };
 
     useEffect(() => {
@@ -59,6 +74,14 @@ const Profile: React.FC = () => {
                 email: user.email || '',
                 phone: user.phoneNumber || user.phone || user.mobile || ''
             }));
+
+            setBankForm({
+                accountHolderName: (user as any).accountHolderName || '',
+                bankName: (user as any).bankName || '',
+                accountNumber: (user as any).accountNumber || '',
+                ifscCode: (user as any).ifscCode || '',
+                upiId: (user as any).upiId || ''
+            });
 
             if (user.imageUrl) {
                 setProfileImage(user.imageUrl);
@@ -209,6 +232,42 @@ const Profile: React.FC = () => {
         }
     };
 
+    const handleUpdateBankDetails = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!bankForm.accountHolderName.trim()) {
+            toast.error('Account Holder Name is required.');
+            return;
+        }
+        if (!bankForm.bankName.trim()) {
+            toast.error('Bank Name is required.');
+            return;
+        }
+        if (!bankForm.accountNumber.trim()) {
+            toast.error('Account Number is required.');
+            return;
+        }
+        if (!bankForm.ifscCode.trim()) {
+            toast.error('IFSC Code is required.');
+            return;
+        }
+
+        setSavingBank(true);
+        try {
+            const res = await userApiClient.put('/user/influencer/bank-details', bankForm);
+            if (res.data.success) {
+                toast.success('Bank details saved successfully!');
+                if (user) {
+                    dispatch(userLoginSuccess({ ...user, ...bankForm }));
+                    localStorage.setItem('user_data', JSON.stringify({ ...user, ...bankForm }));
+                }
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to save bank details');
+        } finally {
+            setSavingBank(false);
+        }
+    };
+
     return (
         <div className="page-content bg-light position-relative">
             {/* Banner Section */}
@@ -332,6 +391,53 @@ const Profile: React.FC = () => {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Bank Details Card for Influencers */}
+                            {user?.isInfluencer && (!user?.influencerRequestStatus || user?.influencerRequestStatus === 'APPROVED') && (
+                                <div className="account-card mt-4 p-4 shadow-sm border rounded">
+                                    <h4 className="title mb-3">Influencer Bank Details</h4>
+                                    <p className="text-muted small mb-4">
+                                        Please ensure your bank account details are complete and accurate before requesting a withdrawal.
+                                    </p>
+                                    <form onSubmit={handleUpdateBankDetails} className="row">
+                                        <div className="col-lg-6">
+                                            <div className="form-group m-b20">
+                                                <label className="label-title fw-bold">Account Holder Name <span className="text-danger">*</span></label>
+                                                <input type="text" name="accountHolderName" value={bankForm.accountHolderName} onChange={handleBankChange} required className="form-control" placeholder="e.g. John Doe" />
+                                            </div>
+                                        </div>
+                                        <div className="col-lg-6">
+                                            <div className="form-group m-b20">
+                                                <label className="label-title fw-bold">Bank Name <span className="text-danger">*</span></label>
+                                                <input type="text" name="bankName" value={bankForm.bankName} onChange={handleBankChange} required className="form-control" placeholder="e.g. State Bank of India" />
+                                            </div>
+                                        </div>
+                                        <div className="col-lg-6">
+                                            <div className="form-group m-b20">
+                                                <label className="label-title fw-bold">Account Number <span className="text-danger">*</span></label>
+                                                <input type="text" name="accountNumber" value={bankForm.accountNumber} onChange={handleBankChange} required className="form-control" placeholder="Enter bank account number" />
+                                            </div>
+                                        </div>
+                                        <div className="col-lg-6">
+                                            <div className="form-group m-b20">
+                                                <label className="label-title fw-bold">IFSC Code <span className="text-danger">*</span></label>
+                                                <input type="text" name="ifscCode" value={bankForm.ifscCode} onChange={handleBankChange} required className="form-control" placeholder="e.g. SBIN0001234" />
+                                            </div>
+                                        </div>
+                                        <div className="col-lg-12">
+                                            <div className="form-group m-b20">
+                                                <label className="label-title fw-bold">UPI ID <span className="text-muted">(Optional)</span></label>
+                                                <input type="text" name="upiId" value={bankForm.upiId} onChange={handleBankChange} className="form-control" placeholder="e.g. username@upi" />
+                                            </div>
+                                        </div>
+                                        <div className="col-lg-12 d-flex justify-content-end mt-2">
+                                            <button type="submit" disabled={savingBank} className="btn btn-primary">
+                                                {savingBank ? 'Saving...' : 'Save Bank Details'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
 
                             {/* Become an Influencer Section */}
                             {!user?.isInfluencer && (

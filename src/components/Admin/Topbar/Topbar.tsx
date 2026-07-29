@@ -188,7 +188,7 @@ const Topbar: React.FC = () => {
                     </div>
                     <div className="user-info">
                         <span className="user-name">{adminName}</span>
-                        <span className="user-role">Store Owner</span>
+                        <span className="user-role">{adminData?.role?.toUpperCase() === 'STAFF' ? 'Staff' : 'Store Owner'}</span>
                     </div>
                     <ChevronDown size={14} className="dropdown-arrow" />
 

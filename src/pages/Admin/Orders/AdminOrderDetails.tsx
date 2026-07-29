@@ -1,3 +1,5 @@
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../../store';
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
@@ -11,6 +13,9 @@ import { formatDate } from '../../../utils/formatDate';
 import '../../../styles/admin-pages.css';
 
 const AdminOrderDetails: React.FC = () => {
+    const adminData = useSelector((state: RootState) => state.auth.admin.data);
+    const isAdmin = adminData?.role?.toUpperCase() === 'ADMIN';
+
     const { id } = useParams<{ id: string }>();
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -585,15 +590,15 @@ const AdminOrderDetails: React.FC = () => {
 
                                 return (
                                     <span
-                                        className={`admin-badge ${badgeClass} ${isRefundPending ? 'clickable-badge' : ''}`}
+                                        className={`admin-badge ${badgeClass} ${isRefundPending && isAdmin ? 'clickable-badge' : ''}`}
                                         style={{
                                             fontWeight: 700,
-                                            cursor: isRefundPending ? 'pointer' : 'default',
+                                            cursor: isRefundPending && isAdmin ? 'pointer' : 'default',
                                             ...(status === 'Refunded' ? { backgroundColor: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' } : {}),
                                             ...(isRefundPending ? { border: '1px solid #fde68a' } : {})
                                         }}
                                         onClick={() => {
-                                            if (isRefundPending) {
+                                            if (isRefundPending && isAdmin) {
                                                 setRefundAmount(order.totalAmount);
                                                 setShowRefundModal(true);
                                             }
@@ -842,7 +847,7 @@ const AdminOrderDetails: React.FC = () => {
                                                         Update Expected Delivery
                                                     </button>
                                                 )}
-                                                {p.orderStatus === 'Cancellation Request' && (
+                                                {isAdmin && p.orderStatus === 'Cancellation Request' && (
                                                     <button
                                                         className="btn btn-sm btn-outline-danger"
                                                         style={{ borderRadius: '8px', fontSize: '0.8rem' }}
@@ -859,7 +864,7 @@ const AdminOrderDetails: React.FC = () => {
                                                         Process Cancel
                                                     </button>
                                                 )}
-                                                {p.orderStatus === 'Return Request' && (
+                                                {isAdmin && p.orderStatus === 'Return Request' && (
                                                     <button
                                                         className="btn btn-sm btn-outline-warning"
                                                         style={{ borderRadius: '8px', fontSize: '0.8rem', borderColor: '#f59e0b', color: '#f59e0b' }}
@@ -876,7 +881,7 @@ const AdminOrderDetails: React.FC = () => {
                                                         Process Return
                                                     </button>
                                                 )}
-                                                {(p.orderStatus === 'Return' || p.orderStatus === 'Return Approved') && (
+                                                {isAdmin && (p.orderStatus === 'Return' || p.orderStatus === 'Return Approved') && (
                                                     <button
                                                         className="btn btn-sm btn-outline-success"
                                                         style={{ borderRadius: '8px', fontSize: '0.8rem' }}

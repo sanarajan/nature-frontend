@@ -36,6 +36,7 @@ const Checkout: React.FC = () => {
     const [influencerDiscountPercent, setInfluencerDiscountPercent] = useState<number>(0);
     const [influencerCookie, setInfluencerCookie] = useState<string | null>(null);
     const [influencerDiscountAmount, setInfluencerDiscountAmount] = useState<number>(0);
+    const [influencerEligibility, setInfluencerEligibility] = useState<{ isEligible: boolean; daysRemaining: number } | null>(null);
     
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [addressLoading, setAddressLoading] = useState(true);
@@ -390,6 +391,7 @@ const Checkout: React.FC = () => {
                     const data = res.data.data;
                     setSubtotal(data.originalPrice || data.subtotal);
                     setInfluencerDiscountAmount(data.influencerDiscountAmount || 0);
+                    setInfluencerEligibility(data.influencerEligibility || (data.influencerApplied ? { isEligible: data.influencerApplied.isEligible ?? true, daysRemaining: data.influencerApplied.daysRemaining || 0 } : null));
                     setShipping(data.deliveryCharge || 0);
                     
                     setNaturePointsDiscount(data.naturePointsDiscount || 0);
@@ -1070,7 +1072,59 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                             Show all active coupons
                                         </div>
                                     )}
-                                    {(appliedCode.code || (influencerCookie && influencerDiscountAmount > 0)) && (() => {
+                                    {(appliedCode.code || influencerCookie || (influencerEligibility && !influencerEligibility.isEligible)) && (() => {
+                                        const isInfluencer = appliedCode.type === 'influencer' || (!appliedCode.code && (influencerCookie || influencerEligibility));
+
+                                        if (isInfluencer) {
+                                            const isEligible = influencerEligibility ? influencerEligibility.isEligible : (influencerDiscountAmount > 0);
+                                            const daysRemaining = influencerEligibility?.daysRemaining || 0;
+                                            const isLinkAttribution = appliedCode.source === 'LINK' || (appliedCode.type === 'influencer' && !appliedCode.source && influencerCookie) || (!appliedCode.code && influencerCookie);
+                                            const codeName = appliedCode.code || influencerCookie || '';
+
+                                            if (isEligible) {
+                                                return (
+                                                    <div className="mt-2 text-success d-flex align-items-center justify-content-between bg-light p-2 rounded border border-success-subtle" style={{ fontSize: '13px' }}>
+                                                        <div>
+                                                            <i className="fas fa-check-circle me-1 text-success"></i>
+                                                            Influencer Welcome Discount Applied.{codeName ? <strong className="ms-1">({codeName})</strong> : ''}
+                                                        </div>
+                                                        {!isLinkAttribution && (
+                                                            <span
+                                                                className="text-danger fw-medium cursor-pointer ms-3"
+                                                                style={{ textDecoration: 'underline', cursor: 'pointer' }}
+                                                                onClick={() => {
+                                                                    setAppliedDiscount(0);
+                                                                    setAppliedCode({ code: '', type: null, source: null });
+                                                                    setCouponInput('');
+                                                                    setInfluencerDiscountAmount(0);
+                                                                    toast.info('Discount removed.');
+                                                                }}
+                                                            >
+                                                                Remove
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            } else {
+                                                return (
+                                                    <div className="mt-2 p-3 rounded bg-warning-subtle border border-warning-subtle" style={{ fontSize: '13px', color: '#856404' }}>
+                                                        <div className="fw-bold mb-1 d-flex align-items-center">
+                                                            <i className="fas fa-info-circle me-2 text-warning fs-6"></i>
+                                                            You are connected with this Influencer.{codeName ? <span className="badge bg-warning text-dark ms-2">{codeName}</span> : ''}
+                                                        </div>
+                                                        <div className="text-muted small">
+                                                            Your next Influencer Welcome Discount will be available after 90 days from your last eligible discounted purchase.
+                                                        </div>
+                                                        {daysRemaining > 0 && (
+                                                            <div className="fw-bold mt-2 text-dark">
+                                                                Next discount available in {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}.
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            }
+                                        }
+
                                         const isLinkAttribution = appliedCode.source === 'LINK' || (appliedCode.type === 'influencer' && !appliedCode.source && influencerCookie) || (!appliedCode.code && influencerCookie && influencerDiscountAmount > 0);
                                         return (
                                             <div className="mt-2 text-success d-flex align-items-center justify-content-between bg-light p-2 rounded border border-success-subtle" style={{ fontSize: '13px' }}>

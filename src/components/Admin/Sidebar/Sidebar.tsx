@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from '../../../store';
 import { toast } from 'react-toastify';
 import { adminLogout } from '../../../store/authSlice';
 import { adminAuthService } from '../../../services/admin/adminAuthService';
@@ -10,16 +11,12 @@ import {
     ShoppingCart,
     Users,
     Package,
-    BarChart3,
     Layers,
     Settings,
-    BookOpen,
-    Heart,
     ChevronLeft,
     ChevronDown,
     ClipboardList,
     CheckCircle2,
-    Wallet,
     Receipt,
     Percent,
     Tags,
@@ -35,6 +32,9 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
+    const adminData = useSelector((state: RootState) => state.auth.admin.data);
+    const isAdmin = adminData?.role?.toUpperCase() === 'ADMIN';
+
     const [expandedMenus, setExpandedMenus] = useState<{ [key: string]: boolean }>({
         orders: true,
         finance: true
@@ -150,6 +150,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                         <span>Influencers</span>
                     </NavLink>
 
+                    {isAdmin && (
+                        <NavLink to="/admin/staff" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+                            <Users size={20} />
+                            <span>Staff</span>
+                        </NavLink>
+                    )}
+
                     <NavLink to="/admin/products" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         <Package size={20} />
                         <span>Products</span>
@@ -199,7 +206,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                         <span>Shipping Charges</span>
                     </NavLink>
 
-                    <div className={`nav-group ${expandedMenus.finance ? 'expanded' : ''}`}>
+                    {/* <div className={`nav-group ${expandedMenus.finance ? 'expanded' : ''}`}>
                         <div className="nav-item-toggle" onClick={() => toggleMenu('finance')}>
                             <div className="nav-item-left">
                                 <BarChart3 size={20} />
@@ -222,25 +229,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                                 <span>Discount</span>
                             </NavLink>
                         </div>
-                    </div>
+                    </div> */}
 
-                    <NavLink to="/admin/integrations" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+                    {/* <NavLink to="/admin/integrations" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         <Layers size={20} />
                         <span>Integrations</span>
-                    </NavLink>
+                    </NavLink> */}
 
                     <NavLink to="/admin/loyalty-settings" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         <Settings size={20} />
                         <span>Loyalty Settings</span>
                     </NavLink>
 
-                    <NavLink to="/admin/settings" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+                    {/* <NavLink to="/admin/settings" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         <Settings size={20} />
                         <span>Settings</span>
-                    </NavLink>
+                    </NavLink> */}
                 </div>
 
-                <div className="nav-section mt-4">
+                {/* <div className="nav-section mt-4">
                     <p className="section-label">OTHER</p>
                     <NavLink to="/admin/pages" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         <BookOpen size={20} />
@@ -251,7 +258,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                         <Heart size={20} />
                         <span>Personalize ❤️</span>
                     </NavLink>
-                </div>
+                </div> */}
 
                 <div className="nav-section mt-4" style={{ marginTop: 'auto', paddingBottom: '20px' }}>
                     <button className="nav-item" onClick={handleLogout} style={{ border: 'none', background: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', color: '#ff4d4f', marginTop: '20px' }}>

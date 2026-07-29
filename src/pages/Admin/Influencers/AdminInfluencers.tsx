@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../../store';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import adminApiClient from '../../../services/adminApiClient';
@@ -6,6 +8,9 @@ import { Users, DollarSign, CheckCircle, XCircle, Tag, Search } from 'lucide-rea
 import './AdminInfluencers.css';
 
 const AdminInfluencers: React.FC = () => {
+    const adminData = useSelector((state: RootState) => state.auth.admin.data);
+    const isAdmin = adminData?.role?.toUpperCase() === 'ADMIN';
+
     const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
     const [influencers, setInfluencers] = useState<any[]>([]);
@@ -19,7 +24,7 @@ const AdminInfluencers: React.FC = () => {
         }
         return 'list';
     });
-    const [settings, setSettings] = useState({ influencerDiscountPercent: 20, influencerCommissionPercent: 20, influencerEnabled: true });
+    const [settings, setSettings] = useState<any>({ influencerDiscountPercent: 20, influencerCommissionPercent: 20, minWithdrawalAmount: 500, influencerEnabled: true });
     const [savingSettings, setSavingSettings] = useState(false);
 
     const [rejectionModalUser, setRejectionModalUser] = useState<any | null>(null);
@@ -33,6 +38,25 @@ const AdminInfluencers: React.FC = () => {
     const [productSearch, setProductSearch] = useState('');
     const [editingProductDiscount, setEditingProductDiscount] = useState<{ [productId: string]: string }>({});
     const [updatingProductId, setUpdatingProductId] = useState<string | null>(null);
+
+    // Withdrawal Tab State
+    const [withdrawalSearch, setWithdrawalSearch] = useState('');
+    const [withdrawalStatusFilter, setWithdrawalStatusFilter] = useState('ALL');
+    const [withdrawalPage, setWithdrawalPage] = useState(1);
+    const [withdrawalPagination, setWithdrawalPagination] = useState({ page: 1, limit: 10, total: 0, pages: 1 });
+
+    // Withdrawal Modals
+    const [approveModalRequest, setApproveModalRequest] = useState<any | null>(null);
+    const [approveRemarksInput, setApproveRemarksInput] = useState('');
+
+    const [rejectModalRequest, setRejectModalRequest] = useState<any | null>(null);
+    const [rejectReasonInput, setRejectReasonInput] = useState('');
+
+    const [paidModalRequest, setPaidModalRequest] = useState<any | null>(null);
+    const [paidTxnRefInput, setPaidTxnRefInput] = useState('');
+    const [paidRemarksInput, setPaidRemarksInput] = useState('');
+
+    const [viewWithdrawalModalRequest, setViewWithdrawalModalRequest] = useState<any | null>(null);
 
     useEffect(() => {
         fetchData(true);
@@ -89,8 +113,8 @@ const AdminInfluencers: React.FC = () => {
             });
             if (res.data?.success) {
                 toast.success(discountVal !== null && discountVal > 0 ? 'Product influencer discount updated' : 'Product influencer discount removed');
-                setProducts(prev => Array.isArray(prev) ? prev.map(p => (p && p._id === productId) ? { ...p, influencerDiscount: discountVal || 0 } : p) : []);
-                setEditingProductDiscount(prev => {
+                setProducts((prev: any[]) => Array.isArray(prev) ? prev.map((p: any) => (p && p._id === productId) ? { ...p, influencerDiscount: discountVal || 0 } : p) : []);
+                setEditingProductDiscount((prev: any) => {
                     const next = { ...prev };
                     delete next[productId];
                     return next;
@@ -100,6 +124,28 @@ const AdminInfluencers: React.FC = () => {
             toast.error(error.response?.data?.message || 'Failed to update discount');
         } finally {
             setUpdatingProductId(null);
+        }
+    };
+
+    const fetchWithdrawals = async (page = 1, status = 'ALL', search = '') => {
+        try {
+            const queryParams = new URLSearchParams();
+            queryParams.append('page', String(page));
+            queryParams.append('limit', '10');
+            if (status !== 'ALL') queryParams.append('status', status);
+            if (search.trim()) queryParams.append('search', search.trim());
+
+            const res = await adminApiClient.get(`/admin/influencers/withdrawals?${queryParams.toString()}`);
+            if (res.data.success) {
+                if (Array.isArray(res.data.data)) {
+                    setWithdrawals(res.data.data);
+                } else {
+                    setWithdrawals(res.data.data || []);
+                    if (res.data.pagination) setWithdrawalPagination(res.data.pagination);
+                }
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to fetch withdrawals');
         }
     };
 
@@ -116,9 +162,16 @@ const AdminInfluencers: React.FC = () => {
             ]);
             
             if (influencerRes.data.success) setInfluencers(influencerRes.data.data);
-            if (withdrawalRes.data.success) setWithdrawals(withdrawalRes.data.data);
+            if (withdrawalRes.data.success) {
+                if (Array.isArray(withdrawalRes.data.data)) {
+                    setWithdrawals(withdrawalRes.data.data);
+                } else {
+                    setWithdrawals(withdrawalRes.data.data || []);
+                    if (withdrawalRes.data.pagination) setWithdrawalPagination(withdrawalRes.data.pagination);
+                }
+            }
             if (settingsRes.data.success && settingsRes.data.data) {
-                setSettings(settingsRes.data.data);
+                setSettings({ minWithdrawalAmount: 500, ...settingsRes.data.data });
             }
             if (requestsRes.data.success) setRequests(requestsRes.data.data);
         } catch (error: any) {
@@ -132,17 +185,72 @@ const AdminInfluencers: React.FC = () => {
         }
     };
 
-    const handleProcessWithdrawal = async (id: string, status: 'Approved' | 'Rejected') => {
-        if (!window.confirm(`Are you sure you want to mark this request as ${status}?`)) return;
-        
+    const handleApproveWithdrawalSubmit = async () => {
+        if (!approveModalRequest) return;
+        setProcessingRequest(true);
         try {
-            const res = await adminApiClient.put(`/admin/influencers/withdrawals/${id}`, { status, remarks: `Processed by Admin` });
+            const res = await adminApiClient.post(`/admin/influencers/withdrawals/${approveModalRequest._id}/approve`, {
+                remarks: approveRemarksInput.trim()
+            });
             if (res.data.success) {
-                toast.success(`Withdrawal ${status} successfully`);
-                fetchData();
+                toast.success('Withdrawal request approved successfully');
+                setApproveModalRequest(null);
+                setApproveRemarksInput('');
+                fetchWithdrawals(withdrawalPage, withdrawalStatusFilter, withdrawalSearch);
+                fetchData(false);
             }
         } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to process withdrawal');
+            toast.error(error.response?.data?.message || 'Failed to approve withdrawal request');
+        } finally {
+            setProcessingRequest(false);
+        }
+    };
+
+    const handleRejectWithdrawalSubmit = async () => {
+        if (!rejectModalRequest) return;
+        if (!rejectReasonInput || !rejectReasonInput.trim()) {
+            toast.error('Rejection reason is mandatory.');
+            return;
+        }
+        setProcessingRequest(true);
+        try {
+            const res = await adminApiClient.post(`/admin/influencers/withdrawals/${rejectModalRequest._id}/reject`, {
+                reason: rejectReasonInput.trim()
+            });
+            if (res.data.success) {
+                toast.success('Withdrawal request rejected successfully');
+                setRejectModalRequest(null);
+                setRejectReasonInput('');
+                fetchWithdrawals(withdrawalPage, withdrawalStatusFilter, withdrawalSearch);
+                fetchData(false);
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to reject withdrawal request');
+        } finally {
+            setProcessingRequest(false);
+        }
+    };
+
+    const handleMarkPaidSubmit = async () => {
+        if (!paidModalRequest) return;
+        setProcessingRequest(true);
+        try {
+            const res = await adminApiClient.post(`/admin/influencers/withdrawals/${paidModalRequest._id}/pay`, {
+                transactionReference: paidTxnRefInput.trim(),
+                remarks: paidRemarksInput.trim()
+            });
+            if (res.data.success) {
+                toast.success('Withdrawal request marked as Paid successfully');
+                setPaidModalRequest(null);
+                setPaidTxnRefInput('');
+                setPaidRemarksInput('');
+                fetchWithdrawals(withdrawalPage, withdrawalStatusFilter, withdrawalSearch);
+                fetchData(false);
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to mark withdrawal as Paid');
+        } finally {
+            setProcessingRequest(false);
         }
     };
 
@@ -189,11 +297,11 @@ const AdminInfluencers: React.FC = () => {
             if (res.data?.success) {
                 toast.success('Influencer request approved successfully');
                 const updatedUser = res.data.data;
-                setRequests(prev => prev.map(req => req._id === userId ? (updatedUser || { ...req, influencerRequestStatus: 'APPROVED' }) : req));
+                setRequests((prev: any[]) => prev.map((req: any) => req._id === userId ? (updatedUser || { ...req, influencerRequestStatus: 'APPROVED' }) : req));
                 if (updatedUser) {
-                    setInfluencers(prev => {
-                        const exists = prev.some(inf => inf._id === updatedUser._id);
-                        return exists ? prev.map(inf => inf._id === updatedUser._id ? updatedUser : inf) : [...prev, updatedUser];
+                    setInfluencers((prev: any[]) => {
+                        const exists = prev.some((inf: any) => inf._id === updatedUser._id);
+                        return exists ? prev.map((inf: any) => inf._id === updatedUser._id ? updatedUser : inf) : [...prev, updatedUser];
                     });
                 }
                 fetchData(false);
@@ -223,7 +331,7 @@ const AdminInfluencers: React.FC = () => {
                 const updatedUser = res.data.data;
                 const targetId = rejectionModalUser._id;
                 const reasonUsed = rejectionReason.trim();
-                setRequests(prev => prev.map(req => req._id === targetId ? (updatedUser || { ...req, influencerRequestStatus: 'REJECTED', influencerRejectionReason: reasonUsed }) : req));
+                setRequests((prev: any[]) => prev.map((req: any) => req._id === targetId ? (updatedUser || { ...req, influencerRequestStatus: 'REJECTED', influencerRejectionReason: reasonUsed }) : req));
                 setRejectionModalUser(null);
                 setRejectionReason('');
                 fetchData(false);
@@ -302,7 +410,7 @@ const AdminInfluencers: React.FC = () => {
             if (res.data?.success) {
                 toast.success(`Influencer status updated to ${targetStatus}`);
                 const updatedUser = res.data.data;
-                setInfluencers(prev => prev.map(inf => inf._id === influencerId ? (updatedUser || { ...inf, influencerStatus: targetStatus }) : inf));
+                setInfluencers((prev: any[]) => prev.map((inf: any) => inf._id === influencerId ? (updatedUser || { ...inf, influencerStatus: targetStatus }) : inf));
                 fetchData(false);
             } else {
                 toast.error('Failed to update status');
@@ -316,6 +424,13 @@ const AdminInfluencers: React.FC = () => {
 
     const handleSaveSettings = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (settings.minWithdrawalAmount !== undefined) {
+            const minAmt = Number(settings.minWithdrawalAmount);
+            if (isNaN(minAmt) || minAmt <= 0) {
+                toast.error('Minimum withdrawal amount must be greater than zero.');
+                return;
+            }
+        }
         setSavingSettings(true);
         try {
             const res = await adminApiClient.put('/admin/influencers/settings', settings);
@@ -346,8 +461,8 @@ const AdminInfluencers: React.FC = () => {
                 <li className="nav-item">
                     <button className={`nav-link ${activeTab === 'requests' ? 'active' : ''}`} onClick={() => handleTabChange('requests')}>
                         <Users size={18} className="me-2"/> Requests
-                        {requests.filter(req => !req.influencerRequestStatus || req.influencerRequestStatus === 'PENDING').length > 0 && (
-                            <span className="badge bg-danger ms-2">{requests.filter(req => !req.influencerRequestStatus || req.influencerRequestStatus === 'PENDING').length}</span>
+                        {requests.filter((req: any) => !req.influencerRequestStatus || req.influencerRequestStatus === 'PENDING').length > 0 && (
+                            <span className="badge bg-danger ms-2">{requests.filter((req: any) => !req.influencerRequestStatus || req.influencerRequestStatus === 'PENDING').length}</span>
                         )}
                     </button>
                 </li>
@@ -384,7 +499,7 @@ const AdminInfluencers: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {influencers.map(inf => {
+                                {influencers.map((inf: any) => {
                                     const status = inf.influencerStatus || 'Active';
                                     const isActive = ['Active', 'ACTIVE'].includes(status);
                                     const isBlocked = ['Blocked', 'BLOCKED'].includes(status);
@@ -499,7 +614,7 @@ const AdminInfluencers: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {requests.map(req => {
+                                {requests.map((req: any) => {
                                     const status = req.influencerRequestStatus || 'PENDING';
                                     const isPending = status === 'PENDING';
                                     const isApproved = status === 'APPROVED';
@@ -554,7 +669,7 @@ const AdminInfluencers: React.FC = () => {
                                                 )}
                                             </td>
                                             <td>
-                                                {isPending ? (
+                                                {isPending && isAdmin ? (
                                                     <div className="d-flex gap-2">
                                                         <button
                                                             className="btn btn-sm btn-success d-flex align-items-center gap-1"
@@ -590,50 +705,149 @@ const AdminInfluencers: React.FC = () => {
             {activeTab === 'withdrawals' && (
                 <div className="card shadow-sm">
                     <div className="card-body">
-                        <table className="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Influencer</th>
-                                    <th>Amount</th>
-                                    <th>Current Balance</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {withdrawals.map(req => (
-                                    <tr key={req._id}>
-                                        <td>{new Date(req.requestedAt).toLocaleDateString()}</td>
-                                        <td>{req.influencerId?.displayName || req.influencerId?.email}</td>
-                                        <td>₹{req.amount.toFixed(2)}</td>
-                                        <td>₹{req.influencerId?.influencerWalletBalance?.toFixed(2)}</td>
-                                        <td>
-                                            <span className={`badge ${req.status === 'Approved' ? 'bg-success' : req.status === 'Pending' ? 'bg-warning text-dark' : 'bg-danger'}`}>
-                                                {req.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {req.status === 'Pending' && (
-                                                <div className="d-flex gap-2">
-                                                    <button className="btn btn-sm btn-success" onClick={() => handleProcessWithdrawal(req._id, 'Approved')}>
-                                                        <CheckCircle size={14}/> Approve
-                                                    </button>
-                                                    <button className="btn btn-sm btn-danger" onClick={() => handleProcessWithdrawal(req._id, 'Rejected')}>
-                                                        <XCircle size={14}/> Reject
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
+                        {/* Search & Filter Bar */}
+                        <div className="row g-3 mb-4 align-items-center">
+                            <div className="col-md-5">
+                                <div className="input-group">
+                                    <span className="input-group-text bg-white border-end-0"><Search size={16} /></span>
+                                    <input
+                                        type="text"
+                                        className="form-control border-start-0 ps-0"
+                                        placeholder="Search by Request ID, Influencer Name, Email..."
+                                        value={withdrawalSearch}
+                                        onChange={(e) => {
+                                            setWithdrawalSearch(e.target.value);
+                                            setWithdrawalPage(1);
+                                            fetchWithdrawals(1, withdrawalStatusFilter, e.target.value);
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="col-md-7 d-flex justify-content-md-end gap-2 flex-wrap">
+                                {['ALL', 'Pending', 'Approved', 'Paid', 'Rejected'].map(st => (
+                                    <button
+                                        key={st}
+                                        className={`btn btn-sm ${withdrawalStatusFilter === st ? 'btn-primary' : 'btn-outline-secondary'}`}
+                                        onClick={() => {
+                                            setWithdrawalStatusFilter(st);
+                                            setWithdrawalPage(1);
+                                            fetchWithdrawals(1, st, withdrawalSearch);
+                                        }}
+                                    >
+                                        {st === 'ALL' ? 'All' : st}
+                                    </button>
                                 ))}
-                                {withdrawals.length === 0 && (
+                            </div>
+                        </div>
+
+                        <div className="table-responsive">
+                            <table className="table table-hover align-middle">
+                                <thead className="table-light">
                                     <tr>
-                                        <td colSpan={6} className="text-center">No withdrawal requests found.</td>
+                                        <th>Request ID</th>
+                                        <th>Influencer</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Requested Date</th>
+                                        <th>Approved Date</th>
+                                        <th>Paid Date</th>
+                                        <th className="text-end">Actions</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {withdrawals.map((req: any) => (
+                                        <tr key={req._id}>
+                                            <td><strong className="text-primary">{req.requestId || req._id}</strong></td>
+                                            <td>
+                                                <div className="fw-bold">{req.influencerId?.displayName || req.influencerId?.username || req.influencerId?.name || 'N/A'}</div>
+                                                <small className="text-muted">{req.influencerId?.email}</small>
+                                            </td>
+                                            <td className="fw-bold text-dark">₹{req.amount?.toFixed(2)}</td>
+                                            <td>
+                                                <span className={`badge ${req.status === 'Paid' ? 'bg-success' : req.status === 'Approved' ? 'bg-info text-white' : req.status === 'Pending' ? 'bg-warning text-dark' : 'bg-danger'}`}>
+                                                    {req.status}
+                                                </span>
+                                            </td>
+                                            <td>{req.requestedAt ? new Date(req.requestedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
+                                            <td>{req.approvedAt ? new Date(req.approvedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
+                                            <td>{req.paidAt ? new Date(req.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
+                                            <td className="text-end">
+                                                <div className="d-inline-flex gap-2">
+                                                    <button
+                                                        className="btn btn-sm btn-outline-secondary"
+                                                        onClick={() => setViewWithdrawalModalRequest(req)}
+                                                        title="View Request Details"
+                                                    >
+                                                        Details
+                                                    </button>
+
+                                                    {isAdmin && req.status === 'Pending' && (
+                                                        <>
+                                                            <button
+                                                                className="btn btn-sm btn-success d-inline-flex align-items-center gap-1"
+                                                                onClick={() => { setApproveModalRequest(req); setApproveRemarksInput(''); }}
+                                                            >
+                                                                <CheckCircle size={14} /> Approve
+                                                            </button>
+                                                            <button
+                                                                className="btn btn-sm btn-danger d-inline-flex align-items-center gap-1"
+                                                                onClick={() => { setRejectModalRequest(req); setRejectReasonInput(''); }}
+                                                            >
+                                                                <XCircle size={14} /> Reject
+                                                            </button>
+                                                        </>
+                                                    )}
+
+                                                    {isAdmin && req.status === 'Approved' && (
+                                                        <button
+                                                            className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
+                                                            onClick={() => { setPaidModalRequest(req); setPaidTxnRefInput(''); setPaidRemarksInput(''); }}
+                                                        >
+                                                            <DollarSign size={14} /> Mark as Paid
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {withdrawals.length === 0 && (
+                                        <tr>
+                                            <td colSpan={8} className="text-center py-4 text-muted">No withdrawal requests found matching criteria.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {withdrawalPagination.pages > 1 && (
+                            <div className="d-flex justify-content-between align-items-center mt-3">
+                                <span className="text-muted small">Page {withdrawalPagination.page} of {withdrawalPagination.pages} ({withdrawalPagination.total} total requests)</span>
+                                <div className="btn-group">
+                                    <button
+                                        className="btn btn-sm btn-outline-secondary"
+                                        disabled={withdrawalPage <= 1}
+                                        onClick={() => {
+                                            const p = Math.max(1, withdrawalPage - 1);
+                                            setWithdrawalPage(p);
+                                            fetchWithdrawals(p, withdrawalStatusFilter, withdrawalSearch);
+                                        }}
+                                    >
+                                        Previous
+                                    </button>
+                                    <button
+                                        className="btn btn-sm btn-outline-secondary"
+                                        disabled={withdrawalPage >= withdrawalPagination.pages}
+                                        onClick={() => {
+                                            const p = withdrawalPage + 1;
+                                            setWithdrawalPage(p);
+                                            fetchWithdrawals(p, withdrawalStatusFilter, withdrawalSearch);
+                                        }}
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -654,6 +868,7 @@ const AdminInfluencers: React.FC = () => {
                                     value={settings.influencerDiscountPercent} 
                                     onChange={(e) => setSettings({...settings, influencerDiscountPercent: Number(e.target.value)})}
                                     required
+                                    disabled={!isAdmin}
                                 />
                                 <div className="form-text">Discount percentage given to customers using an influencer code.</div>
                             </div>
@@ -668,8 +883,23 @@ const AdminInfluencers: React.FC = () => {
                                     value={settings.influencerCommissionPercent} 
                                     onChange={(e) => setSettings({...settings, influencerCommissionPercent: Number(e.target.value)})}
                                     required
+                                    disabled={!isAdmin}
                                 />
                                 <div className="form-text">Commission percentage awarded to the influencer based on the order's final payable amount.</div>
+                            </div>
+
+                            <div className="mb-3">
+                                <label className="form-label fw-bold">Minimum Withdrawal Amount (₹)</label>
+                                <input 
+                                    type="number" 
+                                    className="form-control" 
+                                    min="1"
+                                    value={settings.minWithdrawalAmount || 500} 
+                                    onChange={(e) => setSettings({...settings, minWithdrawalAmount: Number(e.target.value)})}
+                                    required
+                                    disabled={!isAdmin}
+                                />
+                                <div className="form-text">Configurable minimum wallet amount required before an influencer can submit a withdrawal request. Default: ₹500.</div>
                             </div>
 
                             <div className="mb-4 form-check form-switch">
@@ -679,15 +909,18 @@ const AdminInfluencers: React.FC = () => {
                                     id="enableInfluencer" 
                                     checked={settings.influencerEnabled}
                                     onChange={(e) => setSettings({...settings, influencerEnabled: e.target.checked})}
+                                    disabled={!isAdmin}
                                 />
                                 <label className="form-check-label" htmlFor="enableInfluencer">
                                     Enable Influencer Feature System-wide
                                 </label>
                             </div>
 
-                            <button type="submit" className="btn btn-primary" disabled={savingSettings}>
-                                {savingSettings ? 'Saving...' : 'Save Settings'}
-                            </button>
+                            {isAdmin && (
+                                <button type="submit" className="btn btn-primary" disabled={savingSettings}>
+                                    {savingSettings ? 'Saving...' : 'Save Settings'}
+                                </button>
+                            )}
                         </form>
                     </div>
                 </div>
@@ -783,7 +1016,7 @@ const AdminInfluencers: React.FC = () => {
                                                                     min="0"
                                                                     placeholder="0"
                                                                     value={editValue}
-                                                                    onChange={(e) => setEditingProductDiscount(prev => ({ ...prev, [productId]: e.target.value }))}
+                                                                    onChange={(e) => setEditingProductDiscount((prev: any) => ({ ...prev, [productId]: e.target.value }))}
                                                                 />
                                                             </div>
                                                         ) : currentDiscount > 0 ? (
@@ -816,7 +1049,7 @@ const AdminInfluencers: React.FC = () => {
                                                                 </button>
                                                                 <button
                                                                     className="btn btn-sm btn-light border"
-                                                                    onClick={() => setEditingProductDiscount(prev => {
+                                                                    onClick={() => setEditingProductDiscount((prev: any) => {
                                                                         const next = { ...prev };
                                                                         delete next[productId];
                                                                         return next;
@@ -829,7 +1062,7 @@ const AdminInfluencers: React.FC = () => {
                                                             <div className="d-flex justify-content-end gap-1">
                                                                 <button
                                                                     className="btn btn-sm btn-outline-primary"
-                                                                    onClick={() => setEditingProductDiscount(prev => ({ ...prev, [productId]: String(currentDiscount || '') }))}
+                                                                    onClick={() => setEditingProductDiscount((prev: any) => ({ ...prev, [productId]: String(currentDiscount || '') }))}
                                                                 >
                                                                     {currentDiscount > 0 ? 'Edit' : 'Set Discount'}
                                                                 </button>
@@ -1171,6 +1404,184 @@ const AdminInfluencers: React.FC = () => {
                             >
                                 Close
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Approve Withdrawal Modal */}
+            {approveModalRequest && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '15px'
+                }}>
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '480px' }}>
+                        <h4 className="fw-bold mb-3">Approve Withdrawal Request</h4>
+                        <p className="text-muted small">
+                            Approving request <strong>{approveModalRequest.requestId || approveModalRequest._id}</strong> for <strong>₹{approveModalRequest.amount?.toFixed(2)}</strong>.
+                        </p>
+                        <div className="mb-3">
+                            <label className="form-label fw-bold">Admin Remarks <small className="text-muted">(Optional)</small></label>
+                            <textarea
+                                className="form-control"
+                                rows={3}
+                                placeholder="Enter optional internal notes or instructions for finance team..."
+                                value={approveRemarksInput}
+                                onChange={(e) => setApproveRemarksInput(e.target.value)}
+                            />
+                        </div>
+                        <div className="d-flex justify-content-end gap-2">
+                            <button className="btn btn-secondary" onClick={() => setApproveModalRequest(null)} disabled={processingRequest}>Cancel</button>
+                            <button className="btn btn-success" onClick={handleApproveWithdrawalSubmit} disabled={processingRequest}>
+                                {processingRequest ? 'Approving...' : 'Confirm Approve'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reject Withdrawal Modal */}
+            {rejectModalRequest && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '15px'
+                }}>
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '480px' }}>
+                        <h4 className="fw-bold text-danger mb-3">Reject Withdrawal Request</h4>
+                        <p className="text-muted small">
+                            Rejecting request <strong>{rejectModalRequest.requestId || rejectModalRequest._id}</strong> for <strong>₹{rejectModalRequest.amount?.toFixed(2)}</strong>. Funds in hold will be returned to the influencer's wallet balance.
+                        </p>
+                        <div className="mb-3">
+                            <label className="form-label fw-bold text-danger">Rejection Reason <span className="text-danger">* (Mandatory)</span></label>
+                            <textarea
+                                className="form-control border-danger"
+                                rows={3}
+                                placeholder="State clear reason (e.g., Incorrect bank details, Duplicate request...)"
+                                value={rejectReasonInput}
+                                onChange={(e) => setRejectReasonInput(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="d-flex justify-content-end gap-2">
+                            <button className="btn btn-secondary" onClick={() => setRejectModalRequest(null)} disabled={processingRequest}>Cancel</button>
+                            <button className="btn btn-danger" onClick={handleRejectWithdrawalSubmit} disabled={processingRequest}>
+                                {processingRequest ? 'Rejecting...' : 'Confirm Reject'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Mark as Paid Modal */}
+            {paidModalRequest && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '15px'
+                }}>
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '480px' }}>
+                        <h4 className="fw-bold text-primary mb-3">Mark Withdrawal as Paid</h4>
+                        <p className="text-muted small">
+                            Complete payment transfer of <strong>₹{paidModalRequest.amount?.toFixed(2)}</strong> for request <strong>{paidModalRequest.requestId || paidModalRequest._id}</strong>.
+                        </p>
+                        <div className="mb-3">
+                            <label className="form-label fw-bold">Transaction Reference / UTR Number <small className="text-muted">(Optional)</small></label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="e.g. UTR1234987650"
+                                value={paidTxnRefInput}
+                                onChange={(e) => setPaidTxnRefInput(e.target.value)}
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label className="form-label fw-bold">Remarks <small className="text-muted">(Optional)</small></label>
+                            <textarea
+                                className="form-control"
+                                rows={2}
+                                placeholder="Payment notes..."
+                                value={paidRemarksInput}
+                                onChange={(e) => setPaidRemarksInput(e.target.value)}
+                            />
+                        </div>
+                        <div className="d-flex justify-content-end gap-2">
+                            <button className="btn btn-secondary" onClick={() => setPaidModalRequest(null)} disabled={processingRequest}>Cancel</button>
+                            <button className="btn btn-primary" onClick={handleMarkPaidSubmit} disabled={processingRequest}>
+                                {processingRequest ? 'Processing...' : 'Mark as Paid'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* View Withdrawal Details Modal */}
+            {viewWithdrawalModalRequest && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '15px'
+                }}>
+                    <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <h4 className="fw-bold mb-3">Withdrawal Request Details</h4>
+                        <div className="row g-3 mb-3">
+                            <div className="col-6">
+                                <small className="text-muted d-block">Request ID</small>
+                                <strong>{viewWithdrawalModalRequest.requestId || viewWithdrawalModalRequest._id}</strong>
+                            </div>
+                            <div className="col-6">
+                                <small className="text-muted d-block">Status</small>
+                                <span className={`badge ${viewWithdrawalModalRequest.status === 'Paid' ? 'bg-success' : viewWithdrawalModalRequest.status === 'Approved' ? 'bg-info text-white' : viewWithdrawalModalRequest.status === 'Pending' ? 'bg-warning text-dark' : 'bg-danger'}`}>
+                                    {viewWithdrawalModalRequest.status}
+                                </span>
+                            </div>
+                            <div className="col-6">
+                                <small className="text-muted d-block">Influencer</small>
+                                <strong>{viewWithdrawalModalRequest.influencerId?.displayName || viewWithdrawalModalRequest.influencerId?.name} ({viewWithdrawalModalRequest.influencerId?.email})</strong>
+                            </div>
+                            <div className="col-6">
+                                <small className="text-muted d-block">Amount</small>
+                                <strong className="fs-5 text-success">₹{viewWithdrawalModalRequest.amount?.toFixed(2)}</strong>
+                            </div>
+                        </div>
+
+                        {/* Bank Details Snapshot */}
+                        <div className="card p-3 bg-light mb-3 border">
+                            <h6 className="fw-bold mb-2">Bank Details Snapshot</h6>
+                            {viewWithdrawalModalRequest.bankSnapshot ? (
+                                <div className="row g-2 small">
+                                    <div className="col-6"><strong>Holder:</strong> {viewWithdrawalModalRequest.bankSnapshot.accountHolderName || '-'}</div>
+                                    <div className="col-6"><strong>Bank:</strong> {viewWithdrawalModalRequest.bankSnapshot.bankName || '-'}</div>
+                                    <div className="col-6"><strong>Account No:</strong> {viewWithdrawalModalRequest.bankSnapshot.accountNumber || '-'}</div>
+                                    <div className="col-6"><strong>IFSC:</strong> {viewWithdrawalModalRequest.bankSnapshot.ifscCode || '-'}</div>
+                                    {viewWithdrawalModalRequest.bankSnapshot.upiId && <div className="col-12"><strong>UPI ID:</strong> {viewWithdrawalModalRequest.bankSnapshot.upiId}</div>}
+                                </div>
+                            ) : <p className="text-muted small mb-0">No bank details snapshot available.</p>}
+                        </div>
+
+                        {/* Audit Timelines & Transaction Info */}
+                        <div className="card p-3 mb-3 border">
+                            <h6 className="fw-bold mb-2">Timeline & Audit</h6>
+                            <div className="row g-2 small text-muted">
+                                <div className="col-6">Requested: {viewWithdrawalModalRequest.requestedAt ? new Date(viewWithdrawalModalRequest.requestedAt).toLocaleString() : '-'}</div>
+                                <div className="col-6">Approved: {viewWithdrawalModalRequest.approvedAt ? new Date(viewWithdrawalModalRequest.approvedAt).toLocaleString() : '-'}</div>
+                                <div className="col-6">Paid: {viewWithdrawalModalRequest.paidAt ? new Date(viewWithdrawalModalRequest.paidAt).toLocaleString() : '-'}</div>
+                                <div className="col-6">Rejected: {viewWithdrawalModalRequest.rejectedAt ? new Date(viewWithdrawalModalRequest.rejectedAt).toLocaleString() : '-'}</div>
+                            </div>
+                            {viewWithdrawalModalRequest.transactionReference && (
+                                <div className="mt-2 text-dark"><strong>Txn Ref / UTR:</strong> {viewWithdrawalModalRequest.transactionReference}</div>
+                            )}
+                            {(viewWithdrawalModalRequest.remarks || viewWithdrawalModalRequest.adminRemarks) && (
+                                <div className="mt-1 text-dark"><strong>Remarks:</strong> {viewWithdrawalModalRequest.remarks || viewWithdrawalModalRequest.adminRemarks}</div>
+                            )}
+                            {viewWithdrawalModalRequest.reason && (
+                                <div className="mt-1 text-danger"><strong>Rejection Reason:</strong> {viewWithdrawalModalRequest.reason}</div>
+                            )}
+                        </div>
+
+                        <div className="d-flex justify-content-end">
+                            <button className="btn btn-secondary" onClick={() => setViewWithdrawalModalRequest(null)}>Close</button>
                         </div>
                     </div>
                 </div>

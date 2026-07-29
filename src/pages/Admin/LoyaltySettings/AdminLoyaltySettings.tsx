@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../../store';
 import adminApiClient from '../../../services/adminApiClient';
 import { toast } from 'react-toastify';
 import { Save, RefreshCcw } from 'lucide-react';
@@ -20,6 +22,9 @@ interface LoyaltySettings {
 }
 
 const AdminLoyaltySettings: React.FC = () => {
+    const adminData = useSelector((state: RootState) => state.auth.admin.data);
+    const isAdmin = adminData?.role?.toUpperCase() === 'ADMIN';
+
     const [settings, setSettings] = useState<LoyaltySettings>({
         isLoyaltyEnabled: true,
         isEarningEnabled: true,
@@ -58,7 +63,7 @@ const AdminLoyaltySettings: React.FC = () => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
-        setSettings(prev => ({
+        setSettings((prev: LoyaltySettings) => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : Number(value)
         }));
@@ -109,6 +114,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                     name="isLoyaltyEnabled"
                                     checked={settings.isLoyaltyEnabled}
                                     onChange={handleChange}
+                                    disabled={!isAdmin}
                                 />
                                 <label className="form-check-label ms-2 fw-bold" htmlFor="isLoyaltyEnabled">
                                     Enable Nature Points Program
@@ -122,6 +128,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                     name="isEarningEnabled"
                                     checked={settings.isEarningEnabled}
                                     onChange={handleChange}
+                                    disabled={!isAdmin}
                                 />
                                 <label className="form-check-label ms-2 fw-bold" htmlFor="isEarningEnabled">
                                     Enable Point Earning
@@ -135,6 +142,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                     name="isRedemptionEnabled"
                                     checked={settings.isRedemptionEnabled}
                                     onChange={handleChange}
+                                    disabled={!isAdmin}
                                 />
                                 <label className="form-check-label ms-2 fw-bold" htmlFor="isRedemptionEnabled">
                                     Enable Point Redemption
@@ -156,6 +164,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                             value={settings.purchaseRewardSpendAmount}
                                             onChange={handleChange}
                                             min="1"
+                                            disabled={!isAdmin}
                                         />
                                     </div>
                                     <small className="text-muted d-block mt-1">E.g., Every ₹100 spent</small>
@@ -169,6 +178,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                         value={settings.purchaseRewardEarnPoints}
                                         onChange={handleChange}
                                         min="0"
+                                        disabled={!isAdmin}
                                     />
                                     <small className="text-muted d-block mt-1">E.g., Earn 1 Point</small>
                                 </div>
@@ -183,6 +193,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                             value={settings.minOrderAmountToEarn}
                                             onChange={handleChange}
                                             min="0"
+                                            disabled={!isAdmin}
                                         />
                                     </div>
                                     <small className="text-muted d-block mt-1">Orders below this amount will not earn Nature Points.</small>
@@ -196,6 +207,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                         value={settings.maxPointsEarnedPerOrder}
                                         onChange={handleChange}
                                         min="0"
+                                        disabled={!isAdmin}
                                     />
                                     <small className="text-muted d-block mt-1">Maximum Nature Points a customer can earn from a single order.</small>
                                 </div>
@@ -216,6 +228,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                             value={settings.pointValueInRupees}
                                             onChange={handleChange}
                                             min="0"
+                                            disabled={!isAdmin}
                                         />
                                     </div>
                                     <small className="text-muted d-block mt-1">1 Point = ₹{settings.pointValueInRupees}</small>
@@ -229,6 +242,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                         value={settings.maxRedeemablePerOrder}
                                         onChange={handleChange}
                                         min="0"
+                                        disabled={!isAdmin}
                                     />
                                     <small className="text-muted d-block mt-1">Fixed max points limit per checkout</small>
                                 </div>
@@ -243,6 +257,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                             value={settings.minOrderAmountToRedeem}
                                             onChange={handleChange}
                                             min="0"
+                                            disabled={!isAdmin}
                                         />
                                     </div>
                                     <small className="text-muted d-block mt-1">Orders below this amount cannot redeem Nature Points.</small>
@@ -256,6 +271,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                         value={settings.minPointsRequiredToRedeem}
                                         onChange={handleChange}
                                         min="0"
+                                        disabled={!isAdmin}
                                     />
                                     <small className="text-muted d-block mt-1">Customers must have at least this many Nature Points before redemption is allowed.</small>
                                 </div>
@@ -274,6 +290,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                         value={settings.pointValidityDays}
                                         onChange={handleChange}
                                         min="1"
+                                        disabled={!isAdmin}
                                     />
                                     <small className="text-muted d-block mt-1">Each batch expires independently after {settings.pointValidityDays} days</small>
                                 </div>
@@ -289,6 +306,7 @@ const AdminLoyaltySettings: React.FC = () => {
                                     name="isWheelEnabled"
                                     checked={settings.isWheelEnabled}
                                     onChange={handleChange}
+                                    disabled={!isAdmin}
                                 />
                                 <label className="form-check-label ms-2 fw-bold" htmlFor="isWheelEnabled">
                                     Enable Lucky Wheel Rewards
@@ -296,19 +314,21 @@ const AdminLoyaltySettings: React.FC = () => {
                                 <small className="text-muted d-block mt-1 ms-4">Allows users to spin and win Nature Points.</small>
                             </div>
 
-                            <div className="d-flex justify-content-end mt-4">
-                                <button
-                                    className="btn btn-primary d-flex align-items-center"
-                                    onClick={handleSave}
-                                    disabled={saving}
-                                >
-                                    {saving ? (
-                                        <><RefreshCcw size={16} className="me-2 animate-spin" /> Saving...</>
-                                    ) : (
-                                        <><Save size={16} className="me-2" /> Save Settings</>
-                                    )}
-                                </button>
-                            </div>
+                            {isAdmin && (
+                                <div className="d-flex justify-content-end mt-4">
+                                    <button
+                                        className="btn btn-primary d-flex align-items-center"
+                                        onClick={handleSave}
+                                        disabled={saving}
+                                    >
+                                        {saving ? (
+                                            <><RefreshCcw size={16} className="me-2 animate-spin" /> Saving...</>
+                                        ) : (
+                                            <><Save size={16} className="me-2" /> Save Settings</>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

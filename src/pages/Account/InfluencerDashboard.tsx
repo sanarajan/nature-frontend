@@ -47,8 +47,9 @@ const InfluencerDashboard: React.FC = () => {
         }
     };
 
-    const handleWithdraw = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+
+    const openWithdrawModal = () => {
         const currentStatus = dashboardData?.status || user?.influencerStatus;
         if (['INACTIVE', 'Inactive'].includes(currentStatus)) {
             toast.error('Your influencer account is currently inactive. Withdrawals are disabled.');
@@ -58,12 +59,33 @@ const InfluencerDashboard: React.FC = () => {
             toast.error('Your influencer account has been blocked. Withdrawals are disabled.');
             return;
         }
+
+        if (!dashboardData?.isBankDetailsComplete) {
+            toast.error('Please complete your bank details before requesting a withdrawal.');
+            navigate('/account/profile');
+            return;
+        }
+
+        setShowWithdrawModal(true);
+    };
+
+    const handleWithdrawSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
         const amount = Number(withdrawAmount);
-        if (!amount || amount <= 0) {
+        const minAmount = dashboardData?.minWithdrawalAmount || 500;
+        const availableBalance = dashboardData?.walletBalance || 0;
+
+        if (!amount || isNaN(amount) || amount <= 0) {
             toast.error('Please enter a valid amount');
             return;
         }
-        if (amount > dashboardData?.walletBalance) {
+
+        if (amount < minAmount) {
+            toast.error(`Minimum withdrawal amount is ₹${minAmount}`);
+            return;
+        }
+
+        if (amount > availableBalance) {
             toast.error('Insufficient wallet balance');
             return;
         }
@@ -72,8 +94,9 @@ const InfluencerDashboard: React.FC = () => {
         try {
             const res = await userApiClient.post('/user/influencer/withdraw', { amount });
             if (res.data.success) {
-                toast.success('Withdrawal requested successfully');
+                toast.success('Your withdrawal request has been submitted successfully.');
                 setWithdrawAmount('');
+                setShowWithdrawModal(false);
                 fetchDashboardData();
             }
         } catch (error: any) {
@@ -135,7 +158,12 @@ const InfluencerDashboard: React.FC = () => {
                                         <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
                                         <ul className="account-info-list">
                                             <li><Link to="/account/profile">Profile</Link></li>
-                                            {user?.isInfluencer && (!user?.influencerRequestStatus || user?.influencerRequestStatus === 'APPROVED') && <li className="active"><Link to="/account/influencer">Influencer Dashboard</Link></li>}
+                                            {user?.isInfluencer && (!user?.influencerRequestStatus || user?.influencerRequestStatus === 'APPROVED') && (
+                                                <>
+                                                    <li className="active"><Link to="/account/influencer">Influencer Dashboard</Link></li>
+                                                    <li><Link to="/account/influencer/withdrawals">Withdrawal History</Link></li>
+                                                </>
+                                            )}
                                         </ul>
                                     </div>
                                 </div>
@@ -158,29 +186,46 @@ const InfluencerDashboard: React.FC = () => {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Wallet Cards Grid */}
                             <div className="row mb-4">
-                                <div className="col-md-3">
-                                    <div className="card text-center p-3 mb-3">
-                                        <h5>Wallet Balance</h5>
-                                        <h3 className="text-primary">₹{dashboardData?.walletBalance?.toFixed(2) || '0.00'}</h3>
+                                <div className="col-md-4 col-lg-2-4 mb-3">
+                                    <div className="card text-center p-3 h-100 d-flex flex-column justify-content-between shadow-sm">
+                                        <div>
+                                            <h6 className="text-muted mb-2">Wallet Balance</h6>
+                                            <h3 className="text-primary fw-bold mb-2">₹{dashboardData?.walletBalance?.toFixed(2) || '0.00'}</h3>
+                                        </div>
+                                        <button className="btn btn-primary btn-sm w-100 mt-2" onClick={openWithdrawModal}>
+                                            Request Withdrawal
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="col-md-3">
-                                    <div className="card text-center p-3 mb-3">
-                                        <h5>Pending Commission</h5>
-                                        <h3 className="text-warning">₹{dashboardData?.pendingBalance?.toFixed(2) || '0.00'}</h3>
+
+                                <div className="col-md-4 col-lg-2-4 mb-3">
+                                    <div className="card text-center p-3 h-100 shadow-sm">
+                                        <h6 className="text-muted mb-2">Withdrawal Hold</h6>
+                                        <h3 className="text-secondary fw-bold">₹{dashboardData?.withdrawalHold?.toFixed(2) || '0.00'}</h3>
                                     </div>
                                 </div>
-                                <div className="col-md-3">
-                                    <div className="card text-center p-3 mb-3">
-                                        <h5>Approved Commission</h5>
-                                        <h3 className="text-success">₹{dashboardData?.totalEarned?.toFixed(2) || '0.00'}</h3>
+
+                                <div className="col-md-4 col-lg-2-4 mb-3">
+                                    <div className="card text-center p-3 h-100 shadow-sm">
+                                        <h6 className="text-muted mb-2">Pending Commission</h6>
+                                        <h3 className="text-warning fw-bold">₹{dashboardData?.pendingBalance?.toFixed(2) || '0.00'}</h3>
                                     </div>
                                 </div>
-                                <div className="col-md-3">
-                                    <div className="card text-center p-3 mb-3">
-                                        <h5>Total Withdrawn</h5>
-                                        <h3 className="text-info">₹{dashboardData?.totalWithdrawn?.toFixed(2) || '0.00'}</h3>
+
+                                <div className="col-md-4 col-lg-2-4 mb-3">
+                                    <div className="card text-center p-3 h-100 shadow-sm">
+                                        <h6 className="text-muted mb-2">Approved Commission</h6>
+                                        <h3 className="text-success fw-bold">₹{dashboardData?.totalEarned?.toFixed(2) || '0.00'}</h3>
+                                    </div>
+                                </div>
+
+                                <div className="col-md-4 col-lg-2-4 mb-3">
+                                    <div className="card text-center p-3 h-100 shadow-sm">
+                                        <h6 className="text-muted mb-2">Total Withdrawn</h6>
+                                        <h3 className="text-info fw-bold">₹{dashboardData?.totalWithdrawn?.toFixed(2) || '0.00'}</h3>
                                     </div>
                                 </div>
                             </div>
@@ -233,7 +278,7 @@ const InfluencerDashboard: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="card p-4 mb-4">
+                            <div className="card p-4 mb-4 shadow-sm">
                                 <h4 className="mb-3">Your Referral Link</h4>
                                 <div className="input-group mb-3">
                                     <input type="text" className="form-control" readOnly value={`${window.location.origin}/?ref=${dashboardData?.referralCode}`} />
@@ -242,21 +287,7 @@ const InfluencerDashboard: React.FC = () => {
                                 <p className="text-muted">Share this link to earn commission on every successful purchase.</p>
                             </div>
 
-                            <div className="card p-4 mb-4">
-                                <h4 className="mb-3">Request Withdrawal</h4>
-                                <form onSubmit={handleWithdraw} className="row">
-                                    <div className="col-md-8">
-                                        <input type="number" className="form-control" placeholder="Enter Amount" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} required />
-                                    </div>
-                                    <div className="col-md-4">
-                                        <button className="btn btn-primary w-100" type="submit" disabled={withdrawing}>
-                                            {withdrawing ? 'Requesting...' : 'Withdraw'}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <div className="card p-4 mb-4">
+                            <div className="card p-4 mb-4 shadow-sm">
                                 <h4 className="mb-3">Top Selling Products</h4>
                                 {(!dashboardData?.topProducts || dashboardData?.topProducts?.length === 0) ? (
                                     <p className="text-muted">No products sold via your referral links yet.</p>
@@ -295,7 +326,7 @@ const InfluencerDashboard: React.FC = () => {
 
                             <div className="row">
                                 <div className="col-md-6">
-                                    <div className="card p-4">
+                                    <div className="card p-4 shadow-sm">
                                         <h4 className="mb-3">Recent Referrals</h4>
                                         <ul className="list-group">
                                             {dashboardData?.recentOrders?.length === 0 ? <p>No referrals yet.</p> : dashboardData?.recentOrders?.map((order: any) => (
@@ -314,8 +345,11 @@ const InfluencerDashboard: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="col-md-6">
-                                    <div className="card p-4">
-                                        <h4 className="mb-3">Withdrawal Requests</h4>
+                                    <div className="card p-4 shadow-sm">
+                                        <div className="d-flex justify-content-between align-items-center mb-3">
+                                            <h4 className="mb-0">Recent Withdrawal Requests</h4>
+                                            <Link to="/account/influencer/withdrawals" className="btn btn-sm btn-outline-primary">View All</Link>
+                                        </div>
                                         <ul className="list-group">
                                             {dashboardData?.withdrawalRequests?.length === 0 ? <p>No requests yet.</p> : dashboardData?.withdrawalRequests?.map((req: any) => (
                                                 <li key={req._id} className="list-group-item d-flex justify-content-between align-items-center">
@@ -323,7 +357,7 @@ const InfluencerDashboard: React.FC = () => {
                                                         <strong>₹{req.amount?.toFixed(2)}</strong><br/>
                                                         <small>{new Date(req.requestedAt).toLocaleDateString()}</small>
                                                     </div>
-                                                    <span className={`badge ${req.status === 'Approved' ? 'bg-success' : req.status === 'Pending' ? 'bg-warning' : 'bg-danger'} rounded-pill`}>{req.status}</span>
+                                                    <span className={`badge ${req.status === 'Approved' || req.status === 'Paid' ? 'bg-success' : req.status === 'Pending' ? 'bg-warning text-dark' : 'bg-danger'} rounded-pill`}>{req.status}</span>
                                                 </li>
                                             ))}
                                         </ul>
@@ -335,6 +369,64 @@ const InfluencerDashboard: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Request Withdrawal Modal */}
+            {showWithdrawModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '15px'
+                }}>
+                    <div style={{
+                        backgroundColor: '#fff', borderRadius: '16px',
+                        padding: '28px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', width: '100%', maxWidth: '480px'
+                    }}>
+                        <h4 className="mb-3 fw-bold">Request Withdrawal</h4>
+
+                        <div className="bg-light p-3 rounded mb-4 border">
+                            <div className="d-flex justify-content-between mb-2">
+                                <span className="text-muted">Available Balance:</span>
+                                <strong className="text-primary fs-6">₹{dashboardData?.walletBalance?.toFixed(2) || '0.00'}</strong>
+                            </div>
+                            <div className="d-flex justify-content-between">
+                                <span className="text-muted">Minimum Withdrawal:</span>
+                                <strong className="text-dark fs-6">₹{dashboardData?.minWithdrawalAmount || 500}</strong>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleWithdrawSubmit}>
+                            <div className="mb-4">
+                                <label className="form-label fw-bold">Enter Withdrawal Amount (₹) <span className="text-danger">*</span></label>
+                                <input
+                                    type="number"
+                                    className="form-control form-control-lg"
+                                    placeholder={`Min ₹${dashboardData?.minWithdrawalAmount || 500}`}
+                                    min={dashboardData?.minWithdrawalAmount || 500}
+                                    max={dashboardData?.walletBalance || 0}
+                                    value={withdrawAmount}
+                                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                                    required
+                                />
+                                {Number(withdrawAmount) > 0 && Number(withdrawAmount) < (dashboardData?.minWithdrawalAmount || 500) && (
+                                    <div className="text-danger small mt-1">Amount must be at least ₹{dashboardData?.minWithdrawalAmount || 500}.</div>
+                                )}
+                                {Number(withdrawAmount) > (dashboardData?.walletBalance || 0) && (
+                                    <div className="text-danger small mt-1">Amount cannot exceed available balance of ₹{dashboardData?.walletBalance?.toFixed(2)}.</div>
+                                )}
+                            </div>
+
+                            <div className="d-flex justify-content-end gap-2">
+                                <button type="button" onClick={() => setShowWithdrawModal(false)} disabled={withdrawing} className="btn btn-light">
+                                    Cancel
+                                </button>
+                                <button type="submit" disabled={withdrawing} className="btn btn-primary px-4">
+                                    {withdrawing ? 'Submitting...' : 'Submit'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

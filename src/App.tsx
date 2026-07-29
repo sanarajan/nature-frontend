@@ -16,6 +16,7 @@ import AgencyList from './pages/Admin/ShippingAgencies/AgencyList'
 import AgencyForm from './pages/Admin/ShippingAgencies/AgencyForm'
 import ShippingCharges from './pages/Admin/ShippingCharges/ShippingCharges'
 import AdminProfile from './pages/Admin/Profile/AdminProfile'
+import AdminStaff from './pages/Admin/Staff/AdminStaff'
 import ProductCategoryOffers from './pages/Admin/Offers/ProductCategoryOffers'
 import AdminComboOffers from './pages/Admin/Offers/ComboOffers'
 import UserComboOffers from './pages/Shop/ComboOffers'
@@ -43,12 +44,14 @@ import ShippingAddress from './pages/Account/ShippingAddress'
 import Orders from './pages/Account/Orders'
 import OrderDetails from './pages/Account/OrderDetails'
 import InfluencerDashboard from './pages/Account/InfluencerDashboard'
+import WithdrawalHistory from './pages/Account/WithdrawalHistory'
 import NaturePoints from './pages/Account/NaturePoints'
 import AdminLogin from './pages/Admin/AdminLogin'
 
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from './store';
 import { adminAuthService } from './services/admin/adminAuthService';
 import { userAuthService } from './services/user/userAuthService';
 import { adminLoginSuccess, userLoginSuccess, adminLogout, userLogout } from './store/authSlice';
@@ -58,6 +61,7 @@ import userApiClient from './services/userApiClient';
 
 function App() {
   const dispatch = useDispatch();
+  const { admin } = useSelector((state: RootState) => state.auth);
   const { pathname, search } = useLocation();
 
   useEffect(() => {
@@ -171,6 +175,16 @@ function App() {
           <Route path="/admin/coupons/add" element={<AddCoupon />} />
           <Route path="/admin/coupons/edit/:id" element={<AddCoupon />} />
           <Route path="/admin/influencers" element={<AdminInfluencers />} />
+          <Route
+            path="/admin/staff"
+            element={
+              admin.data?.role?.toUpperCase() === 'ADMIN' ? (
+                <AdminStaff />
+              ) : (
+                <Navigate to="/admin/dashboard" replace />
+              )
+            }
+          />
           <Route path="/admin/offers/product-category" element={<ProductCategoryOffers />} />
           <Route path="/admin/offers/combo" element={<AdminComboOffers />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
@@ -250,6 +264,11 @@ function App() {
                   <Route path="/account/influencer" element={
                     <ProtectedRoute type="user">
                       <InfluencerDashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/account/influencer/withdrawals" element={
+                    <ProtectedRoute type="user">
+                      <WithdrawalHistory />
                     </ProtectedRoute>
                   } />
                   <Route path="/account/address" element={

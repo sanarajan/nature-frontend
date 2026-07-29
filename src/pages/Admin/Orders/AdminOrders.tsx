@@ -1,3 +1,5 @@
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../../store';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Download, Eye, FileText } from 'lucide-react';
@@ -7,6 +9,9 @@ import { formatDate } from '../../../utils/formatDate';
 import '../../../styles/admin-pages.css';
 
 const AdminOrders: React.FC = () => {
+    const adminData = useSelector((state: RootState) => state.auth.admin.data);
+    const isAdmin = adminData?.role?.toUpperCase() === 'ADMIN';
+
     const navigate = useNavigate();
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -196,12 +201,12 @@ const AdminOrders: React.FC = () => {
 
         // Logic transitions
         if (s.includes('RETURNED')) return [];
-        if (s.includes('RETURN')) return ['Returned'];
+        if (s.includes('RETURN')) return isAdmin ? ['Returned'] : [];
         if (s.includes('PLACED')) return ['Processing', 'Cancelled'];
         if (s.includes('PROCESSING')) return ['Shipped', 'Delivered', 'Cancelled'];
         if (s.includes('SHIPPED')) return ['Delivered', 'Cancelled'];
-        if (s.includes('CANCELLATION REQUEST')) return ['Cancelled'];
-        if (s.includes('RETURN REQUEST')) return ['Returned'];
+        if (s.includes('CANCELLATION REQUEST')) return isAdmin ? ['Cancelled'] : [];
+        if (s.includes('RETURN REQUEST')) return isAdmin ? ['Returned'] : [];
 
         return []; // Default to no transitions for terminal/unknown states
     };
@@ -314,15 +319,15 @@ const AdminOrders: React.FC = () => {
 
         return (
             <span
-                className={`admin-badge ${badgeClass} ${isRefundPending ? 'clickable-badge' : ''}`}
+                className={`admin-badge ${badgeClass} ${isRefundPending && isAdmin ? 'clickable-badge' : ''}`}
                 style={{
                     fontWeight: 700,
-                    cursor: isRefundPending ? 'pointer' : 'default',
+                    cursor: isRefundPending && isAdmin ? 'pointer' : 'default',
                     whiteSpace: 'nowrap',
                     ...(status === 'Refunded' ? { backgroundColor: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' } : {})
                 }}
                 onClick={(e) => {
-                    if (isRefundPending) {
+                    if (isRefundPending && isAdmin) {
                         e.stopPropagation();
                         setSelectedOrder(order);
                         setRefundAmount(order.totalAmount);

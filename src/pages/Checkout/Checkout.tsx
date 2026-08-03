@@ -443,12 +443,24 @@ const Checkout: React.FC = () => {
         const code = (codeToApply || couponInput).trim().toUpperCase();
         if (!code) return;
 
-        // Check if link-based attribution is active and protected
-        const isLinkActive = appliedCode.source === 'LINK' || (influencerCookie && (appliedCode.type === 'influencer' || !appliedCode.code) && appliedCode.source !== 'CODE');
-        if (isLinkActive) {
-            toast.warning("Link-based influencer discount is already active and cannot be replaced.");
-            return;
+        // Check if influencer discount is currently active
+        const isInfluencerActive = appliedCode.type === 'influencer' || (influencerCookie && influencerDiscountAmount > 0);
+        if (isInfluencerActive && code !== (appliedCode.code || '').toUpperCase()) {
+            const confirmResult = await Swal.fire({
+                title: 'Apply Coupon?',
+                text: 'Applying this coupon will remove your Influencer Discount. Continue?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#0D775E',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, apply coupon',
+                cancelButtonText: 'Cancel'
+            });
+            if (!confirmResult.isConfirmed) {
+                return;
+            }
         }
+
 
         try {
             // 0. Check if it's an influencer code first via checkout totals or active validation

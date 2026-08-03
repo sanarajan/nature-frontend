@@ -176,6 +176,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                         <Percent size={20} />
                         <span>Coupons</span>
                     </NavLink>
+                    <div className={`nav-group ${expandedMenus.marketing ? 'expanded' : ''}`}>
+                        <div className="nav-item-toggle" onClick={() => toggleMenu('marketing')}>
+                            <div className="nav-item-left">
+                                <Zap size={20} />
+                                <span>Marketing</span>
+                            </div>
+                            <ChevronDown size={14} className="group-arrow" />
+                        </div>
+                        <div className="sub-menu">
+                            <NavLink to="/admin/marketing/spin-wheel" className={({ isActive }) => isActive ? 'sub-nav-item active' : 'sub-nav-item'}>
+                                <Percent size={18} />
+                                <span>Spin Wheel</span>
+                            </NavLink>
+                        </div>
+                    </div>
+
                     <div className={`nav-group ${expandedMenus.offers ? 'expanded' : ''}`}>
                         <div className="nav-item-toggle" onClick={() => toggleMenu('offers')}>
                             <div className="nav-item-left">
@@ -195,6 +211,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                             </NavLink>
                         </div>
                     </div>
+
 
                     <NavLink to="/admin/shipping-agencies" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         <Truck size={20} />

@@ -1,0 +1,71 @@
+.reward-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.reward-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.reward-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0F172A;
+}
+
+.reward-desc {
+    font-size: 0.85rem;
+}
+
+.reward-badge {
+    background-color: #e6f4f1;
+    color: #0D775E;
+    font-weight: 600;
+}
+
+.status-pill {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.pill-active {
+    background-color: #dcfce7;
+    color: #15803d;
+}
+
+.pill-used {
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
+.pill-expired {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.reward-coupon-box {
+    background-color: #f8fafc;
+    border: 1px dashed #0D775E;
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+
+.coupon-code-text {
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    color: #0D775E;
+}
+
+.empty-rewards-box {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px dashed #cbd5e1;
+}

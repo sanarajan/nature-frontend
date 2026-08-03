@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { userAuthService } from '../../services/user/userAuthService';
 import userApiClient from '../../services/userApiClient';
 import { userLoginSuccess } from '../../store/authSlice';
-import { useLocation } from 'react-router-dom';
 import { API_ENDPOINTS } from '../../constants/apiEndpoints';
 
 // Asset Imports
@@ -19,6 +19,80 @@ const Login: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch();
+
+    const processSuccessfulLogin = async (accessToken: string, userData: any) => {
+        console.log("[Login] Login successful, starting sync...");
+
+        // Sync Offline Wishlist
+        const localWishlistStr = localStorage.getItem('offlineWishlist');
+        if (localWishlistStr) {
+            try {
+                const localItems = JSON.parse(localWishlistStr);
+                if (Array.isArray(localItems) && localItems.length > 0) {
+                    const pIds = localItems.map(i => i._id || i.id || i);
+                    console.log("[Login] Syncing wishlist items:", pIds);
+                    try {
+                        await userApiClient.post(
+                            API_ENDPOINTS.USER.WISHLIST.SYNC,
+                            { productIds: pIds },
+                            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+                        );
+                        localStorage.removeItem('offlineWishlist');
+                        console.log("[Login] Wishlist sync success");
+                    } catch (e) {
+                        console.error("[Login] Wishlist sync API failed", e);
+                    }
+                }
+            } catch (err) {
+                console.error('[Login] Error parsing offline wishlist:', err);
+            }
+        }
+
+        // Sync Offline Cart
+        const localCartStr = localStorage.getItem('offlineCart');
+        if (localCartStr) {
+            try {
+                const localCartItems = JSON.parse(localCartStr);
+                if (Array.isArray(localCartItems) && localCartItems.length > 0) {
+                    const formattedItems = localCartItems.map((item: any) => {
+                        const productId = (item.product && typeof item.product === 'object') 
+                            ? (item.product._id || item.product.id) 
+                            : item.product;
+                        return { product: productId, quantity: item.quantity };
+                    }).filter(i => i.product);
+
+                    console.log("[Login] Syncing cart items:", JSON.stringify(formattedItems));
+                    try {
+                        await userApiClient.post(
+                            API_ENDPOINTS.USER.CART.SYNC,
+                            { cartItems: formattedItems },
+                            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+                        );
+                        localStorage.removeItem('offlineCart');
+                        console.log("[Login] Cart sync success");
+                    } catch (e) {
+                        console.error("[Login] Cart sync API failed", e);
+                    }
+                }
+            } catch (err) {
+                console.error('[Login] Error parsing offline cart:', err);
+            }
+        }
+
+        // NOW set tokens and dispatch success
+        localStorage.setItem('user_accessToken', accessToken);
+        localStorage.setItem('user_data', JSON.stringify(userData));
+        console.log("[Login] Tokens saved to localStorage");
+
+        window.dispatchEvent(new Event('cart-updated'));
+        window.dispatchEvent(new Event('wishlist-updated'));
+
+        dispatch(userLoginSuccess(userData));
+        console.log("[Login] Redux state updated");
+
+        const from = (location.state as any)?.from?.pathname || '/account';
+        navigate(from, { replace: true });
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,82 +114,8 @@ const Login: React.FC = () => {
 
         try {
             const result = await userAuthService.login({ email, password });
-            if (result.success) {
-                if (result.data) {
-                    const accessToken = result.data.accessToken;
-                    const userData = result.data.user;
-
-                    console.log("[Login] Login successful, starting sync...");
-
-                    // Sync Offline Wishlist
-                    const localWishlistStr = localStorage.getItem('offlineWishlist');
-                    if (localWishlistStr) {
-                        try {
-                            const localItems = JSON.parse(localWishlistStr);
-                            if (Array.isArray(localItems) && localItems.length > 0) {
-                                const pIds = localItems.map(i => i._id || i.id || i);
-                                console.log("[Login] Syncing wishlist items:", pIds);
-                                try {
-                                    await userApiClient.post(
-                                        API_ENDPOINTS.USER.WISHLIST.SYNC,
-                                        { productIds: pIds },
-                                        { headers: { 'Authorization': `Bearer ${accessToken}` } }
-                                    );
-                                    localStorage.removeItem('offlineWishlist');
-                                    console.log("[Login] Wishlist sync success");
-                                } catch (e) {
-                                    console.error("[Login] Wishlist sync API failed", e);
-                                }
-                            }
-                        } catch (err) {
-                            console.error('[Login] Error parsing offline wishlist:', err);
-                        }
-                    }
-
-                    // Sync Offline Cart
-                    const localCartStr = localStorage.getItem('offlineCart');
-                    if (localCartStr) {
-                        try {
-                            const localCartItems = JSON.parse(localCartStr);
-                            if (Array.isArray(localCartItems) && localCartItems.length > 0) {
-                                const formattedItems = localCartItems.map((item: any) => {
-                                    const productId = (item.product && typeof item.product === 'object') 
-                                        ? (item.product._id || item.product.id) 
-                                        : item.product;
-                                    return { product: productId, quantity: item.quantity };
-                                }).filter(i => i.product);
-
-                                console.log("[Login] Syncing cart items:", JSON.stringify(formattedItems));
-                                try {
-                                    await userApiClient.post(
-                                        API_ENDPOINTS.USER.CART.SYNC,
-                                        { cartItems: formattedItems },
-                                        { headers: { 'Authorization': `Bearer ${accessToken}` } }
-                                    );
-                                    localStorage.removeItem('offlineCart');
-                                    console.log("[Login] Cart sync success");
-                                } catch (e) {
-                                    console.error("[Login] Cart sync API failed", e);
-                                }
-                            }
-                        } catch (err) {
-                            console.error('[Login] Error parsing offline cart:', err);
-                        }
-                    }
-
-                    // NOW set tokens and dispatch success
-                    localStorage.setItem('user_accessToken', accessToken);
-                    localStorage.setItem('user_data', JSON.stringify(userData));
-                    console.log("[Login] Tokens saved to localStorage");
-
-                    window.dispatchEvent(new Event('cart-updated'));
-                    window.dispatchEvent(new Event('wishlist-updated'));
-
-                    dispatch(userLoginSuccess(userData));
-                    console.log("[Login] Redux state updated");
-                }
-                const from = (location.state as any)?.from?.pathname || '/account';
-                navigate(from, { replace: true });
+            if (result.success && result.data) {
+                await processSuccessfulLogin(result.data.accessToken, result.data.user);
             } else {
                 setError(result.message || 'Login failed.');
             }
@@ -132,6 +132,37 @@ const Login: React.FC = () => {
                 errorMessage = err;
             }
 
+            setError(errorMessage);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+        if (!credentialResponse.credential) {
+            setError('Google Sign-In failed: No credential received.');
+            return;
+        }
+        setError('');
+        setLoading(true);
+
+        try {
+            const result = await userAuthService.googleLogin(credentialResponse.credential);
+            if (result.success && result.data) {
+                await processSuccessfulLogin(result.data.accessToken, result.data.user);
+            } else {
+                setError(result.message || 'Google Sign-In failed.');
+            }
+        } catch (err: any) {
+            console.error("Google Login API Error:", err);
+            let errorMessage = 'Google Sign-In failed. Please try again.';
+            if (err.response?.data?.message) {
+                errorMessage = err.response.data.message;
+            } else if (err.message) {
+                errorMessage = err.message;
+            } else if (typeof err === 'string') {
+                errorMessage = err;
+            }
             setError(errorMessage);
         } finally {
             setLoading(false);
@@ -182,11 +213,29 @@ const Login: React.FC = () => {
                                         <input className="form-check-input" type="checkbox" id="remember" />
                                         <label className="form-check-label" htmlFor="remember">Remember me</label>
                                     </div>
-                                    <Link to="/login" className="text-secondary text-decoration-underline">Forgot Password?</Link>
+                                    <Link to="/forgot-password" className="text-secondary text-decoration-underline">Forgot Password?</Link>
                                 </div>
                                 <button type="submit" disabled={loading} className="btn btn-secondary btn-lg w-100 text-uppercase">
                                     {loading ? 'Signing In...' : 'Sign In'}
                                 </button>
+
+                                <div className="my-3 text-center position-relative">
+                                    <div className="d-flex align-items-center my-3">
+                                        <div className="flex-grow-1 border-bottom"></div>
+                                        <span className="px-3 text-muted small fw-bold">OR</span>
+                                        <div className="flex-grow-1 border-bottom"></div>
+                                    </div>
+                                </div>
+
+                                <div className="d-flex justify-content-center w-100 mb-3">
+                                    <GoogleLogin
+                                        onSuccess={handleGoogleSuccess}
+                                        onError={() => setError('Google Sign-In failed. Please try again.')}
+                                        text="continue_with"
+                                        width="100%"
+                                    />
+                                </div>
+
                                 <p className="mt-3">Don't Have an Account? <Link to="/registration" className="text-primary fw-bold">Sign up For Free</Link></p>
                             </form>
                         </div>

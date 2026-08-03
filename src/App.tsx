@@ -19,10 +19,15 @@ import AdminProfile from './pages/Admin/Profile/AdminProfile'
 import AdminStaff from './pages/Admin/Staff/AdminStaff'
 import ProductCategoryOffers from './pages/Admin/Offers/ProductCategoryOffers'
 import AdminComboOffers from './pages/Admin/Offers/ComboOffers'
+import AdminSpinWheel from './pages/Admin/SpinWheel/AdminSpinWheel'
+import MyRewards from './pages/Account/MyRewards'
 import UserComboOffers from './pages/Shop/ComboOffers'
 
+
 import Header from './components/Header/Header'
+import SpinWheelPopup from './components/SpinWheelPopup/SpinWheelPopup'
 import Footer from './components/Footer/Footer'
+
 import Home from './pages/Home/Home'
 import About from './pages/About/About'
 import Contact from './pages/Contact/Contact'
@@ -33,6 +38,8 @@ import Cart from './pages/Cart/Cart'
 import Checkout from './pages/Checkout/Checkout'
 import OrderSuccess from './pages/Checkout/OrderSuccess'
 import Login from './pages/Login/Login'
+import ForgotPassword from './pages/Login/ForgotPassword'
+import ResetPassword from './pages/Login/ResetPassword'
 import Registration from './pages/Registration/Registration'
 import RegistrationSuccess from './pages/Registration/RegistrationSuccess'
 import VerifyEmail from './pages/Registration/VerifyEmail'
@@ -203,20 +210,27 @@ function App() {
           <Route path="/admin/shipping-agencies/add" element={<AgencyForm />} />
           <Route path="/admin/shipping-agencies/edit/:id" element={<AgencyForm />} />
           <Route path="/admin/shipping-charges" element={<ShippingCharges />} />
-
+          <Route path="/admin/marketing/spin-wheel" element={<AdminSpinWheel />} />
           <Route path="/admin/loyalty-settings" element={<AdminLoyaltySettings />} />
+
+
+
+
 
           <Route path="/admin/settings" element={<div className="p-4">Settings Page (Coming Soon)</div>} />
           <Route path="/admin/integrations" element={<div className="p-4">Integrations Page (Coming Soon)</div>} />
         </Route>
 
         {/* Public Routes */}
+
         <Route
           path="/*"
           element={
             <>
               <Header />
+              <SpinWheelPopup />
               <div className="page-content bg-white">
+
                 <Routes>
                   <Route path="/" element={<Home />} />
                     <Route path="/about" element={<About />} />
@@ -231,6 +245,16 @@ function App() {
                   <Route path="/login" element={
                     <GuestRoute type="user">
                       <Login />
+                    </GuestRoute>
+                  } />
+                  <Route path="/forgot-password" element={
+                    <GuestRoute type="user">
+                      <ForgotPassword />
+                    </GuestRoute>
+                  } />
+                  <Route path="/reset-password" element={
+                    <GuestRoute type="user">
+                      <ResetPassword />
                     </GuestRoute>
                   } />
                   <Route path="/registration" element={
@@ -301,6 +325,12 @@ function App() {
                       <NaturePoints />
                     </ProtectedRoute>
                   } />
+                  <Route path="/account/my-rewards" element={
+                    <ProtectedRoute type="user">
+                      <MyRewards />
+                    </ProtectedRoute>
+                  } />
+
                 </Routes>
               </div>
               <Footer />

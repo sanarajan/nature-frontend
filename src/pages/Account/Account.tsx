@@ -190,9 +190,10 @@ const Account: React.FC = () => {
                                         <ul>
                                             <li className="active"><Link to="/account">Dashboard</Link></li>
                                             <li><Link to="/account/orders">Orders</Link></li>
-                                            <li><Link to="/account/downloads">Downloads</Link></li>
-                                            <li><Link to="/account/return">Return request</Link></li>
+                                            <li><Link to="/account/my-rewards">My Rewards</Link></li>
                                             <li><Link to="/account/nature-points">Nature Points</Link></li>
+                                            <li><Link to="/account/return">Return request</Link></li>
+
                                         </ul>
                                         <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
                                         <ul className="account-info-list">

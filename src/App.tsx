@@ -27,6 +27,7 @@ import UserComboOffers from './pages/Shop/ComboOffers'
 import Header from './components/Header/Header'
 import SpinWheelPopup from './components/SpinWheelPopup/SpinWheelPopup'
 import Footer from './components/Footer/Footer'
+import HangingVine from './components/HangingVine/HangingVine'
 
 import Home from './pages/Home/Home'
 import About from './pages/About/About'
@@ -227,6 +228,7 @@ function App() {
           path="/*"
           element={
             <>
+              <HangingVine />
               <Header />
               <SpinWheelPopup />
               <div className="page-content bg-white">

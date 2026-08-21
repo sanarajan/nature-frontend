@@ -1,0 +1,61 @@
+.hanging-vine-container {
+  position: fixed;
+  top: 0;
+  left: 20px;
+  width: 100px;
+  height: 480px;
+  pointer-events: none; /* Crucial: ensures it doesn't block clicks */
+  z-index: 9999; /* Ensure it stays above other content but isn't clickable */
+  opacity: 0.9;
+}
+
+.hanging-vine-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.15));
+  /* Animate the entire vine as one organic piece */
+  transform-origin: 50% 0%; 
+  animation: branchSway 3.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+}
+
+/* 3-4 second natural sway cycle, slightly faster and more visible but elegant */
+@keyframes branchSway {
+  0% {
+    transform: rotate(-2.5deg);
+  }
+  100% {
+    transform: rotate(3.5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hanging-vine-svg {
+    animation: none !important;
+    transform: rotate(0deg) !important;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .hanging-vine-container {
+    width: 80px;
+    height: 380px;
+    left: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hanging-vine-container {
+    width: 60px;
+    height: 280px;
+    left: 5px;
+    opacity: 0.75;
+  }
+}
+
+/* Hide on very small mobile devices to prevent any overlap issues */
+@media (max-width: 480px) {
+  .hanging-vine-container {
+    display: none;
+  }
+}

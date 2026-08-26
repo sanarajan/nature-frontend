@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import logo from '../../assets/images/logo.jpeg';
+import logo from '../../assets/images/logo.png';
 import CartSidebar from '../CartSidebar/CartSidebar';
 import SearchSidebar from '../SearchSidebar/SearchSidebar';
 import userApiClient from '../../services/userApiClient';

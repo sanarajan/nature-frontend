@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import logo from '../../assets/images/logo.png';
+import logo from '../../assets/images/logo.jpeg';
 import CartSidebar from '../CartSidebar/CartSidebar';
 import SearchSidebar from '../SearchSidebar/SearchSidebar';
 import userApiClient from '../../services/userApiClient';
@@ -113,7 +113,7 @@ const Header: React.FC = () => {
         const handleClickOutside = (event: MouseEvent) => {
             const navEl = document.getElementById('navbarNavDropdown');
             const toggler = document.querySelector('.navbar-toggler');
-            
+
             if (isMobileMenuOpen && navEl && !navEl.contains(event.target as Node)) {
                 if (toggler && !toggler.contains(event.target as Node)) {
                     setIsMobileMenuOpen(false);
@@ -124,7 +124,7 @@ const Header: React.FC = () => {
         if (isMobileMenuOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
-        
+
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
@@ -181,8 +181,8 @@ const Header: React.FC = () => {
         <header className={`site-header mo-left header style-1${isHome ? ' header-transparent' : ''}`}>
             {/* Mobile Menu Overlay */}
             {isMobileMenuOpen && (
-                <div 
-                    className="menu-backdrop" 
+                <div
+                    className="menu-backdrop"
                     onClick={closeNavbar}
                     style={{
                         position: 'fixed',

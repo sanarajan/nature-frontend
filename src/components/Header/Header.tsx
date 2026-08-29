@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import logo from '../../assets/images/logo.png';
@@ -7,6 +8,7 @@ import CartSidebar from '../CartSidebar/CartSidebar';
 import SearchSidebar from '../SearchSidebar/SearchSidebar';
 import userApiClient from '../../services/userApiClient';
 import { userAuthService } from '../../services/user/userAuthService';
+import { userLogout } from '../../store/authSlice';
 
 const Header: React.FC = () => {
     const [isHeaderSticky, setIsHeaderSticky] = useState(false);
@@ -164,14 +166,15 @@ const Header: React.FC = () => {
         );
     };
 
+    const dispatch = useDispatch();
+
     const handleLogout = async () => {
         try {
             await userAuthService.logout();
         } catch (err) {
             console.error('Logout error:', err);
         }
-        localStorage.removeItem('user_accessToken');
-        localStorage.removeItem('user_data');
+        dispatch(userLogout());
         setIsLoggedIn(false);
         navigate('/login');
         toast.success("Successfully logged out", { position: "top-right", autoClose: 3000 });

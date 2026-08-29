@@ -21,14 +21,14 @@ const Footer: React.FC = () => {
                                 <ul className="widget-address">
                                     <li>
                                         <p><span>Address</span> : 22/88 C, NR KAREEKKAD JUMA MASJID, PAYYOLI, KOZHIKODE, KOZHIKODE, KERALA, 673522
-</p>
+                                        </p>
                                     </li>
                                     <li>
                                         <p><span>E-mail</span> : info@naturalayam.com</p>
                                     </li>
                                     <li>
-                                        <p><span>Phone</span> : 917902601096
-</p>
+                                        <p><span>Phone</span> : 800 999 3008
+                                        </p>
                                     </li>
                                 </ul>
                                 <div className="subscribe_widget">
@@ -135,37 +135,37 @@ const Footer: React.FC = () => {
                 <div className="container">
                     <div className="row fb-inner wow fadeInUp" data-wow-delay="0.1s">
                         <div className="col-lg-4 col-md-12 text-start">
-    <div className="d-flex align-items-center gap-3 social-icons-footer">
-        
-        <a
-            href="https://www.instagram.com/naturalayam/reels/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="social-icon"
-        >
-            <i className="fab fa-instagram"></i>
-        </a>
+                            <div className="d-flex align-items-center gap-3 social-icons-footer">
 
-        <a
-            href="https://www.facebook.com/Naturalayam/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="social-icon"
-        >
-            <i className="fab fa-facebook-f"></i>
-        </a>
+                                <a
+                                    href="https://www.instagram.com/naturalayam/reels/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="social-icon"
+                                >
+                                    <i className="fab fa-instagram"></i>
+                                </a>
 
-        <a
-            href="https://www.youtube.com/@Naturalayam"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="social-icon"
-        >
-            <i className="fab fa-youtube"></i>
-        </a>
+                                <a
+                                    href="https://www.facebook.com/Naturalayam/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="social-icon"
+                                >
+                                    <i className="fab fa-facebook-f"></i>
+                                </a>
 
-    </div>
-</div>
+                                <a
+                                    href="https://www.youtube.com/@Naturalayam"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="social-icon"
+                                >
+                                    <i className="fab fa-youtube"></i>
+                                </a>
+
+                            </div>
+                        </div>
                         <div className="col-lg-4 col-md-12 text-start">
                             <p className="copyright-text">© <span className="current-year">{new Date().getFullYear()}</span> <a
                                 href="https://www.indiankoder.com/">Calicut Web Designer</a> </p>

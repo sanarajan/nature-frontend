@@ -57907,23 +57907,20 @@ table.wishlist_table {
 
 .toggle-info {
   display: none;
-  padding: 18px 30px;
   margin-bottom: 20px;
-  background-color: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  justify-content: space-between;
-  align-items: center;
+  position: relative;
+  z-index: 999999;
+}
+
+.toggle-info .title {
+  display: none !important;
 }
 
 @media only screen and (max-width: 1199px) {
   .toggle-info {
     display: flex;
-  }
-}
-
-@media only screen and (max-width: 575px) {
-  .toggle-info {
-    padding: 12px 15px;
+    justify-content: flex-end;
+    width: 100%;
   }
 }
 
@@ -57931,6 +57928,7 @@ table.wishlist_table {
   background-color: #38996E;
   padding: 10px 15px;
   color: #fff !important;
+  display: inline-block;
 }
 
 .toggle-btn:hover,

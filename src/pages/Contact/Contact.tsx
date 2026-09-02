@@ -1,7 +1,74 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 const Contact: React.FC = () => {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [preference, setPreference] = useState('');
+    const [message, setMessage] = useState('');
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const recaptchaRef = useRef<ReCAPTCHA>(null);
+
+    const validate = () => {
+        const newErrors: { [key: string]: string } = {};
+        if (!name.trim()) newErrors.name = 'Name is required';
+        else if (name.trim().length < 2 || name.trim().length > 100) newErrors.name = 'Name must be between 2 and 100 characters';
+        
+        if (!email.trim()) newErrors.email = 'Email is required';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Please enter a valid email address';
+        
+        if (!preference.trim()) newErrors.preference = 'Please tell us what you prefer';
+        
+        if (!message.trim()) newErrors.message = 'Message is required';
+        else if (message.trim().length < 5 || message.trim().length > 5000) newErrors.message = 'Message must be between 5 and 5000 characters';
+        
+        if (!captchaToken) newErrors.captcha = 'Please complete the security verification.';
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!validate()) {
+            toast.error('Please check the highlighted fields.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            await axios.post(`${apiUrl}/contact/submit`, {
+                name,
+                email,
+                preference,
+                message,
+                captchaToken
+            });
+            
+            toast.success('Thank you. Your message has been sent successfully.');
+            
+            // Reset form
+            setName('');
+            setEmail('');
+            setPreference('');
+            setMessage('');
+            setCaptchaToken(null);
+            setErrors({});
+            recaptchaRef.current?.reset();
+        } catch (error: any) {
+            const errMessage = error.response?.data?.message || 'Unable to send your message right now. Please try again later.';
+            toast.error(errMessage);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
     return (
         <>
             <div className="dz-bnr-inr" style={{ backgroundImage: "url('/images/background/bg5.jpg')" }}>
@@ -18,97 +85,225 @@ const Contact: React.FC = () => {
                 </div>  
             </div>
         
-            <section className="content-inner bg-light">
-                <div className="container">
-                    <div className="row">
-                        <div className="col-xl-7 col-md-12 col-sm-12 m-b30">
-                            <div className="row justify-content-between align-items-center">
-                                <div>
-                                    <div className="section-head style-2">
-                                        <h2 className="title wow flipInX w-100" data-wow-delay="0.4s" style={{ visibility: 'visible', animationDelay: '0.4s', animationName: 'flipInX' }}>Let’s Talk</h2>
-                                        <p>Contact Us For a Quote. Help Or Join The Team!</p>
-                                    </div>
-                                </div>
+            <section className="content-inner bg-light contact-page">
+                <style>
+                    {`
+                    .contact-page-container {
+                        width: min(92%, 1280px);
+                        margin: 0 auto;
+                    }
+                    .contact-form-field {
+                        border: 1px solid #d0dcd5 !important;
+                        border-radius: 10px !important;
+                        height: 52px;
+                        padding: 0 16px;
+                        background-color: #fbfdfc !important;
+                        transition: all 0.3s ease;
+                        box-shadow: none !important;
+                    }
+                    .contact-form-field:focus {
+                        border-color: var(--bs-primary, #66A589) !important;
+                        box-shadow: 0 0 0 3px rgba(102, 165, 137, 0.15) !important;
+                        background-color: #fff !important;
+                        outline: none;
+                    }
+                    textarea.contact-form-field {
+                        height: 150px;
+                        padding: 16px;
+                        resize: vertical;
+                    }
+                    .contact-form-label {
+                        font-weight: 600;
+                        margin-bottom: 10px;
+                        color: #2c3e35;
+                        font-size: 0.95rem;
+                    }
+                    .contact-form-group {
+                        margin-bottom: 28px;
+                    }
+                    `}
+                </style>
+                <div className="contact-page-container">
+                    <div className="row mb-5">
+                        <div className="col-12">
+                            <div className="section-head style-2 text-start mb-4">
+                                <h2 className="title wow flipInX w-100" data-wow-delay="0.4s" style={{ visibility: 'visible', animationDelay: '0.4s', animationName: 'flipInX' }}>Let’s Talk</h2>
+                                <p>Contact Us For a Quote. Help Or Join The Team!</p>
                             </div>
+                            
                             <div className="contact-area3 wow fadeInUp" data-wow-delay="0.4s" >
-                                <form className="dz-form dzForm row" method="POST" action="#">
-                                    <div className="col-6">
-                                        <input type="hidden" className="form-control" name="dzToDo" value="Contact" />
-                                        <input type="hidden" className="form-control" name="reCaptchaEnable" value="0" />
-                                        <div className="dzFormMsg"></div>
-                                        <label className="form-label">Your Name</label>
+                                <form className="dz-form dzForm row" onSubmit={handleSubmit}>
+                                    <div className="col-md-6 contact-form-group">
+                                        <label className="form-label contact-form-label">Your Name</label>
                                         <div className="input-group">
-                                            <input required type="text" className="form-control" name="dzName" />
+                                            <input required type="text" className="form-control contact-form-field" name="dzName" value={name} onChange={(e) => setName(e.target.value)} />
                                         </div>
+                                        {errors.name && <small className="text-danger mt-1 d-block">{errors.name}</small>}
                                     </div>
-                                    <div className="col-6">
-                                        <label className="form-label">Email Address</label>
+                                    <div className="col-md-6 contact-form-group">
+                                        <label className="form-label contact-form-label">Email Address</label>
                                         <div className="input-group">
-                                            <input required type="text" className="form-control" name="dzEmail" />
+                                            <input required type="email" className="form-control contact-form-field" name="dzEmail" value={email} onChange={(e) => setEmail(e.target.value)} />
+                                        </div>
+                                        {errors.email && <small className="text-danger mt-1 d-block">{errors.email}</small>}
+                                    </div>
+                                    <div className="col-12 contact-form-group">
+                                        <label className="form-label contact-form-label">What You Prefer</label>
+                                        <div className="input-group">
+                                            <input required type="text" className="form-control contact-form-field" name="dzPhoneNumber" value={preference} onChange={(e) => setPreference(e.target.value)} />
+                                        </div>
+                                        {errors.preference && <small className="text-danger mt-1 d-block">{errors.preference}</small>}
+                                    </div>
+                                    <div className="col-12 contact-form-group">
+                                        <label className="form-label contact-form-label">Message</label>
+                                        <div className="input-group">
+                                            <textarea name="dzMessage" rows={4} required className="form-control contact-form-field" value={message} onChange={(e) => setMessage(e.target.value)}></textarea>
+                                        </div>
+                                        {errors.message && <small className="text-danger mt-1 d-block">{errors.message}</small>}
+                                    </div>
+                                    <div className="col-12 form-group wow fadeInUp mb-4" data-wow-delay="0.8s" >
+                                        <div className="custom-control custom-checkbox d-flex align-items-center">
+                                            <input type="checkbox" className="form-check-input me-2" id="basic_checkbox_3" style={{ width: '18px', height: '18px', marginTop: 0 }} />
+                                            <label className="form-check-label text-muted" htmlFor="basic_checkbox_3" style={{ fontSize: '0.95rem' }}>Save My Name, Email, This Browser for The Next Time i Message. </label>
                                         </div>
                                     </div>
-                                    <label className="form-label">What You Prefer</label>
-                                    <div className="input-group">
-                                        <input required type="text" className="form-control" name="dzPhoneNumber" />
+                                    <div className="col-12 input-recaptcha m-b30">
+                                        <ReCAPTCHA
+                                            ref={recaptchaRef}
+                                            sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LefsVUUAAAAADBPsLZzsNnETChealv6PYGzv3ZN"}
+                                            onChange={(token) => { setCaptchaToken(token); setErrors({...errors, captcha: ''}) }}
+                                        />
+                                        {errors.captcha && <small className="text-danger mt-1 d-block">{errors.captcha}</small>}
                                     </div>
-                                    <label className="form-label">Massage</label>
-                                    <div className="input-group">
-                                        <textarea name="dzMessage" rows={4} required className="form-control"></textarea>
-                                    </div>
-                                    <div className="form-group wow fadeInUp" data-wow-delay="0.8s" >
-                                        <div className="custom-control custom-checkbox d-flex m-b20">
-                                            <input type="checkbox" className="form-check-input square" id="basic_checkbox_3" />
-                                            <label className="form-check-label" htmlFor="basic_checkbox_3">Save My Name, Email, This Browser for The Next Time i Message. </label>
-                                        </div>
-                                    </div>
-                                    <div className="input-recaptcha m-b30">
-                                        <div className="g-recaptcha" data-sitekey="6LefsVUUAAAAADBPsLZzsNnETChealv6PYGzv3ZN" data-callback="verifyRecaptchaCallback" data-expired-callback="expiredRecaptchaCallback"></div>
-                                        <input className="form-control d-none" style={{ display: 'none' }} data-recaptcha="true" required data-error="Please complete the Captcha" />
-                                    </div>
-                                    <div>
-                                        <button name="submit" type="button" value="submit" className="btn btn-outline-secondary btn-lg btnhover">SUBMIT</button>
+                                    <div className="col-12 mt-2">
+                                        <button name="submit" type="submit" value="submit" className="btn btn-outline-secondary btn-lg btnhover px-5" disabled={isSubmitting}>
+                                            {isSubmitting ? 'Sending...' : 'SUBMIT'}
+                                        </button>
                                     </div>
                                 </form>
                             </div>
                         </div>
-                        <div className="col-lg-5 col-md-12 col-sm-12 m-b30">
-                            <div className="map-box1">
-                                <div className="map-area style-3 d-block">
-                                    <img src="/images/map/map4.png" alt="Map" />
-                                    <div className="map-line wow animated"><img src="/images/map/map-line3.png" alt="Map Line" data-wow-delay="0.6s" /></div> 
-                                    <div className="loction-a wow" data-wow-delay="0.2s" style={{ visibility: 'visible', animationDelay: '0.2s', animationName: 'updown-2' }}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="56" height="85" viewBox="0 0 56 85" fill="none">
+                    </div>
+
+                    {/* New Contact Cards Section */}
+                    <div className="row mt-5 pt-3">
+                        {/* Card 1 */}
+                        <div className="col-lg-4 col-md-6 mb-4">
+                            <div className="card shadow-sm h-100 border-0 contact-info-card" style={{ borderRadius: '15px' }}>
+                                <div className="card-body p-4 text-start d-flex flex-column justify-content-center">
+                                    <h5 className="card-title fw-bold text-dark mb-4 d-flex align-items-start" style={{ fontSize: '1.15rem', lineHeight: '1.4' }}>
+                                        <i className="fas fa-map-marker-alt text-primary me-2 mt-1"></i>
+                                        NATURALAYAM™ – HEAD OFFICE
+                                    </h5>
+                                    
+                                    <div className="d-flex mb-3">
+                                        <i className="fas fa-map-pin text-primary me-3 mt-1"></i>
+                                        <div>
+                                            <p className="card-text text-muted mb-1" style={{ lineHeight: '1.6', fontSize: '1rem' }}>
+                                                Door No. 63/700, D Space, 6th Floor,<br/>
+                                                Sky Tower, Mavoor Road Junction,<br/>
+                                                Bank Road, Kozhikode - 673001
+                                            </p>
+                                            <small className="text-secondary fw-medium" style={{ fontSize: '0.95rem' }}>Mavoor Road, Kozhikode</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="d-flex align-items-center mb-3">
+                                        <i className="fas fa-envelope text-primary me-3"></i>
+                                        <a href="mailto:info@naturalayam.com" className="text-muted fw-medium text-decoration-none" style={{ fontSize: '1rem' }}>info@naturalayam.com</a>
+                                    </div>
+                                    
+                                    <div className="d-flex align-items-center">
+                                        <i className="fas fa-phone-alt text-primary me-3"></i>
+                                        <a href="tel:8009993008" className="text-muted fw-medium text-decoration-none" style={{ fontSize: '1rem' }}>
+                                            +91 <span className="text-primary fw-bolder">800</span> 9993 008
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Card 2 */}
+                        <div className="col-lg-4 col-md-6 mb-4">
+                            <div className="card shadow-sm h-100 border-0 contact-info-card" style={{ borderRadius: '15px' }}>
+                                <div className="card-body p-4 text-center d-flex flex-column align-items-center justify-content-center">
+                                    <i className="fas fa-truck text-primary mb-3" style={{ fontSize: '1.75rem' }}></i>
+                                    
+                                    <h5 className="card-title fw-bold text-dark mb-4" style={{ fontSize: '1.15rem', lineHeight: '1.4' }}>
+                                        NATURALAYAM™<br/>DISTRIBUTION & FULFILMENT CENTRE
+                                    </h5>
+                                    
+                                    <div className="mb-4">
+                                        <p className="card-text text-muted mb-2" style={{ fontSize: '1rem' }}>
+                                            Payyoli, Kozhikode
+                                        </p>
+                                        <span className="badge bg-light text-secondary border" style={{ fontSize: '0.85rem', fontWeight: '500', padding: '0.4rem 0.8rem', letterSpacing: '0.5px' }}>LOGISTICS / STORE</span>
+                                    </div>
+                                    
+                                    <div className="d-flex align-items-center justify-content-center">
+                                        <i className="fas fa-phone-alt text-primary me-2"></i>
+                                        <a href="tel:+914962601096" className="text-muted fw-medium text-decoration-none" style={{ fontSize: '1rem' }}>+91 496 2601096</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Card 3 */}
+                        <div className="col-lg-4 col-md-6 mb-4">
+                            <div className="card shadow-sm h-100 border-0 contact-info-card" style={{ borderRadius: '15px' }}>
+                                <div className="card-body p-4 text-center d-flex flex-column align-items-center justify-content-center">
+                                    <i className="fas fa-handshake text-primary mb-3" style={{ fontSize: '1.75rem' }}></i>
+                                    
+                                    <h5 className="card-title fw-bold text-dark mb-4" style={{ fontSize: '1.15rem', lineHeight: '1.4' }}>
+                                        MARKETING & SUPER STOCKIST PARTNER
+                                    </h5>
+                                    
+                                    <div className="mb-4">
+                                        <p className="card-text text-muted mb-0 fw-medium" style={{ fontSize: '1rem', lineHeight: '1.6' }}>
+                                            A M HEALTHCARE GLOBAL DISTRIBUTORS
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="d-flex align-items-center justify-content-center">
+                                        <i className="fas fa-phone-alt text-primary me-2"></i>
+                                        <a href="tel:+917902601096" className="text-muted fw-medium text-decoration-none" style={{ fontSize: '1rem' }}>+91 790 2601096</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* New Map Section */}
+                    <div className="row mt-4 mb-5">
+                        <div className="col-12 mb-3">
+                            <h3 className="title fw-bold">Our Locations</h3>
+                        </div>
+                        <div className="col-12">
+                            <div className="card shadow-sm border-0 overflow-hidden contact-locations-map bg-white" style={{ borderRadius: '15px' }}>
+                                <div className="map-area style-3 w-100 position-relative p-0 m-0">
+                                    <img src="/images/map/map4.png" alt="Map" className="w-100 h-auto d-block" />
+                                    
+                                    {/* Marker 1: Head Office */}
+                                    <div className="wow updown-2 position-absolute" data-wow-delay="0.2s" style={{ top: '40%', left: '30%', transform: 'translate(-50%, -100%)', visibility: 'visible', animationDelay: '0.2s', animationName: 'updown-2' }}>
+                                        <div className="p-2 bg-white shadow-sm text-center mb-1" style={{ borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                                            HEAD OFFICE<br/><span className="text-muted fw-normal">Kozhikode</span>
+                                        </div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="56" height="85" viewBox="0 0 56 85" fill="none" style={{ height: '40px', width: 'auto', margin: '0 auto', display: 'block' }}>
                                             <path d="M27.7396 4.50488C15.1409 4.50488 4.92627 14.7228 4.92627 27.3215C4.92627 39.9235 15.1409 50.1382 27.7429 50.1382C40.3449 50.1382 50.5596 39.9235 50.5596 27.3215C50.5596 14.7228 40.3416 4.50488 27.7396 4.50488ZM27.7396 46.4106C17.199 46.4106 8.65386 37.8655 8.65386 27.3248C8.65386 16.7842 17.199 8.23576 27.7396 8.23576C38.2803 8.23576 46.8254 16.7809 46.8254 27.3215C46.8254 37.8622 38.2803 46.4106 27.7396 46.4106Z" fill="#66A589"/>
                                             <path d="M27.7396 0C12.4176 0 0 12.4209 0 27.7396C0 28.4409 0.0329295 29.1555 0.095495 29.8898C1.85721 50.7373 27.7396 84.6675 27.7396 84.6675C27.7396 84.6675 51.4881 53.5363 55.0379 32.5933C55.3243 30.9008 55.4824 29.2773 55.4824 27.7396C55.4824 12.4209 43.0615 0 27.7396 0ZM27.7396 47.9317C18.9343 47.9317 11.4166 42.4128 8.45951 34.6448C7.59018 32.3628 7.116 29.8898 7.116 27.3082C7.116 15.918 16.3493 6.68133 27.7396 6.68133C39.1298 6.68133 48.3664 15.9147 48.3664 27.3082C48.3664 30.5155 47.6321 33.5549 46.3248 36.2649C42.9924 43.1669 35.9225 47.9317 27.7396 47.9317Z" fill="#41705B"/>
-                                            <path d="M27.7397 0V6.68133C39.13 6.68133 48.3666 15.9147 48.3666 27.3082C48.3666 30.5155 47.6323 33.5549 46.325 36.2649C42.9926 43.1702 35.9227 47.9317 27.7397 47.9317V84.6675C27.7397 84.6675 51.4883 53.5363 55.0381 32.5933C55.3245 30.9008 55.4826 29.2773 55.4826 27.7396C55.4826 12.4209 43.0617 0 27.7397 0Z" fill="#66A589"/>
-                                            <path d="M27.7395 50.395C40.4826 50.395 50.813 40.0647 50.813 27.3215C50.813 14.5784 40.4826 4.24805 27.7395 4.24805C14.9964 4.24805 4.66602 14.5784 4.66602 27.3215C4.66602 40.0647 14.9964 50.395 27.7395 50.395Z" stroke="white" strokeWidth="1.1614" strokeMiterlimit="10"/>
-                                            <path d="M33.8815 38.292L32.3301 33.5706H23.9563L22.2967 38.292H18.856L27.9973 15.6006H28.8107L37.2927 38.292H33.8815ZM28.2564 21.4696L24.7698 31.3244H31.4544L28.2564 21.4696Z" fill="#CC0D39"/>
-                                            <path d="M33.8815 38.292L32.3301 33.5706H23.9563L22.2967 38.292H18.856L27.9973 15.6006H28.8107L37.2927 38.292H33.8815ZM28.2564 21.4696L24.7698 31.3244H31.4544L28.2564 21.4696Z" fill="#66A589"/>
                                         </svg>
                                     </div>
-                                    <div className="loction-center wow fadeInUp" data-wow-delay="1.0s" >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="61" height="30" viewBox="0 0 61 30" fill="none">
-                                            <path d="M0 0V16.9904H26.4874L30.2052 29.0301L33.9038 16.9904H60.4104V0H0Z" fill="#66A589"/>
-                                            <path d="M59.2739 0.963379H1.19434V15.9504H59.2739V0.963379Z" stroke="white" strokeWidth="0.3472" strokeMiterlimit="10"/>
-                                            <path d="M10.5757 11.8088L11.2691 10.8841C11.7507 11.3079 12.3479 11.5198 13.0799 11.5198C14.4284 11.5198 15.1026 10.9804 15.1026 9.90165C15.1026 9.4008 14.91 9.01554 14.5055 8.70732C14.1202 8.39911 13.5808 8.24499 12.9451 8.24499H12.8295V7.28181H12.8873C14.1201 7.28181 14.7366 6.83875 14.7366 5.95262C14.7366 5.02797 14.1587 4.56565 12.9836 4.56565C12.3479 4.56565 11.8471 4.73903 11.4811 5.08577L10.8261 4.27671C11.2884 3.79512 12.0397 3.56396 13.0992 3.56396C14.0239 3.56396 14.7944 3.77585 15.3916 4.18038C15.9887 4.58492 16.2777 5.10503 16.2777 5.74072C16.2777 6.22231 16.1043 6.66537 15.7768 7.03138C15.4493 7.39738 15.0641 7.64781 14.621 7.78265C15.2375 7.93676 15.719 8.22573 16.085 8.611C16.451 8.99627 16.6244 9.47784 16.6244 10.0365C16.6244 10.8456 16.3162 11.4813 15.6805 11.9243C15.0448 12.3674 14.178 12.5793 13.0414 12.5793C12.5598 12.5793 12.0975 12.5022 11.6352 12.3674C11.1921 12.194 10.8454 12.0207 10.5757 11.8088Z" fill="white"/>
-                                            <path d="M19.3021 8.16806L18.8012 7.87908V3.64111H24.118V4.66208H20.1882V6.78108C20.5542 6.56918 20.9972 6.4536 21.5559 6.4536C22.5576 6.4536 23.3089 6.70401 23.829 7.1856C24.3491 7.66718 24.6188 8.36069 24.6188 9.24681C24.6188 11.4429 23.4245 12.5409 21.0358 12.5409C20.0341 12.5409 19.2057 12.3097 18.5508 11.8667L19.1094 10.8649C19.7644 11.308 20.4001 11.5199 21.0165 11.5199C22.3842 11.5199 23.0777 10.8264 23.0777 9.42017C23.0777 8.11025 22.4035 7.45528 21.0551 7.45528C20.4194 7.49381 19.8222 7.70573 19.3021 8.16806Z" fill="white"/>
-                                            <path d="M28.0282 10.7686C28.3364 10.7686 28.5868 10.8649 28.7987 11.0382C29.0106 11.2116 29.1262 11.4235 29.1262 11.6739C29.1262 11.9244 29.0106 12.1363 28.7987 12.3096C28.5868 12.483 28.3364 12.5793 28.0282 12.5793C27.72 12.5793 27.4696 12.483 27.2577 12.3096C27.0458 12.1363 26.9302 11.9244 26.9302 11.6739C26.9302 11.4235 27.0458 11.2116 27.2577 11.0382C27.4696 10.8456 27.72 10.7686 28.0282 10.7686Z" fill="white"/>
-                                            <path d="M37.3715 10.0562V12.4448H35.9845V10.0562H31.1108V9.38192L36.8513 3.66064H37.3715V9.13151H38.4502V10.0562H37.3715ZM35.9845 6.04933L32.8445 9.15076H35.9845V6.04933Z" fill="white"/>
-                                            <path d="M42.341 12.4446L40.8771 10.5375L40.1643 11.1347V12.4254H39.3359V7.08936H40.1643V10.4027L41.9365 8.63044H42.8997L41.4164 10.0752L43.2272 12.4254H42.341V12.4446Z" fill="white"/>
-                                            <path d="M49.199 12.4445V10.0366C49.199 9.43939 48.8908 9.15046 48.2551 9.15046C48.0625 9.15046 47.8698 9.20825 47.6965 9.30457C47.5231 9.40089 47.4075 9.51645 47.3497 9.6513V12.4638H46.5214V9.76687C46.5214 9.57424 46.4443 9.4394 46.271 9.32382C46.0976 9.20824 45.8664 9.16971 45.5967 9.16971C45.4234 9.16971 45.25 9.2275 45.0766 9.32382C44.884 9.42014 44.7491 9.53573 44.6721 9.67058V12.4638H43.8438V8.66887H44.3831L44.6528 9.11192C44.9611 8.76518 45.3656 8.61108 45.8472 8.61108C46.5021 8.61108 46.9837 8.78444 47.2342 9.11192C47.3305 8.97708 47.5038 8.84223 47.7542 8.74591C48.0047 8.64959 48.2551 8.5918 48.5248 8.5918C49.0064 8.5918 49.3724 8.70739 49.6421 8.93856C49.9118 9.16972 50.0274 9.49719 50.0274 9.92099V12.4638H49.199V12.4445Z" fill="white"/>
-                                        </svg>
-                                    </div>
-                                    <div className="loction-b wow" data-wow-delay="1.2s" style={{ visibility: 'visible', animationDelay: '1.2s', animationName: 'updown-2' }}>    
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="34" height="47" viewBox="0 0 34 47" fill="none">
+
+                                    {/* Marker 2: Distribution Centre */}
+                                    <div className="wow updown-2 position-absolute" data-wow-delay="0.4s" style={{ top: '35%', left: '60%', transform: 'translate(-50%, -100%)', visibility: 'visible', animationDelay: '0.4s', animationName: 'updown-2' }}>
+                                        <div className="p-2 bg-white shadow-sm text-center mb-1" style={{ borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                                            DISTRIBUTION<br/><span className="text-muted fw-normal">Payyoli</span>
+                                        </div>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="34" height="47" viewBox="0 0 34 47" fill="none" style={{ height: '35px', width: 'auto', margin: '0 auto', display: 'block' }}>
                                             <path d="M16.9593 5.10059C10.41 5.10059 5.10303 10.4115 5.10303 16.9568C5.10303 23.5061 10.4139 28.8131 16.9593 28.8131C23.5086 28.8131 28.8155 23.5061 28.8155 16.9568C28.8155 10.4075 23.5086 5.10059 16.9593 5.10059ZM16.9593 26.8761C11.4817 26.8761 7.04004 22.4344 7.04004 16.9568C7.04004 11.4792 11.4777 7.0376 16.9593 7.0376C22.4369 7.0376 26.8785 11.4792 26.8785 16.9568C26.8785 22.4344 22.4369 26.8761 16.9593 26.8761Z" fill="#66A589"/>
                                             <path d="M16.9594 2.75879C8.99702 2.75879 2.54297 9.21284 2.54297 17.1752C2.54297 17.5404 2.55884 17.9135 2.5906 18.2946C3.50353 29.1267 16.9554 46.7583 16.9554 46.7583C16.9554 46.7583 29.2959 30.5795 31.1416 19.6957C31.2925 18.8185 31.3719 17.973 31.3719 17.1713C31.3758 9.21284 24.9218 2.75879 16.9594 2.75879ZM16.9594 27.666C12.3828 27.666 8.47705 24.7962 6.94094 20.7595C6.48844 19.5727 6.24234 18.2906 6.24234 16.945C6.24234 11.0268 11.0412 6.22794 16.9594 6.22794C22.8776 6.22794 27.6765 11.0268 27.6765 16.945C27.6765 18.6121 27.2954 20.1919 26.6167 21.601C24.886 25.1932 21.2105 27.666 16.9594 27.666Z" fill="#41705B"/>
-                                            <path d="M16.959 2.75879V6.23191C22.8772 6.23191 27.676 11.0308 27.676 16.949C27.676 18.6161 27.295 20.1958 26.6162 21.6049C24.8856 25.1932 21.2101 27.67 16.959 27.67V46.7622C16.959 46.7622 29.2995 30.5834 31.1452 19.6997C31.296 18.8225 31.3754 17.977 31.3754 17.1752C31.3754 9.21284 24.9214 2.75879 16.959 2.75879Z" fill="#66A589"/>
-                                            <path d="M25.4369 25.437C30.1197 20.7542 30.1197 13.1618 25.4369 8.47904C20.7541 3.79623 13.1618 3.79623 8.47897 8.47904C3.79616 13.1618 3.79617 20.7542 8.47898 25.437C13.1618 30.1198 20.7541 30.1198 25.4369 25.437Z" stroke="white" strokeWidth="0.5007" strokeMiterlimit="10"/>
-                                            <path opacity="0.39" d="M31.3758 17.1752C31.3758 17.973 31.2964 18.8185 31.1455 19.6997C29.788 20.4578 28.2678 21.1008 26.6166 21.6049C27.2953 20.1958 27.6764 18.6161 27.6764 16.949C27.6764 11.0308 22.8775 6.23191 16.9593 6.23191C11.0411 6.23191 6.24227 11.0308 6.24227 16.949C6.24227 18.2906 6.48837 19.5766 6.94087 20.7634C5.30553 20.0807 3.84086 19.2432 2.5945 18.2946C2.56275 17.9135 2.54688 17.5404 2.54688 17.1752C2.54688 9.21284 9.00093 2.75879 16.9633 2.75879C24.9217 2.75879 31.3758 9.21284 31.3758 17.1752Z" fill="#A3FFD6"/>
-                                            <path d="M17.066 23.1088H13.2158V10.9192C14.8551 10.8477 16.038 10.812 16.7644 10.812C18.098 10.812 19.13 11.07 19.8604 11.59C20.5907 12.11 20.9559 12.8522 20.9559 13.8168C20.9559 14.3844 20.7217 14.9004 20.2573 15.3648C19.7889 15.8292 19.2729 16.1229 18.7093 16.238C19.777 16.4722 20.555 16.8572 21.0432 17.3931C21.5315 17.9329 21.7775 18.6632 21.7775 19.5881C21.7775 20.6598 21.3449 21.5132 20.4756 22.1522C19.6024 22.7913 18.4672 23.1088 17.066 23.1088ZM15.0576 12.2489V15.7538C15.4426 15.7855 15.9229 15.8054 16.4944 15.8054C18.237 15.8054 19.1102 15.1663 19.1102 13.8842C19.1102 12.757 18.3084 12.1933 16.7048 12.1933C16.0935 12.1894 15.5458 12.2092 15.0576 12.2489ZM15.0576 17.0438V21.6958C15.6887 21.7513 16.1769 21.7791 16.5143 21.7791C17.6694 21.7791 18.5108 21.5846 19.0427 21.1917C19.5746 20.7987 19.8406 20.1795 19.8406 19.3222C19.8406 18.5283 19.5865 17.9448 19.0824 17.5677C18.5743 17.1906 17.7289 17.0001 16.546 17.0001L15.0576 17.0438Z" fill="#41705B"/>
-                                            <path d="M17.4552 23.1088H13.605V10.9192C15.2443 10.8477 16.4271 10.812 17.1535 10.812C18.4872 10.812 19.5192 11.07 20.2496 11.59C20.9799 12.11 21.3451 12.8522 21.3451 13.8168C21.3451 14.3844 21.1109 14.9004 20.6465 15.3648C20.1781 15.8292 19.6621 16.1229 19.0985 16.238C20.1662 16.4722 20.9442 16.8572 21.4324 17.3931C21.9206 17.9329 22.1667 18.6632 22.1667 19.5881C22.1667 20.6598 21.7341 21.5132 20.8648 22.1522C19.9876 22.7913 18.8524 23.1088 17.4552 23.1088ZM15.4467 12.2489V15.7538C15.8318 15.7855 16.312 15.8054 16.8836 15.8054C18.6261 15.8054 19.4994 15.1663 19.4994 13.8842C19.4994 12.757 18.6976 12.1933 17.094 12.1933C16.4787 12.1894 15.931 12.2092 15.4467 12.2489ZM15.4467 17.0438V21.6958C16.0778 21.7513 16.5661 21.7791 16.9035 21.7791C18.0585 21.7791 18.9 21.5846 19.4319 21.1917C19.9638 20.7987 20.2297 20.1795 20.2297 19.3222C20.2297 18.5283 19.9757 17.9448 19.4716 17.5677C18.9635 17.1906 18.1181 17.0001 16.9352 17.0001L15.4467 17.0438Z" fill="#66A589"/>
                                         </svg>
-                                    </div> 
+                                    </div>
                                 </div>
                             </div>
                         </div>

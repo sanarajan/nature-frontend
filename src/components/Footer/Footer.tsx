@@ -27,7 +27,7 @@ const Footer: React.FC = () => {
                                         <p><span>E-mail</span> : info@naturalayam.com</p>
                                     </li>
                                     <li>
-                                        <p><span>Phone</span> : 800 999 3008
+                                        <p><span>Phone</span> : <strong className="text-primary">800</strong> 999 3008
                                         </p>
                                     </li>
                                 </ul>

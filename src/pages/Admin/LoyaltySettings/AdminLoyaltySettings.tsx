@@ -43,6 +43,12 @@ const AdminLoyaltySettings: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
+    // Modal state
+    const [showModal, setShowModal] = useState(false);
+    const [modalTitle, setModalTitle] = useState('');
+    const [modalBody, setModalBody] = useState('');
+    const [pendingToggle, setPendingToggle] = useState<{ field: keyof LoyaltySettings, value: boolean } | null>(null);
+
     useEffect(() => {
         fetchSettings();
     }, []);
@@ -59,6 +65,106 @@ const AdminLoyaltySettings: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleToggleClick = (field: keyof LoyaltySettings, currentValue: boolean) => {
+        if (!isAdmin) return;
+        const newValue = !currentValue;
+        let title = '';
+        let body = '';
+
+        if (field === 'isLoyaltyEnabled') {
+            if (newValue) {
+                title = 'Enable Nature Points Program?';
+                body = 'Customers will be able to use the Nature Points program according to the earning and redemption settings below.';
+            } else {
+                title = 'Disable Nature Points Program?';
+                body = 'Customers will temporarily stop earning and redeeming Nature Points. Existing points and history will not be deleted.';
+            }
+        } else if (field === 'isEarningEnabled') {
+            if (newValue) {
+                title = 'Enable Point Earning?';
+                body = 'Eligible customers will earn Nature Points from orders according to the current reward rules.';
+            } else {
+                title = 'Disable Point Earning?';
+                body = 'Customers will temporarily stop earning new Nature Points. Existing balances will remain unchanged.';
+            }
+        } else if (field === 'isRedemptionEnabled') {
+            if (newValue) {
+                title = 'Enable Point Redemption?';
+                body = 'Customers will be able to use their existing Nature Points during checkout according to the current redemption rules.';
+            } else {
+                title = 'Disable Point Redemption?';
+                body = 'Customers will temporarily be unable to use Nature Points at checkout. Existing balances will remain unchanged.';
+            }
+        }
+
+        setModalTitle(title);
+        setModalBody(body);
+        setPendingToggle({ field, value: newValue });
+        setShowModal(true);
+    };
+
+    const confirmToggle = () => {
+        if (pendingToggle) {
+            setSettings(prev => ({ ...prev, [pendingToggle.field]: pendingToggle.value }));
+        }
+        setShowModal(false);
+        setPendingToggle(null);
+    };
+
+    const cancelToggle = () => {
+        setShowModal(false);
+        setPendingToggle(null);
+    };
+
+    const renderToggle = (field: keyof LoyaltySettings, label: string, isMaster: boolean = false) => {
+        const isChecked = !!settings[field];
+        const isMasterOff = !isMaster && !settings.isLoyaltyEnabled;
+        const opacity = isMasterOff ? 0.6 : 1;
+        const cursor = (!isAdmin || isMasterOff) ? 'not-allowed' : 'pointer';
+
+        return (
+            <div className="mb-4" style={{ opacity }}>
+                <label className="form-label fw-bold d-block">{label}</label>
+                <label 
+                    className="d-inline-flex align-items-center" 
+                    style={{ cursor, userSelect: 'none' }}
+                >
+                    <div style={{ position: 'relative', display: 'inline-block', width: '50px', height: '26px' }}>
+                        <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                                if (isMasterOff && !isMaster) return; // Ignore if master is off
+                                e.preventDefault(); // The actual state change happens in confirmToggle
+                                handleToggleClick(field, isChecked);
+                            }}
+                            disabled={!isAdmin || isMasterOff}
+                            style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+                        />
+                        <div style={{
+                            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                            backgroundColor: isChecked ? 'var(--admin-primary)' : '#ccc',
+                            borderRadius: '26px', transition: '0.3s'
+                        }}></div>
+                        <div style={{
+                            position: 'absolute', top: '3px', left: isChecked ? '27px' : '3px',
+                            width: '20px', height: '20px', backgroundColor: 'white',
+                            borderRadius: '50%', transition: '0.3s'
+                        }}></div>
+                    </div>
+                    <span className="ms-2 fw-bold" style={{ color: isChecked ? 'var(--admin-primary)' : '#888' }}>
+                        {isChecked ? 'ON / ENABLED' : 'OFF / DISABLED'}
+                    </span>
+                </label>
+                {isMasterOff && !isMaster && (
+                    <small className="d-block text-muted mt-1">
+                        Currently inactive because the master Nature Points Program is OFF.
+                    </small>
+                )}
+            </div>
+        );
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,48 +212,9 @@ const AdminLoyaltySettings: React.FC = () => {
                         </div>
                         <div className="card-body">
                             <h6 className="fw-bold mb-3">Program Controls</h6>
-                            <div className="form-check form-switch mb-3">
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    id="isLoyaltyEnabled"
-                                    name="isLoyaltyEnabled"
-                                    checked={settings.isLoyaltyEnabled}
-                                    onChange={handleChange}
-                                    disabled={!isAdmin}
-                                />
-                                <label className="form-check-label ms-2 fw-bold" htmlFor="isLoyaltyEnabled">
-                                    Enable Nature Points Program
-                                </label>
-                            </div>
-                            <div className="form-check form-switch mb-3">
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    id="isEarningEnabled"
-                                    name="isEarningEnabled"
-                                    checked={settings.isEarningEnabled}
-                                    onChange={handleChange}
-                                    disabled={!isAdmin}
-                                />
-                                <label className="form-check-label ms-2 fw-bold" htmlFor="isEarningEnabled">
-                                    Enable Point Earning
-                                </label>
-                            </div>
-                            <div className="form-check form-switch mb-4">
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    id="isRedemptionEnabled"
-                                    name="isRedemptionEnabled"
-                                    checked={settings.isRedemptionEnabled}
-                                    onChange={handleChange}
-                                    disabled={!isAdmin}
-                                />
-                                <label className="form-check-label ms-2 fw-bold" htmlFor="isRedemptionEnabled">
-                                    Enable Point Redemption
-                                </label>
-                            </div>
+                            {renderToggle('isLoyaltyEnabled', 'Enable Nature Points Program', true)}
+                            {renderToggle('isEarningEnabled', 'Enable Point Earning')}
+                            {renderToggle('isRedemptionEnabled', 'Enable Point Redemption')}
 
                             <hr />
 
@@ -308,10 +375,10 @@ const AdminLoyaltySettings: React.FC = () => {
                                     onChange={handleChange}
                                     disabled={!isAdmin}
                                 />
-                                <label className="form-check-label ms-2 fw-bold" htmlFor="isWheelEnabled">
+                                {/* <label className="form-check-label ms-2 fw-bold" htmlFor="isWheelEnabled">
                                     Enable Lucky Wheel Rewards
                                 </label>
-                                <small className="text-muted d-block mt-1 ms-4">Allows users to spin and win Nature Points.</small>
+                                <small className="text-muted d-block mt-1 ms-4">Allows users to spin and win Nature Points.</small> */}
                             </div>
 
                             {isAdmin && (
@@ -360,6 +427,33 @@ const AdminLoyaltySettings: React.FC = () => {
                     to { transform: rotate(360deg); }
                 }
             `}</style>
+
+            {/* Confirmation Modal */}
+            {showModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div style={{
+                        backgroundColor: '#fff', borderRadius: '12px',
+                        padding: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', width: '90%', maxWidth: '400px'
+                    }}>
+                        <h4 className="mb-3 text-dark fw-bold">{modalTitle}</h4>
+                        <p className="text-muted mb-4" style={{ whiteSpace: 'pre-line' }}>
+                            {modalBody}
+                        </p>
+                        <div className="d-flex justify-content-end gap-2">
+                            <button className="btn btn-light border" onClick={cancelToggle}>
+                                Cancel
+                            </button>
+                            <button className="btn btn-primary px-4" onClick={confirmToggle}>
+                                {pendingToggle?.value ? 'Enable' : 'Disable'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

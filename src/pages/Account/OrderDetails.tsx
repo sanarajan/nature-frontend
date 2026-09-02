@@ -227,7 +227,7 @@ const OrderDetails: React.FC = () => {
                             <aside className="col-xl-3">
                                 <div className="toggle-info">
                                     <h5 className="title mb-0">Account Navbar</h5>
-                                    <a className="toggle-btn" href="#accountSidebar">Account Menu</a>
+                                    <a className="toggle-btn" href="#accountSidebar" onClick={(e) => { e.preventDefault(); document.getElementById('accountSidebar')?.classList.toggle('show'); }}>Account Menu</a>
                                 </div>
                                 <div className="sticky-top account-sidebar-wrapper">
                                     <div className="account-sidebar" id="accountSidebar">

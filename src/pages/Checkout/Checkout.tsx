@@ -179,8 +179,14 @@ const Checkout: React.FC = () => {
                     console.log("[DEBUG] Influencer cookie found:", cookieValue);
                     const res = await userApiClient.get('/user/influencer/settings/public');
                     if (res.data.success) {
-                        setInfluencerDiscountPercent(res.data.data.influencerDiscountPercent);
-                        console.log("[DEBUG] Influencer settings fetched. Discount %:", res.data.data.influencerDiscountPercent);
+                        if (res.data.data.influencerEnabled === false) {
+                            setInfluencerCookie(null);
+                            setInfluencerDiscountPercent(0);
+                            console.log("[DEBUG] Influencer system is disabled.");
+                        } else {
+                            setInfluencerDiscountPercent(res.data.data.influencerDiscountPercent);
+                            console.log("[DEBUG] Influencer settings fetched. Discount %:", res.data.data.influencerDiscountPercent);
+                        }
                     }
                 } else {
                     console.log("[DEBUG] No influencer cookie found.");

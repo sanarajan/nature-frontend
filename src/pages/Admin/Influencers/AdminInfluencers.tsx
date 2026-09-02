@@ -902,18 +902,58 @@ const AdminInfluencers: React.FC = () => {
                                 <div className="form-text">Configurable minimum wallet amount required before an influencer can submit a withdrawal request. Default: ₹500.</div>
                             </div>
 
-                            <div className="mb-4 form-check form-switch">
-                                <input 
-                                    className="form-check-input" 
-                                    type="checkbox" 
-                                    id="enableInfluencer" 
-                                    checked={settings.influencerEnabled}
-                                    onChange={(e) => setSettings({...settings, influencerEnabled: e.target.checked})}
-                                    disabled={!isAdmin}
-                                />
-                                <label className="form-check-label" htmlFor="enableInfluencer">
-                                    Enable Influencer Feature System-wide
+                            <div className="mb-4">
+                                <label className="form-label fw-bold d-block">Enable Influencer Feature System-wide</label>
+                                <label 
+                                    className="d-inline-flex align-items-center" 
+                                    style={{ cursor: isAdmin ? 'pointer' : 'not-allowed', userSelect: 'none' }}
+                                >
+                                    <div style={{ position: 'relative', display: 'inline-block', width: '50px', height: '26px' }}>
+                                        <input 
+                                            type="checkbox"
+                                            checked={settings.influencerEnabled ?? true}
+                                            onChange={(e) => {
+                                                const isEnabling = e.target.checked;
+                                                const msg = isEnabling 
+                                                    ? "Enable Influencer System?\n\nInfluencer registration, referral links, customer influencer discounts and influencer commissions will become active." 
+                                                    : "Disable Influencer System?\n\nCustomer-side influencer registration, referral discounts and new influencer commissions will be disabled. Existing influencer data will not be deleted.";
+                                                if (window.confirm(msg)) {
+                                                    setSettings({...settings, influencerEnabled: isEnabling});
+                                                }
+                                            }}
+                                            disabled={!isAdmin}
+                                            style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+                                        />
+                                        <div 
+                                            style={{
+                                                position: 'absolute',
+                                                top: 0, left: 0, right: 0, bottom: 0,
+                                                backgroundColor: (settings.influencerEnabled ?? true) ? '#28a745' : '#dc3545',
+                                                borderRadius: '26px',
+                                                transition: '.4s'
+                                            }}
+                                        >
+                                            <div 
+                                                style={{
+                                                    position: 'absolute',
+                                                    height: '20px',
+                                                    width: '20px',
+                                                    left: '3px',
+                                                    bottom: '3px',
+                                                    backgroundColor: 'white',
+                                                    borderRadius: '50%',
+                                                    transition: '.4s',
+                                                    transform: (settings.influencerEnabled ?? true) ? 'translateX(24px)' : 'translateX(0)',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <span className={`ms-3 fw-bold ${(settings.influencerEnabled ?? true) ? 'text-success' : 'text-danger'}`}>
+                                        {(settings.influencerEnabled ?? true) ? 'ON' : 'OFF'}
+                                    </span>
                                 </label>
+                                <div className="form-text mt-2">Toggle this to enable or disable the influencer feature globally across the store.</div>
                             </div>
 
                             {isAdmin && (

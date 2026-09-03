@@ -238,6 +238,9 @@ const Header: React.FC = () => {
                                     <Link to="/about" onClick={closeNavbar}><span>About Us</span></Link>
                                 </li>
                                 <li className="has-mega-menu sub-menu-down">
+                                    <Link to="/certifications" onClick={closeNavbar}><span>Certifications</span></Link>
+                                </li>
+                                <li className="has-mega-menu sub-menu-down">
                                     <Link to="/contact" onClick={closeNavbar}><span>Contact</span></Link>
                                 </li>
                             </ul>

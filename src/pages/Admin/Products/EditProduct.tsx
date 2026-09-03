@@ -235,7 +235,7 @@ const EditProduct: React.FC = () => {
 
     return (
         <div className="admin-page-container position-relative">
-            <div className="page-header d-flex align-items-center mb-4">
+            <div className="page-header d-flex justify-content-start align-items-center mb-4">
                 <button
                     onClick={() => navigate('/admin/products')}
                     className="btn btn-light d-flex align-items-center justify-content-center me-3"

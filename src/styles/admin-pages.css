@@ -350,6 +350,9 @@ select.admin-input {
 
 .product-view-container {
     padding: 40px;
+    max-height: 85vh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .product-view-grid {

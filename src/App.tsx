@@ -4,6 +4,7 @@ import AdminProducts from './pages/Admin/Products/AdminProducts'
 import AddProduct from './pages/Admin/Products/AddProduct'
 import EditProduct from './pages/Admin/Products/EditProduct'
 import AdminCategories from './pages/Admin/Categories/AdminCategories'
+import AdminCertifications from './pages/Admin/Certifications/AdminCertifications'
 import AdminSubcategories from './pages/Admin/Categories/AdminSubcategories'
 import AdminCustomers from './pages/Admin/Customers/AdminCustomers'
 import AdminInfluencers from './pages/Admin/Influencers/AdminInfluencers'
@@ -31,6 +32,7 @@ import HangingVine from './components/HangingVine/HangingVine'
 
 import Home from './pages/Home/Home'
 import About from './pages/About/About'
+import Certifications from './pages/Certifications/Certifications'
 import Contact from './pages/Contact/Contact'
 import Shop from './pages/Shop/Shop'
 import ProductDetails from './pages/ProductDetails/ProductDetails'
@@ -178,6 +180,7 @@ function App() {
           <Route path="/admin/products/add" element={<AddProduct />} />
           <Route path="/admin/products/edit/:id" element={<EditProduct />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
+          <Route path="/admin/certifications" element={<AdminCertifications />} />
           <Route path="/admin/subcategories" element={<AdminSubcategories />} />
           <Route path="/admin/coupons" element={<AdminCoupons />} />
           <Route path="/admin/coupons/add" element={<AddCoupon />} />
@@ -235,8 +238,9 @@ function App() {
 
                 <Routes>
                   <Route path="/" element={<Home />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/contact" element={<Contact />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/certifications" element={<Certifications />} />
+                  <Route path="/contact" element={<Contact />} />
                   <Route path="/shop" element={<Shop />} />
                   <Route path="/offers" element={<Offers />} />
                   <Route path="/combo-offers" element={<UserComboOffers />} />

@@ -57,6 +57,8 @@ const AdminInfluencers: React.FC = () => {
     const [paidRemarksInput, setPaidRemarksInput] = useState('');
 
     const [viewWithdrawalModalRequest, setViewWithdrawalModalRequest] = useState<any | null>(null);
+    const [confirmToggleModal, setConfirmToggleModal] = useState<boolean>(false);
+    const [pendingToggleState, setPendingToggleState] = useState<boolean | null>(null);
 
     useEffect(() => {
         fetchData(true);
@@ -914,12 +916,8 @@ const AdminInfluencers: React.FC = () => {
                                             checked={settings.influencerEnabled ?? true}
                                             onChange={(e) => {
                                                 const isEnabling = e.target.checked;
-                                                const msg = isEnabling 
-                                                    ? "Enable Influencer System?\n\nInfluencer registration, referral links, customer influencer discounts and influencer commissions will become active." 
-                                                    : "Disable Influencer System?\n\nCustomer-side influencer registration, referral discounts and new influencer commissions will be disabled. Existing influencer data will not be deleted.";
-                                                if (window.confirm(msg)) {
-                                                    setSettings({...settings, influencerEnabled: isEnabling});
-                                                }
+                                                setPendingToggleState(isEnabling);
+                                                setConfirmToggleModal(true);
                                             }}
                                             disabled={!isAdmin}
                                             style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
@@ -1622,6 +1620,52 @@ const AdminInfluencers: React.FC = () => {
 
                         <div className="d-flex justify-content-end">
                             <button className="btn btn-secondary" onClick={() => setViewWithdrawalModalRequest(null)}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Confirm Toggle Modal */}
+            {confirmToggleModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div style={{
+                        backgroundColor: '#fff', borderRadius: '12px',
+                        padding: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', width: '90%', maxWidth: '400px'
+                    }}>
+                        <h4 className="mb-3 text-dark fw-bold">
+                            {pendingToggleState ? 'Enable Influencer System?' : 'Disable Influencer System?'}
+                        </h4>
+                        <p className="text-muted mb-4" style={{ whiteSpace: 'pre-line' }}>
+                            {pendingToggleState 
+                                ? "Influencer registration, referral links, customer influencer discounts and influencer commissions will become active." 
+                                : "Customer-side influencer registration, referral discounts and new influencer commissions will be disabled. Existing influencer data will not be deleted."}
+                        </p>
+                        <div className="d-flex justify-content-end gap-2">
+                            <button 
+                                type="button"
+                                className="btn btn-light border" 
+                                onClick={() => {
+                                    setConfirmToggleModal(false);
+                                    setPendingToggleState(null);
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button"
+                                className="btn btn-primary px-4" 
+                                onClick={() => {
+                                    setSettings({...settings, influencerEnabled: pendingToggleState});
+                                    setConfirmToggleModal(false);
+                                    setPendingToggleState(null);
+                                }}
+                            >
+                                {pendingToggleState ? 'Enable' : 'Disable'}
+                            </button>
                         </div>
                     </div>
                 </div>

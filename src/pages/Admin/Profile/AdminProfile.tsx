@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import type { RootState } from '../../../store';
-import { adminLoginSuccess } from '../../../store/authSlice';
+import { adminLoginSuccess, adminLogout } from '../../../store/authSlice';
 import { adminAuthService } from '../../../services/admin/adminAuthService';
 import { toast } from 'react-toastify';
 import { User, Mail, Shield, Camera, X, Lock } from 'lucide-react';
@@ -10,6 +11,7 @@ import './AdminProfile.css';
 
 const AdminProfile: React.FC = () => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const adminData = useSelector((state: RootState) => state.auth.admin.data);
     const adminName = adminData?.name || adminData?.displayName || 'Admin';
     const adminEmail = adminData?.email || 'admin@naturalayam.com';
@@ -69,7 +71,12 @@ const AdminProfile: React.FC = () => {
         try {
             const res = await adminAuthService.updateProfile({ password });
             if (res.success) {
-                toast.success('Password updated successfully!');
+                toast.success('Password updated successfully. Please login again with your new password.');
+                
+                await adminAuthService.logout();
+                dispatch(adminLogout());
+                navigate('/admin');
+                
                 setShowResetModal(false);
                 setPassword('');
                 setConfirmPassword('');

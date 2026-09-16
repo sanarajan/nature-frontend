@@ -20,6 +20,7 @@ const AdminOrderDetails: React.FC = () => {
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [downloadingInvoice, setDownloadingInvoice] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [showShipModal, setShowShipModal] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
@@ -342,6 +343,27 @@ const AdminOrderDetails: React.FC = () => {
         }
     };
 
+    const handleDownloadInvoice = async () => {
+        setDownloadingInvoice(true);
+        try {
+            const res = await apiClient.get(`/admin/orders/${id}/invoice`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Naturalayam-Invoice-${order.orderId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err: any) {
+            toast.error('Unable to generate invoice. Please try again.');
+        } finally {
+            setDownloadingInvoice(false);
+        }
+    };
+
     if (loading) {
         return <div className="admin-page-container"><div className="admin-card p-5 text-center">Loading order details...</div></div>;
     }
@@ -512,9 +534,30 @@ const AdminOrderDetails: React.FC = () => {
                     >
                         <RefreshCcw size={18} className={updatingStatus ? 'animate-spin' : ''} /> Update
                     </button>
-                    <button className="btn-primary-admin secondary" style={{ backgroundColor: '#fff', color: '#64748b', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
-                        <Printer size={18} /> Print Invoice
-                    </button>
+                    {(() => {
+                        let isEligible = order.invoiceFinalized === true;
+                        if (!isEligible && order.orderedProducts && order.orderedProducts.length > 0) {
+                            const excludedStatuses = ['Cancelled', 'Returned', 'Return', 'Expired', 'Return Approved'];
+                            const preShipmentStatuses = ['Pending', 'Order Placed', 'Processing', 'Cancellation Request', 'Return Request'];
+                            const applicableProducts = order.orderedProducts.filter((p: any) => !excludedStatuses.includes(p.orderStatus));
+                            const hasPreShipment = applicableProducts.some((p: any) => preShipmentStatuses.includes(p.orderStatus));
+                            isEligible = applicableProducts.length > 0 && !hasPreShipment;
+                        }
+                        
+                        if (!isEligible) return null;
+                        
+                        return (
+                            <button 
+                                className="btn-primary-admin" 
+                                style={{ backgroundColor: 'var(--admin-primary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem' }}
+                                onClick={handleDownloadInvoice}
+                                disabled={downloadingInvoice}
+                            >
+                                <Printer size={18} className="me-2" /> 
+                                {downloadingInvoice ? 'Generating Invoice...' : 'Download Invoice'}
+                            </button>
+                        );
+                    })()}
                 </div>
             </div>
 

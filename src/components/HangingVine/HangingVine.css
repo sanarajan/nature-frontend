@@ -49,13 +49,16 @@
     width: 60px;
     height: 280px;
     left: 5px;
-    opacity: 0.75;
+    /* opacity: 0.75; */
   }
 }
 
 /* Hide on very small mobile devices to prevent any overlap issues */
 @media (max-width: 480px) {
   .hanging-vine-container {
-    display: none;
+    width: 45px;
+    height: 220px;
+    left: 2px;
+    /* opacity: 0.6; */
   }
 }

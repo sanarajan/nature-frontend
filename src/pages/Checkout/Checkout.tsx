@@ -416,6 +416,11 @@ const Checkout: React.FC = () => {
                     } else if (appliedCode.code && appliedCode.type === 'influencer' && !appliedCode.source) {
                         setAppliedCode(prev => ({ ...prev, source: influencerCookie ? 'LINK' : 'CODE' }));
                     }
+
+                    if (influencerCookie && !data.influencerApplied && !data.influencerDiscountAmount) {
+                        document.cookie = 'influencer_ref=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                        setInfluencerCookie(null);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch checkout totals", error);

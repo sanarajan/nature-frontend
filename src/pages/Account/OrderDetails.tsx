@@ -186,6 +186,10 @@ const OrderDetails: React.FC = () => {
 
     const isOrderReturnable = order?.orderedProducts?.length > 0 && order.orderedProducts.every((p: any) => isProductReturnable(p)) && (!order?.returnExpiryDate || isNaN(new Date(order.returnExpiryDate).getTime()) || Date.now() <= new Date(order.returnExpiryDate).getTime());
 
+    const isComboProtected = (p: any) => {
+        return (p.comboQuantity && p.comboQuantity > 0) || (p.discounts && p.discounts.comboOffer && p.discounts.comboOffer.offerId);
+    };
+
     if (loading) {
         return (
             <div className="page-content bg-light text-center py-5">
@@ -315,7 +319,7 @@ const OrderDetails: React.FC = () => {
 
                                         {/* Cancellation Button Logic */}
                                         {(['PLACED', 'PROCESSING', 'PENDING', 'PARTIALLY_PROCESSING'].includes(order.globalOrderStatus) &&
-                                            !order.orderedProducts?.some((p: any) => p.orderStatus === 'Cancellation Request')) ? (
+                                            !order.orderedProducts?.some((p: any) => p.orderStatus === 'Cancellation Request')) && (
                                             <button
                                                 onClick={() => setModalConfig({
                                                     isOpen: true,
@@ -330,21 +334,11 @@ const OrderDetails: React.FC = () => {
                                             >
                                                 Cancel Order
                                             </button>
-                                        ) : (order.globalOrderStatus === 'CANCELLED' || order.globalOrderStatus === 'CANCELLATION_REQUEST' || order.globalOrderStatus === 'PARTIALLY_CANCELLED' || order.orderedProducts?.some((p: any) => p.orderStatus === 'Cancellation Request' || p.orderStatus === 'Cancelled')) && (
-                                            <div className="alert alert-danger mb-0 py-2 px-3 d-inline-flex align-items-center" style={{ borderRadius: '10px', fontSize: '0.9rem' }}>
-                                                <i className="fa-solid fa-ban me-2"></i>
-                                                <span>This order has been {order.orderedProducts?.some((p: any) => p.orderStatus === 'Cancellation Request') ? 'requested for cancellation' : 'cancelled'}.</span>
-                                            </div>
                                         )}
 
                                         {/* Return Button Logic */}
-                                        {isOrderReturnable && !order.orderedProducts?.some((p: any) => p.orderStatus === 'Return Request') ? (
+                                        {isOrderReturnable && !order.orderedProducts?.some((p: any) => p.orderStatus === 'Return Request') && (
                                             <button onClick={handleReturnOrder} className="btn btn-md btn-outline-warning btnhover20">Return Order</button>
-                                        ) : (order.globalOrderStatus === 'RETURNED' || order.globalOrderStatus === 'RETURN_REQUEST' || order.globalOrderStatus === 'PARTIALLY_RETURNED' || order.globalOrderStatus === 'RETURN' || order.orderedProducts?.some((p: any) => p.orderStatus === 'Return Request' || p.orderStatus === 'Returned')) && (
-                                            <div className="alert alert-warning mb-0 py-2 px-3 d-inline-flex align-items-center" style={{ borderRadius: '10px', fontSize: '0.9rem', color: '#92400e', backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>
-                                                <i className="fa-solid fa-rotate-left me-2"></i>
-                                                <span>This order is {order.orderedProducts?.some((p: any) => p.orderStatus === 'Return Request') ? 'under return request' : 'returned'}.</span>
-                                            </div>
                                         )}
                                     </div>
 
@@ -498,37 +492,41 @@ const OrderDetails: React.FC = () => {
                                                                 )}
 
                                                                 <div className="mt-3">
-                                                                    {(p.orderStatus === 'Order Placed' || p.orderStatus === 'Processing' || p.orderStatus === 'Pending') && (
-                                                                        <button
-                                                                            onClick={() => setModalConfig({
-                                                                                isOpen: true,
-                                                                                productId: p._id || p.productId,
-                                                                                productName: p.productName,
-                                                                                type: 'cancel',
-                                                                                reason: '',
-                                                                                remarks: '',
-                                                                                images: []
-                                                                            })}
-                                                                            className="btn btn-sm btn-outline-danger"
-                                                                        >
-                                                                            Cancel Item
-                                                                        </button>
-                                                                    )}
-                                                                    {isProductReturnable(p) && (
-                                                                        <button
-                                                                            onClick={() => setModalConfig({
-                                                                                isOpen: true,
-                                                                                productId: p._id || p.productId,
-                                                                                productName: p.productName,
-                                                                                type: 'return',
-                                                                                reason: '',
-                                                                                remarks: '',
-                                                                                images: []
-                                                                            })}
-                                                                            className="btn btn-sm btn-outline-warning ms-2"
-                                                                        >
-                                                                            Return Item
-                                                                        </button>
+                                                                    {!isComboProtected(p) && (
+                                                                        <>
+                                                                            {(p.orderStatus === 'Order Placed' || p.orderStatus === 'Processing' || p.orderStatus === 'Pending') && (
+                                                                                <button
+                                                                                    onClick={() => setModalConfig({
+                                                                                        isOpen: true,
+                                                                                        productId: p._id || p.productId,
+                                                                                        productName: p.productName,
+                                                                                        type: 'cancel',
+                                                                                        reason: '',
+                                                                                        remarks: '',
+                                                                                        images: []
+                                                                                    })}
+                                                                                    className="btn btn-sm btn-outline-danger"
+                                                                                >
+                                                                                    Cancel Item
+                                                                                </button>
+                                                                            )}
+                                                                            {isProductReturnable(p) && (
+                                                                                <button
+                                                                                    onClick={() => setModalConfig({
+                                                                                        isOpen: true,
+                                                                                        productId: p._id || p.productId,
+                                                                                        productName: p.productName,
+                                                                                        type: 'return',
+                                                                                        reason: '',
+                                                                                        remarks: '',
+                                                                                        images: []
+                                                                                    })}
+                                                                                    className="btn btn-sm btn-outline-warning ms-2"
+                                                                                >
+                                                                                    Return Item
+                                                                                </button>
+                                                                            )}
+                                                                        </>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -538,28 +536,118 @@ const OrderDetails: React.FC = () => {
 
                                                 <div className="tracking-item-content mt-4">
                                                     <span>Subtotal</span>
-                                                    <h6>₹{parseFloat(order.totalPrice || 0).toFixed(2)}</h6>
+                                                    <h6>₹{parseFloat(order.totalMRP || order.totalPrice || 0).toFixed(2)}</h6>
                                                 </div>
-                                                {order.discount > 0 && (
-                                                    <div className="tracking-item-content">
-                                                        <span className="text-danger">Discount</span>
-                                                        <h6 className="text-danger">- ₹{parseFloat(order.discount).toFixed(2)}</h6>
-                                                    </div>
-                                                )}
-                                                <div className="tracking-item-content border-bottom border-light mb-2">
-                                                    <span className="text-secondary">Delivery Charge</span>
-                                                    <h6>+ ₹{parseFloat(order.deliveryCharge || 0).toFixed(2)}</h6>
-                                                </div>
-                                                <div className="tracking-item-content">
-                                                    <span className="fw-bold">Order Total</span>
-                                                    <h6 className="fw-bold">₹{parseFloat(order.totalAmount || 0).toFixed(2)}</h6>
-                                                </div>
-                                                {order.returnedAmount > 0 && (
-                                                    <div className="tracking-item-content mt-2 pt-2 border-top border-dotted">
-                                                        <span className="text-danger fw-bold">Refunded Amount</span>
-                                                        <h6 className="text-danger fw-bold">₹{parseFloat(order.returnedAmount).toFixed(2)}</h6>
-                                                    </div>
-                                                )}
+                                                
+                                                {/* Calculate remaining generic discount and updated financial summary */}
+                                                {(() => {
+                                                    const totDisc = parseFloat(order.totalDiscount || order.discount || 0);
+                                                    const infDisc = parseFloat(order.influencerDiscountAmount || 0);
+                                                    const npDisc = parseFloat(order.naturePointsDiscount || 0);
+                                                    const otherDisc = totDisc - infDisc - npDisc;
+                                                    
+                                                    const orderTotal = parseFloat(order.totalAmount || 0);
+                                                    let cancelledValue = 0;
+                                                    order.orderedProducts?.forEach((p: any) => {
+                                                        if (['Cancelled', 'CANCELLED', 'Partially Cancelled'].includes(p.orderStatus)) {
+                                                            cancelledValue += parseFloat(p.finalPrice || 0) * (p.quantity || 1);
+                                                        }
+                                                    });
+                                                    const displayCancelledAmount = parseFloat(order.cancelledAmount || 0) || cancelledValue;
+                                                    const currentPayableAmount = orderTotal - displayCancelledAmount;
+
+                                                    let paidAmount = 0;
+                                                    let isPaidKnown = false;
+                                                    
+                                                    if (order.paymentMethod === 'COD') {
+                                                        if (['Delivered', 'DELIVERED', 'COMPLETED', 'Completed', 'Closed', 'Returned', 'RETURNED', 'Partially Returned'].includes(order.globalOrderStatus) || order.paymentStatus === 'Success' || order.paymentStatus === 'Completed') {
+                                                            paidAmount = currentPayableAmount;
+                                                            isPaidKnown = true;
+                                                        } else if (['Pending', 'PENDING', 'Failed', 'FAILED', 'Cancelled', 'CANCELLED'].includes(order.paymentStatus) || ['Pending', 'PLACED', 'Order Placed', 'PROCESSING', 'Processing', 'SHIPPED', 'Shipped', 'Out for Delivery'].includes(order.globalOrderStatus)) {
+                                                            paidAmount = 0;
+                                                            isPaidKnown = true;
+                                                        }
+                                                    } else {
+                                                        if (['Success', 'Completed', 'Refunded', 'Refund_Pending'].includes(order.paymentStatus) || ['Delivered', 'DELIVERED', 'COMPLETED', 'Completed', 'Closed', 'Returned', 'RETURNED', 'Partially Returned'].includes(order.globalOrderStatus)) {
+                                                            paidAmount = orderTotal;
+                                                            isPaidKnown = true;
+                                                        } else if (['Pending', 'FAILED', 'Failed'].includes(order.paymentStatus)) {
+                                                            paidAmount = 0;
+                                                            isPaidKnown = true;
+                                                        }
+                                                    }
+
+                                                    const displayRefundedAmount = parseFloat(order.refundedAmount || order.returnedAmount || 0);
+                                                    const netPaidAmount = paidAmount - displayRefundedAmount;
+
+                                                    return (
+                                                        <>
+                                                            {otherDisc > 0 && (
+                                                                <div className="tracking-item-content">
+                                                                    <span className="text-danger">
+                                                                        {order.couponName ? `Coupon (${order.couponName}) & Offers` : (order.appliedOffersSummary ? 'Offer Discount' : 'Discount')}
+                                                                    </span>
+                                                                    <h6 className="text-danger">- ₹{otherDisc.toFixed(2)}</h6>
+                                                                </div>
+                                                            )}
+                                                            {infDisc > 0 && (
+                                                                <div className="tracking-item-content">
+                                                                    <span className="text-danger">Influencer Discount</span>
+                                                                    <h6 className="text-danger">- ₹{infDisc.toFixed(2)}</h6>
+                                                                </div>
+                                                            )}
+                                                            {npDisc > 0 && (
+                                                                <div className="tracking-item-content">
+                                                                    <span className="text-danger">Nature Points Redeemed</span>
+                                                                    <h6 className="text-danger">- ₹{npDisc.toFixed(2)}</h6>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            <div className="tracking-item-content border-bottom border-light mb-2">
+                                                                <span className="text-secondary">Delivery Charge</span>
+                                                                <h6>+ ₹{parseFloat(order.deliveryCharge || 0).toFixed(2)}</h6>
+                                                            </div>
+                                                            <div className="tracking-item-content">
+                                                                <span className="fw-bold">Order Total</span>
+                                                                <h6 className="fw-bold">₹{orderTotal.toFixed(2)}</h6>
+                                                            </div>
+
+                                                            {displayCancelledAmount > 0 && (
+                                                                <>
+                                                                    <div className="tracking-item-content mt-2 pt-2 border-top border-dotted">
+                                                                        <span className="text-danger">Cancelled Amount</span>
+                                                                        <h6 className="text-danger">- ₹{displayCancelledAmount.toFixed(2)}</h6>
+                                                                    </div>
+                                                                    <div className="tracking-item-content">
+                                                                        <span className="fw-bold">Current Payable Amount</span>
+                                                                        <h6 className="fw-bold">₹{currentPayableAmount.toFixed(2)}</h6>
+                                                                    </div>
+                                                                </>
+                                                            )}
+
+                                                            {isPaidKnown && (
+                                                                <div className="tracking-item-content mt-2 pt-2 border-top border-dotted">
+                                                                    <span className="text-secondary">Paid Amount</span>
+                                                                    <h6>₹{paidAmount.toFixed(2)}</h6>
+                                                                </div>
+                                                            )}
+
+                                                            {displayRefundedAmount > 0 && (
+                                                                <div className="tracking-item-content">
+                                                                    <span className="text-danger fw-bold">Refunded Amount</span>
+                                                                    <h6 className="text-danger fw-bold">- ₹{displayRefundedAmount.toFixed(2)}</h6>
+                                                                </div>
+                                                            )}
+
+                                                            {isPaidKnown && displayRefundedAmount > 0 && (
+                                                                <div className="tracking-item-content border-top border-light mt-2 pt-2">
+                                                                    <span className="fw-bold">Net Paid Amount</span>
+                                                                    <h6 className="fw-bold">₹{netPaidAmount.toFixed(2)}</h6>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
 
                                             <div className="tab-pane fade" id="nav-receiver" role="tabpanel" aria-labelledby="nav-receiver-tab" tabIndex={0}>

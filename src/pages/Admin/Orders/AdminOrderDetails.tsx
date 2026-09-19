@@ -130,8 +130,8 @@ const AdminOrderDetails: React.FC = () => {
         }
     };
 
-    const fetchOrderDetails = async () => {
-        setLoading(true);
+    const fetchOrderDetails = async (showLoadingState = true) => {
+        if (showLoadingState) setLoading(true);
         try {
             const res = await apiClient.get(`/admin/orders/${id}`);
             if (res.data.success) {
@@ -140,7 +140,7 @@ const AdminOrderDetails: React.FC = () => {
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Failed to fetch order details');
         } finally {
-            setLoading(false);
+            if (showLoadingState) setLoading(false);
         }
     };
 
@@ -297,7 +297,7 @@ const AdminOrderDetails: React.FC = () => {
             
             if (res.data.success) {
                 toast.success(res.data.message || 'Request processed successfully');
-                setOrder(res.data.data.order);
+                await fetchOrderDetails(false);
                 setProcessRequestModal(prev => ({ ...prev, isOpen: false }));
             }
         } catch (err: any) {
@@ -537,11 +537,11 @@ const AdminOrderDetails: React.FC = () => {
                     {(() => {
                         let isEligible = order.invoiceFinalized === true;
                         if (!isEligible && order.orderedProducts && order.orderedProducts.length > 0) {
-                            const excludedStatuses = ['Cancelled', 'Returned', 'Return', 'Expired', 'Return Approved'];
-                            const preShipmentStatuses = ['Pending', 'Order Placed', 'Processing', 'Cancellation Request', 'Return Request'];
-                            const applicableProducts = order.orderedProducts.filter((p: any) => !excludedStatuses.includes(p.orderStatus));
-                            const hasPreShipment = applicableProducts.some((p: any) => preShipmentStatuses.includes(p.orderStatus));
-                            isEligible = applicableProducts.length > 0 && !hasPreShipment;
+                            const terminalNonSaleStatuses = ['Cancelled', 'Expired'];
+                            const unresolvedStatuses = ['Pending', 'Order Placed', 'Processing', 'Cancellation Request'];
+                            const applicableProducts = order.orderedProducts.filter((p: any) => !terminalNonSaleStatuses.includes(p.orderStatus));
+                            const hasUnresolved = applicableProducts.some((p: any) => unresolvedStatuses.includes(p.orderStatus));
+                            isEligible = applicableProducts.length > 0 && !hasUnresolved;
                         }
                         
                         if (!isEligible) return null;
@@ -616,105 +616,162 @@ const AdminOrderDetails: React.FC = () => {
                 {/* Summary Card */}
                 <div className="col-xl-4 col-md-12 mb-4">
                     <div className="admin-card h-100 p-4" style={{ borderRadius: '24px', border: 'none' }}>
-                        <div className="d-flex justify-content-between align-items-start mb-4">
-                            <h2 className="mb-0 fw-bold" style={{ fontSize: '2rem' }}>₹{order.totalAmount.toFixed(2)}</h2>
-                            {(() => {
-                                const status = order.paymentStatus;
-                                const isRefundPending = status === 'Refund_Pending';
-                                const label = status === 'Refund_Pending'
-                                    ? 'Refund Pending'
-                                    : (status === 'Refunded' ? 'Refunded' : (['Paid', 'Success', 'Completed'].includes(status) ? 'Paid' : status));
+                        {(() => {
+                            const orderTotal = parseFloat(order.totalAmount || 0);
+                            let cancelledValue = 0;
+                            order.orderedProducts?.forEach((p: any) => {
+                                if (['Cancelled', 'CANCELLED', 'Partially Cancelled'].includes(p.orderStatus)) {
+                                    cancelledValue += parseFloat(p.finalPrice || 0) * (p.quantity || 1);
+                                }
+                            });
+                            const displayCancelledAmount = parseFloat(order.cancelledAmount || 0) || cancelledValue;
+                            const currentPayableAmount = orderTotal - displayCancelledAmount;
 
-                                let badgeClass = 'badge-secondary';
-                                if (['Paid', 'Success', 'Completed'].includes(status)) badgeClass = 'badge-success';
-                                if (status === 'Failed' || status === 'Cancelled') badgeClass = 'badge-danger';
-                                if (status === 'Pending' || status === 'Refund_Pending') badgeClass = 'badge-warning';
-                                if (status === 'Refunded' || status === 'Returned') badgeClass = 'badge-info';
+                            let paidAmount = 0;
+                            let isPaidKnown = false;
+                            
+                            if (order.paymentMethod === 'COD') {
+                                if (['Delivered', 'DELIVERED', 'COMPLETED', 'Completed', 'Closed', 'Returned', 'RETURNED', 'Partially Returned'].includes(order.globalOrderStatus) || order.paymentStatus === 'Success' || order.paymentStatus === 'Completed') {
+                                    paidAmount = currentPayableAmount;
+                                    isPaidKnown = true;
+                                } else if (['Pending', 'PENDING', 'Failed', 'FAILED', 'Cancelled', 'CANCELLED'].includes(order.paymentStatus) || ['Pending', 'PLACED', 'Order Placed', 'PROCESSING', 'Processing', 'SHIPPED', 'Shipped', 'Out for Delivery'].includes(order.globalOrderStatus)) {
+                                    paidAmount = 0;
+                                    isPaidKnown = true;
+                                }
+                            } else {
+                                if (['Success', 'Completed', 'Refunded', 'Refund_Pending'].includes(order.paymentStatus) || ['Delivered', 'DELIVERED', 'COMPLETED', 'Completed', 'Closed', 'Returned', 'RETURNED', 'Partially Returned'].includes(order.globalOrderStatus)) {
+                                    paidAmount = orderTotal;
+                                    isPaidKnown = true;
+                                } else if (['Pending', 'FAILED', 'Failed'].includes(order.paymentStatus)) {
+                                    paidAmount = 0;
+                                    isPaidKnown = true;
+                                }
+                            }
 
-                                return (
-                                    <span
-                                        className={`admin-badge ${badgeClass} ${isRefundPending && isAdmin ? 'clickable-badge' : ''}`}
-                                        style={{
-                                            fontWeight: 700,
-                                            cursor: isRefundPending && isAdmin ? 'pointer' : 'default',
-                                            ...(status === 'Refunded' ? { backgroundColor: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' } : {}),
-                                            ...(isRefundPending ? { border: '1px solid #fde68a' } : {})
-                                        }}
-                                        onClick={() => {
-                                            if (isRefundPending && isAdmin) {
-                                                setRefundAmount(order.totalAmount);
-                                                setShowRefundModal(true);
-                                            }
-                                        }}
-                                    >
-                                        {label}
-                                    </span>
-                                );
-                            })()}
-                        </div>
-                        <div className="billing-summary" style={{ fontSize: '0.95rem' }}>
-                            <div className="d-flex justify-content-between mb-2">
-                                <span className="text-muted">Sub Total</span>
-                                <span className="fw-bold">₹{(order.totalMRP || order.totalPrice || 0).toFixed(2)}</span>
-                            </div>
-                            {order.couponName && (
-                                <div className="d-flex justify-content-between mb-2">
-                                    <span className="text-muted">Coupon Name</span>
-                                    <span className="fw-bold">{order.couponName}</span>
-                                </div>
-                            )}
-                            {order.referralCode && (
-                                <div className="d-flex justify-content-between mb-2">
-                                    <span className="text-muted">Referral Code</span>
-                                    <span className="fw-bold">{order.referralCode}</span>
-                                </div>
-                            )}
-                            <div className="d-flex justify-content-between mb-2">
-                                <span className="text-muted">Discount</span>
-                                <span className="fw-bold text-danger">- ₹{(order.totalDiscount || order.discount || 0).toFixed(2)}</span>
-                            </div>
-                            <div className="d-flex justify-content-between mb-2">
-                                <span className="text-muted">Shipping Charge</span>
-                                <span className="fw-bold text-success">{order.deliveryCharge > 0 ? `₹${order.deliveryCharge.toFixed(2)}` : 'FREE'}</span>
-                            </div>
-                            {(order.refundedAmount > 0 || order.returnedAmount > 0) && (
-                                <div className="d-flex justify-content-between mb-2">
-                                    <span className="text-muted">Refunded Amount</span>
-                                    <span className="fw-bold text-danger">₹{(order.refundedAmount || order.returnedAmount).toFixed(2)}</span>
-                                </div>
-                            )}
-                            <div className="d-flex justify-content-between mb-4 pb-2 border-bottom border-light">
-                                <span className="text-muted">Gift Packaging</span>
-                                <span className="fw-bold">00.00</span>
-                            </div>
+                            const displayRefundedAmount = parseFloat(order.refundedAmount || order.returnedAmount || 0);
+                            const netPaidAmount = paidAmount - displayRefundedAmount;
 
-                            <h6 className="fw-bold mb-3">Payment details</h6>
-                            <div className="payment-method-details" style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                                <div className="mb-1 fw-bold text-dark">{order.paymentMethod}</div>
-                                {order.razorpayPaymentId && <div className="mb-3">Transaction ID: {order.razorpayPaymentId}</div>}
-                                {(() => {
-                                    const status = order.paymentStatus;
-                                    const label = status === 'Refund_Pending'
-                                        ? 'Refund Pending'
-                                        : (status === 'Refunded' ? 'Refunded' : (['Paid', 'Success', 'Completed'].includes(status) ? 'Paid' : status));
-                                    let badgeClass = 'badge-secondary';
-                                    if (['Paid', 'Success', 'Completed'].includes(status)) badgeClass = 'badge-success';
-                                    if (status === 'Failed' || status === 'Cancelled') badgeClass = 'badge-danger';
-                                    if (status === 'Pending' || status === 'Refund_Pending') badgeClass = 'badge-warning';
-                                    if (status === 'Refunded' || status === 'Returned') badgeClass = 'badge-info';
+                            const status = order.paymentStatus;
+                            const isRefundPending = status === 'Refund_Pending';
+                            
+                            // Let's refine the Payment label explicitly so it doesn't just say 'Paid' if unpaid COD
+                            let label = status;
+                            if (status === 'Refund_Pending') label = 'Refund Pending';
+                            else if (status === 'Refunded') label = 'Refunded';
+                            else if (['Paid', 'Success', 'Completed'].includes(status)) {
+                                label = 'Paid';
+                            } else if (order.paymentMethod === 'COD' && status === 'Pending') {
+                                // If COD is pending and not delivered, keep it 'Pending'
+                                label = 'Pending';
+                            }
 
-                                    return (
-                                        <span className={`admin-badge ${badgeClass}`} style={{
-                                            border: 'none',
-                                            borderRadius: '4px',
-                                            ...(status === 'Refunded' ? { backgroundColor: '#e0f2fe', color: '#0369a1' } : {})
-                                        }}>
+                            let badgeClass = 'badge-secondary';
+                            if (['Paid', 'Success', 'Completed'].includes(status)) badgeClass = 'badge-success';
+                            if (status === 'Failed' || status === 'Cancelled') badgeClass = 'badge-danger';
+                            if (status === 'Pending' || status === 'Refund_Pending') badgeClass = 'badge-warning';
+                            if (status === 'Refunded' || status === 'Returned') badgeClass = 'badge-info';
+
+                            return (
+                                <>
+                                    <div className="d-flex justify-content-between align-items-start mb-4">
+                                        <div>
+                                            <span className="text-muted d-block mb-1" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Original Order Total</span>
+                                            <h2 className="mb-0 fw-bold" style={{ fontSize: '2rem' }}>₹{orderTotal.toFixed(2)}</h2>
+                                        </div>
+                                        <span
+                                            className={`admin-badge ${badgeClass} ${isRefundPending && isAdmin ? 'clickable-badge' : ''}`}
+                                            style={{
+                                                fontWeight: 700,
+                                                cursor: isRefundPending && isAdmin ? 'pointer' : 'default',
+                                                ...(status === 'Refunded' ? { backgroundColor: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' } : {}),
+                                                ...(isRefundPending ? { border: '1px solid #fde68a' } : {})
+                                            }}
+                                            onClick={() => {
+                                                if (isRefundPending && isAdmin) {
+                                                    setRefundAmount(order.totalAmount);
+                                                    setShowRefundModal(true);
+                                                }
+                                            }}
+                                        >
                                             {label}
                                         </span>
-                                    );
-                                })()}
-                            </div>
-                        </div>
+                                    </div>
+
+                                    <div className="billing-summary" style={{ fontSize: '0.95rem' }}>
+                                        <div className="d-flex justify-content-between mb-2">
+                                            <span className="text-muted">Sub Total</span>
+                                            <span className="fw-bold">₹{(order.totalMRP || order.totalPrice || 0).toFixed(2)}</span>
+                                        </div>
+                                        {order.couponName && (
+                                            <div className="d-flex justify-content-between mb-2">
+                                                <span className="text-muted">Coupon Name</span>
+                                                <span className="fw-bold">{order.couponName}</span>
+                                            </div>
+                                        )}
+                                        {order.referralCode && (
+                                            <div className="d-flex justify-content-between mb-2">
+                                                <span className="text-muted">Referral Code</span>
+                                                <span className="fw-bold">{order.referralCode}</span>
+                                            </div>
+                                        )}
+                                        <div className="d-flex justify-content-between mb-2">
+                                            <span className="text-muted">Discount</span>
+                                            <span className="fw-bold text-danger">- ₹{(order.totalDiscount || order.discount || 0).toFixed(2)}</span>
+                                        </div>
+                                        <div className="d-flex justify-content-between mb-2 pb-3 border-bottom border-light">
+                                            <span className="text-muted">Shipping Charge</span>
+                                            <span className="fw-bold text-success">{order.deliveryCharge > 0 ? `+ ₹${order.deliveryCharge.toFixed(2)}` : 'FREE'}</span>
+                                        </div>
+
+                                        <h6 className="fw-bold mb-3 mt-3">Financial Summary</h6>
+                                        <div className="d-flex justify-content-between mb-2">
+                                            <span className="text-muted">Order Total</span>
+                                            <span className="fw-bold">₹{orderTotal.toFixed(2)}</span>
+                                        </div>
+                                        
+                                        {displayCancelledAmount > 0 && (
+                                            <>
+                                                <div className="d-flex justify-content-between mb-2">
+                                                    <span className="text-muted">Cancelled Amount</span>
+                                                    <span className="fw-bold text-danger">- ₹{displayCancelledAmount.toFixed(2)}</span>
+                                                </div>
+                                                <div className="d-flex justify-content-between mb-2">
+                                                    <span className="text-muted">Current Payable Amount</span>
+                                                    <span className="fw-bold text-primary">₹{currentPayableAmount.toFixed(2)}</span>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {isPaidKnown && (
+                                            <div className="d-flex justify-content-between mb-2">
+                                                <span className="text-muted">Paid Amount</span>
+                                                <span className="fw-bold">₹{paidAmount.toFixed(2)}</span>
+                                            </div>
+                                        )}
+
+                                        {displayRefundedAmount > 0 && (
+                                            <div className="d-flex justify-content-between mb-2">
+                                                <span className="text-muted">Refunded Amount</span>
+                                                <span className="fw-bold text-danger">- ₹{displayRefundedAmount.toFixed(2)}</span>
+                                            </div>
+                                        )}
+
+                                        {isPaidKnown && displayRefundedAmount > 0 && (
+                                            <div className="d-flex justify-content-between mb-2 pt-2 border-top border-light">
+                                                <span className="text-dark fw-bold">Net Paid Amount</span>
+                                                <span className="fw-bold text-dark">₹{netPaidAmount.toFixed(2)}</span>
+                                            </div>
+                                        )}
+
+                                        <h6 className="fw-bold mb-2 mt-4">Payment Method</h6>
+                                        <div className="payment-method-details" style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                                            <div className="mb-1 fw-bold text-dark">{order.paymentMethod === 'COD' ? 'Cash on Delivery' : order.paymentMethod}</div>
+                                            {order.razorpayPaymentId && <div className="mb-2">Transaction ID: {order.razorpayPaymentId}</div>}
+                                        </div>
+                                    </div>
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
             </div>

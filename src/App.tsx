@@ -57,7 +57,8 @@ import InfluencerDashboard from './pages/Account/InfluencerDashboard'
 import WithdrawalHistory from './pages/Account/WithdrawalHistory'
 import NaturePoints from './pages/Account/NaturePoints'
 import AdminLogin from './pages/Admin/AdminLogin'
-
+import TermsAndConditions from './pages/User/TermsAndConditions/TermsAndConditions'
+import PrivacyPolicy from './pages/User/PrivacyPolicy/PrivacyPolicy'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -279,6 +280,8 @@ function App() {
                     </GuestRoute>
                   } />
                   <Route path="/wishlist" element={<Wishlist />} />
+                  <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
                   {/* Protected User Routes */}
                   <Route path="/account" element={

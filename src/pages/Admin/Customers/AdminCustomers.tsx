@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, MoreHorizontal, Mail, Phone, Filter, Download, UserPlus, Trash2, Edit2, User } from 'lucide-react';
+import { Search, MoreHorizontal, Mail, Phone, Filter, Download, Trash2, Edit2, User } from 'lucide-react';
 import apiClient from '../../../services/adminApiClient';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../../utils/formatDate';
@@ -107,9 +107,9 @@ const AdminCustomers: React.FC = () => {
                     <button className="btn-primary-admin secondary" style={{ backgroundColor: '#fff', color: '#64748b', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
                         <Download size={18} /> Export List
                     </button>
-                    <button className="btn-primary-admin">
+                    {/* <button className="btn-primary-admin">
                         <UserPlus size={18} /> Add Customer
-                    </button>
+                    </button> */}
                 </div>
             </div>
 

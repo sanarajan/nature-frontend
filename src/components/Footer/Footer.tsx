@@ -104,9 +104,9 @@ const Footer: React.FC = () => {
                             <div className="widget widget_services">
                                 <h5 className="footer-title">Useful Links</h5>
                                 <ul>
-                                    <li><a href="javascript:void(0);">Privacy Policy</a></li>
+                                    <li><Link to="/privacy-policy">Privacy Policy</Link></li>
                                     <li><a href="javascript:void(0);">Returns</a></li>
-                                    <li><a href="javascript:void(0);">Terms & Conditions</a></li>
+                                    <li><Link to="/terms-and-conditions">Terms & Conditions</Link></li>
                                     <li><a href="javascript:void(0);">Contact Us</a></li>
                                     <li><a href="javascript:void(0);">Latest News</a></li>
                                     <li><a href="javascript:void(0);">Our Sitemap</a></li>

@@ -35,6 +35,7 @@ const Cart: React.FC = () => {
     const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [appliedComboOffer, setAppliedComboOffer] = useState<any>(null);
+    const [appliedComboOffers, setAppliedComboOffers] = useState<any[]>([]);
     const [cartPricing, setCartPricing] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
@@ -48,6 +49,7 @@ const Cart: React.FC = () => {
                 if (res.data.success && res.data.data) {
                     setCartItems(res.data.data.products);
                     setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                    setAppliedComboOffers(res.data.data.appliedComboOffers || []);
                     if (res.data.data.pricing) {
                         (window as any).cartPricing = res.data.data.pricing;
                         setCartPricing(res.data.data.pricing);
@@ -65,6 +67,7 @@ const Cart: React.FC = () => {
                     if (res.data.success && res.data.data) {
                         setCartItems(res.data.data.products);
                         setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                        setAppliedComboOffers(res.data.data.appliedComboOffers || []);
                         if (res.data.data.pricing) {
                             (window as any).cartPricing = res.data.data.pricing;
                             setCartPricing(res.data.data.pricing);
@@ -76,6 +79,7 @@ const Cart: React.FC = () => {
             } else {
                 setCartItems([]);
                 setAppliedComboOffer(null);
+                setAppliedComboOffers([]);
             }
         }
         setLoading(false);
@@ -111,6 +115,7 @@ const Cart: React.FC = () => {
                 if (res.data.success && res.data.data) {
                     setCartItems(res.data.data.products);
                     setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                    setAppliedComboOffers(res.data.data.appliedComboOffers || []);
                     if (res.data.data.pricing) {
                         (window as any).cartPricing = res.data.data.pricing;
                         setCartPricing(res.data.data.pricing);
@@ -134,6 +139,7 @@ const Cart: React.FC = () => {
                 if (res.data.success && res.data.data) {
                     setCartItems(res.data.data.products);
                     setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                    setAppliedComboOffers(res.data.data.appliedComboOffers || []);
                     if (res.data.data.pricing) {
                         (window as any).cartPricing = res.data.data.pricing;
                         setCartPricing(res.data.data.pricing);
@@ -190,6 +196,19 @@ const Cart: React.FC = () => {
     const comboDiscount = cartPricing?.comboDiscount !== undefined ? cartPricing.comboDiscount : (appliedComboOffer?.discountValue || 0);
     const influencerDiscount = cartPricing?.influencerDiscountAmount || 0;
     const finalTotal = cartPricing?.finalPrice !== undefined ? cartPricing.finalPrice : Math.round((mrpSubtotal - totalIndividualDiscount - comboDiscount - influencerDiscount) * 100) / 100;
+
+    const displayedComboOffers = useMemo(() => {
+        if (Array.isArray(appliedComboOffers) && appliedComboOffers.length > 0) {
+            return appliedComboOffers;
+        } else if (appliedComboOffer) {
+            return [{
+                offerName: appliedComboOffer.offerName,
+                applications: 1,
+                discountAmount: comboDiscount
+            }];
+        }
+        return [];
+    }, [appliedComboOffers, appliedComboOffer, comboDiscount]);
 
     return (
         <div className="page-content">
@@ -400,20 +419,20 @@ const Cart: React.FC = () => {
                                                 <td className="price" style={{ color: '#e67e00' }}>-₹{totalIndividualDiscount.toFixed(2)}</td>
                                             </tr>
                                         )}
-                                        {appliedComboOffer && (
-                                            <tr className="total" style={{ border: '2px dashed #28a745', background: '#f8fff8', borderRadius: '10px' }}>
+                                        {displayedComboOffers.map((combo: any, index: number) => (
+                                            <tr key={index} className="total" style={{ border: '2px dashed #28a745', background: '#f8fff8', borderRadius: '10px' }}>
                                                 <td style={{ padding: '15px 10px' }}>
                                                     <h6 className="mb-0 title text-success" style={{ fontWeight: '700' }}>
                                                         <i className="fa fa-gift me-2"></i>
-                                                        {appliedComboOffer.offerName}
+                                                        {combo.offerName}{combo.applications > 1 ? ` ×${combo.applications}` : ''}
                                                     </h6>
                                                     <div className="small text-muted" style={{ fontSize: '12px' }}>Combo Discount Applied</div>
                                                 </td>
                                                 <td className="price text-success" style={{ fontWeight: '700', padding: '15px 10px', fontSize: '18px' }}>
-                                                    -₹{comboDiscount.toFixed(2)}
+                                                    -₹{(combo.discountAmount || 0).toFixed(2)}
                                                 </td>
                                             </tr>
-                                        )}
+                                        ))}
                                         {influencerDiscount > 0 && (
                                             <tr className="total">
                                                 <td><h6 className="mb-0 title" style={{ color: '#007bff' }}>Influencer Discount</h6></td>

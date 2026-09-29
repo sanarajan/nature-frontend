@@ -61,7 +61,28 @@ interface Product {
     specifications?: Record<string, string>;
     categoryId?: { _id: string; categoryName: string };
     subcategoryId?: { _id: string; subcategoryName: string };
+    quantity?: number;
+    unitId?: { _id: string; unitName: string } | string;
+    shortDescription?: string;
+    keyIngredients?: { name?: string; percentage?: string; [key: string]: any }[];
+    keyBenefits?: string[];
+    suitableFor?: string;
+    stock?: number;
 }
+
+const getUnitDisplay = (unit: Product['unitId']) => {
+    if (!unit) return '';
+    if (typeof unit === 'object' && unit.unitName) {
+        return unit.unitName;
+    }
+    if (typeof unit === 'string') {
+        if (/^[0-9a-fA-F]{24}$/.test(unit)) {
+            return '';
+        }
+        return unit;
+    }
+    return '';
+};
 
 // ── Quick View Modal ──────────────────────────────────────────
 const QuickViewModal = ({ prod, onClose, inWishlist, onToggleWishlist, handleAddToCart }: { prod: Product; onClose: () => void; inWishlist: boolean; onToggleWishlist: (p: Product, redirect?: boolean) => void; handleAddToCart: (prod: Product, quantity?: number, redirect?: boolean) => void }) => {
@@ -77,15 +98,7 @@ const QuickViewModal = ({ prod, onClose, inWishlist, onToggleWishlist, handleAdd
                 </button>
 
                 <div className="quick-view-image-container">
-                    {/* Badges in Quick View */}
-                    {(prod.featured || prod.isBestSeller || prod.isPopular || prod.isTrending) && (
-                        <div className="shop-badge-wrap" style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                            {prod.featured && <span className="shop-featured-badge" style={{ display: 'inline-block', background: '#FFC107', color: '#000', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>FEATURED</span>}
-                            {prod.isBestSeller && <span className="shop-offer-badge" style={{ display: 'inline-block', background: '#38996E', color: '#fff', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>BEST SELLER</span>}
-                            {prod.isPopular && <span className="shop-offer-badge" style={{ display: 'inline-block', background: '#0D6EFD', color: '#fff', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>POPULAR</span>}
-                            {prod.isTrending && <span className="shop-offer-badge" style={{ display: 'inline-block', background: '#DC3545', color: '#fff', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>TRENDING</span>}
-                        </div>
-                    )}
+
                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.5s ease' }}
                         onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.5)')}
                         onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
@@ -93,70 +106,123 @@ const QuickViewModal = ({ prod, onClose, inWishlist, onToggleWishlist, handleAdd
                     </div>
                 </div>
 
-                <div className="quick-view-info-container">
-                    <h2 className="quick-view-title">{prod.productName}</h2>
+                <div className="quick-view-info-container" style={{ overflowY: 'auto' }}>
+                    <h2 className="quick-view-title" style={{ marginBottom: '8px' }}>
+                        {prod.productName}
+                        {prod.quantity && prod.unitId ? ` ${prod.quantity} ${getUnitDisplay(prod.unitId)}` : ''}
+                    </h2>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <StarRating count={4} />
-                        <span style={{ color: '#444', fontSize: '14px' }}>4.7 Rating</span>
-                        <span style={{ color: '#888', fontSize: '14px' }}>(150 customer reviews)</span>
+                    {/* Highlights */}
+                    {(prod.featured || prod.isBestSeller || prod.isPopular || prod.isTrending) && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                            {prod.featured && <span style={{ display: 'inline-block', background: '#FFC107', color: '#000', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>FEATURED</span>}
+                            {prod.isBestSeller && <span style={{ display: 'inline-block', background: '#38996E', color: '#fff', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>BEST SELLER</span>}
+                            {prod.isPopular && <span style={{ display: 'inline-block', background: '#0D6EFD', color: '#fff', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>POPULAR</span>}
+                            {prod.isTrending && <span style={{ display: 'inline-block', background: '#DC3545', color: '#fff', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>TRENDING</span>}
+                        </div>
+                    )}
+
+                    {/* Short Description */}
+                    {prod.shortDescription && (
+                        <p style={{ margin: 0, fontSize: '14px', color: '#555', lineHeight: '1.5', marginBottom: '12px' }}>
+                            {prod.shortDescription}
+                        </p>
+                    )}
+
+                    {/* Compact Key Ingredients */}
+                    {prod.keyIngredients && prod.keyIngredients.length > 0 && (
+                        <div style={{ marginBottom: '12px' }}>
+                            <strong style={{ fontSize: '14px', color: '#1a1a1a' }}>Key Ingredients: </strong>
+                            <span style={{ fontSize: '14px', color: '#555' }}>
+                                {prod.keyIngredients.slice(0, 5).map((ing: any, i: number, arr: any[]) => (
+                                    <span key={i}>
+                                        {ing.name} {ing.percentage && ing.percentage !== '-' ? ` ${ing.percentage}` : ''}
+                                        {i < arr.length - 1 ? ' | ' : ''}
+                                    </span>
+                                ))}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Compact Key Benefits */}
+                    {prod.keyBenefits && prod.keyBenefits.length > 0 && (
+                        <div style={{ marginBottom: '12px' }}>
+                            <strong style={{ fontSize: '14px', color: '#1a1a1a' }}>Key Benefits:</strong>
+                            <ul style={{ margin: '4px 0 0 0', paddingLeft: '0', listStyleType: 'none', fontSize: '14px', color: '#555' }}>
+                                {prod.keyBenefits.slice(0, 3).map((ben: string, i: number) => (
+                                    <li key={i} style={{ marginBottom: '2px' }}>✓ {ben}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Suitable For */}
+                    {prod.suitableFor && (
+                        <div style={{ marginBottom: '12px' }}>
+                            <strong style={{ fontSize: '14px', color: '#1a1a1a' }}>Suitable For: </strong>
+                            <span style={{ fontSize: '14px', color: '#555' }}>{prod.suitableFor}</span>
+                        </div>
+                    )}
+
+                    {/* Stock status */}
+                    <div style={{ marginBottom: '15px' }}>
+                        {(prod.stock || 0) > 5 ? (
+                            <div style={{ color: '#166534', fontWeight: 600, fontSize: '14px' }}>
+                                <span style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>&bull;</span> 
+                                In Stock &middot; {prod.stock || 0} available
+                            </div>
+                        ) : (prod.stock || 0) > 0 && (prod.stock || 0) <= 5 ? (
+                            <div style={{ color: '#d97706', fontWeight: 600, fontSize: '14px' }}>
+                                <span style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>&bull;</span> 
+                                Low Stock &middot; Only {prod.stock || 0} left
+                            </div>
+                        ) : (
+                            <div style={{ color: '#b91c1c', fontWeight: 600, fontSize: '14px' }}>
+                                <span style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>&bull;</span> 
+                                Out of Stock
+                            </div>
+                        )}
                     </div>
 
-                    <p style={{ margin: 0, fontSize: '15px', color: '#555', lineHeight: '1.6' }}>
-                        High quality product from Naturalayam.
-                    </p>
-
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '60px', marginTop: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '40px', marginTop: '10px' }}>
                         <div>
-                            <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a1a', marginBottom: '8px' }}>Price</div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-                                <span style={{ fontSize: '32px', fontWeight: 400, color: '#1a1a1a' }}>₹{prod.offerPrice ? prod.offerPrice : prod.price}</span>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a', marginBottom: '4px' }}>Price</div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                                <span style={{ fontSize: '24px', fontWeight: 600, color: '#166534' }}>₹{prod.offerPrice ? prod.offerPrice.toFixed(2) : prod.price.toFixed(2)}</span>
                                 {prod.offerPrice && prod.offerPrice < prod.price && (
-                                    <del style={{ fontSize: '18px', color: '#888' }}>₹{prod.price}</del>
+                                    <del style={{ fontSize: '14px', color: '#888' }}>₹{prod.price.toFixed(2)}</del>
                                 )}
                             </div>
                         </div>
                         <div>
-                            <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a1a', marginBottom: '8px' }}>Quantity</div>
+                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a1a', marginBottom: '4px' }}>Quantity</div>
                             <div style={{ display: 'flex', alignItems: 'center' }}>
-                                <button onClick={() => setQty(q => Math.max(1, q - 1))} style={{ width: '38px', height: '38px', border: '1px solid #333', background: '#333', color: '#fff', fontSize: '18px', cursor: 'pointer' }}>−</button>
-                                <span style={{ width: '42px', height: '38px', border: '1px solid #e8e8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px' }}>{qty}</span>
-                                <button onClick={() => setQty(q => q + 1)} style={{ width: '38px', height: '38px', border: '1px solid #333', background: '#333', color: '#fff', fontSize: '18px', cursor: 'pointer' }}>+</button>
+                                <button onClick={() => setQty(q => Math.max(1, q - 1))} disabled={(prod.stock || 0) <= 0} style={{ width: '34px', height: '34px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', fontSize: '18px', cursor: (prod.stock || 0) <= 0 ? 'not-allowed' : 'pointer' }}>−</button>
+                                <span style={{ width: '40px', height: '34px', borderTop: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px' }}>{qty}</span>
+                                <button onClick={() => setQty(q => q + 1)} disabled={(prod.stock || 0) <= 0 || qty >= (prod.stock || 0)} style={{ width: '34px', height: '34px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', fontSize: '18px', cursor: ((prod.stock || 0) <= 0 || qty >= (prod.stock || 0)) ? 'not-allowed' : 'pointer' }}>+</button>
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '15px', marginTop: '15px' }}>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '20px', flexWrap: 'wrap' }}>
                         <button
+                            disabled={(prod.stock || 0) <= 0}
                             onClick={() => { handleAddToCart(prod, qty, true); onClose(); }}
-                            style={{ background: '#222', color: '#fff', border: 'none', padding: '14px 40px', fontSize: '14px', fontWeight: 700, borderRadius: '2px', cursor: 'pointer' }}>ADD TO CART</button>
+                            style={{ flexGrow: 1, background: (prod.stock || 0) <= 0 ? '#94a3b8' : '#166534', color: '#fff', border: 'none', padding: '12px 20px', fontSize: '14px', fontWeight: 700, borderRadius: '8px', cursor: (prod.stock || 0) <= 0 ? 'not-allowed' : 'pointer', transition: 'background-color 0.2s' }}>
+                            {(prod.stock || 0) <= 0 ? 'OUT OF STOCK' : 'ADD TO CART'}
+                        </button>
                         <button
                             onClick={() => onToggleWishlist(prod, false)}
-                            style={{ background: '#fff', color: '#222', border: '1px solid #222', padding: '14px 20px', fontSize: '14px', fontWeight: 700, borderRadius: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                            style={{ background: '#fff', color: '#334155', border: '1px solid #cbd5e1', padding: '12px 15px', fontSize: '14px', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}
                         >
                             <HeartSVG filled={inWishlist} />
-                            {inWishlist ? 'REMOVE FROM WISHLIST' : 'ADD TO WISHLIST'}
                         </button>
                     </div>
 
-                    <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '20px', fontSize: '15px', color: '#1a1a1a', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div><strong style={{ fontWeight: 600 }}>SKU:</strong>&nbsp; <span style={{ color: '#555' }}>{prod.sku}</span></div>
-                        <div><strong style={{ fontWeight: 600 }}>Category:</strong>&nbsp; <span style={{ color: '#555' }}>{prod.categoryId?.categoryName}</span></div>
-                        {prod.subcategoryId && (
-                            <div><strong style={{ fontWeight: 600 }}>Subcategory:</strong>&nbsp; <span style={{ color: '#555' }}>{prod.subcategoryId.subcategoryName}</span></div>
-                        )}
-                        {prod.specifications && Object.entries(prod.specifications).length > 0 && (
-                            <div style={{ marginTop: '10px' }}>
-                                <strong style={{ fontWeight: 600 }}>Specifications:</strong>
-                                <ul style={{ margin: '5px 0 0 20px', padding: 0, fontSize: '14px', color: '#555', listStyleType: 'disc' }}>
-                                    {Object.entries(prod.specifications).map(([key, val]) => (
-                                        <li key={key} style={{ marginBottom: '4px' }}>
-                                            <span style={{ fontWeight: 600 }}>{key}:</span> {val}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
+                    <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                        <Link to={`/product/${prod._id}`} onClick={onClose} style={{ fontSize: '14px', fontWeight: 600, color: '#166534', textDecoration: 'underline' }}>
+                            View Full Details
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -713,7 +779,7 @@ const Shop: React.FC = () => {
                                                                 >
                                                                     <HeartSVG filled={wishlist.includes(prod._id)} />
                                                                 </button>
-                                                                <Link to="#" onClick={(e) => { e.preventDefault(); handleAddToCart(prod, 1, true); }} className="btn btn-primary meta-icon dz-carticon"><i className="flaticon-shopping-cart-1"></i></Link>
+                                                                <Link to="#" onClick={(e) => { e.preventDefault(); handleAddToCart(prod, 1, true); }} className="btn btn-primary meta-icon dz-carticon"><i className="fa-solid fa-cart-shopping"></i></Link>
                                                             </div>
                                                         </div>
                                                         <div className="dz-content">

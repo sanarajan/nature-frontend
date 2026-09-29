@@ -5,13 +5,11 @@ import type { RootState } from '../../store';
 import { handleAddToCartGlobal, handleToggleWishlistGlobal } from '../../utils/CartHelper';
 import userApiClient from '../../services/userApiClient';
 
-
-
 const ProductDetails: React.FC = () => {
     const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
     const navigate = useNavigate();
     const [quantity, setQuantity] = useState(1);
-    const [activeTab, setActiveTab] = useState('description');
+    const [selectedImage, setSelectedImage] = useState<string>('');
 
     const { id } = useParams<{ id: string }>();
     const [product, setProduct] = useState<any>(null);
@@ -23,6 +21,9 @@ const ProductDetails: React.FC = () => {
                 const response = await userApiClient.get(`/user/products/${id}`);
                 if (response.data.success) {
                     setProduct(response.data.data);
+                    if (response.data.data.images && response.data.data.images.length > 0) {
+                        setSelectedImage(response.data.data.images[0]);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching product details:", error);
@@ -37,8 +38,24 @@ const ProductDetails: React.FC = () => {
         }
     }, [id]);
 
+    useEffect(() => {
+        if (product) {
+            document.title = product.metaTitle || `${product.productName} | Naturalayam`;
+            const desc = product.metaDescription || product.shortDescription;
+            if (desc) {
+                let metaDescription = document.querySelector('meta[name="description"]');
+                if (!metaDescription) {
+                    metaDescription = document.createElement('meta');
+                    metaDescription.setAttribute('name', 'description');
+                    document.head.appendChild(metaDescription);
+                }
+                metaDescription.setAttribute('content', desc);
+            }
+        }
+    }, [product]);
+
     if (loading) {
-        return <div className="page-content bg-light d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
+        return <div className="page-content d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
             <div className="spinner-border text-primary" role="status">
                 <span className="visually-hidden">Loading...</span>
             </div>
@@ -46,7 +63,7 @@ const ProductDetails: React.FC = () => {
     }
 
     if (!product) {
-        return <div className="page-content bg-light text-center py-5">
+        return <div className="page-content text-center py-5">
             <h2>Product Not Found</h2>
             <Link to="/shop" className="btn btn-primary mt-3">Back to Shop</Link>
         </div>;
@@ -61,178 +78,795 @@ const ProductDetails: React.FC = () => {
     };
 
     return (
-        <div className="page-content bg-light">
-            <div className="d-flex justify-content-between container-fluid py-3 bg-light">
-                <nav aria-label="breadcrumb" className="breadcrumb-row style-1">
-                    <ul className="breadcrumb mb-0">
-                        <li className="breadcrumb-item"><Link to="/"> Home</Link></li>
-                        <li className="breadcrumb-item">{product.productName}</li>
-                    </ul>
-                </nav>
-            </div>
+        <div className="page-content" style={{ backgroundColor: '#f8fafc', padding: '40px 0' }}>
+            <style>{`
+                .custom-breadcrumb {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: flex-start !important;
+                    text-align: left !important;
+                    width: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    gap: 0 !important;
+                }
+                .custom-breadcrumb .breadcrumb-item {
+                    padding-left: 0 !important;
+                    padding-right: 0 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    line-height: normal !important;
+                }
+                .custom-breadcrumb .breadcrumb-item,
+                .custom-breadcrumb .breadcrumb-item a,
+                .custom-breadcrumb .breadcrumb-item span {
+                    color: #4B5563 !important;
+                    text-decoration: none;
+                }
+                .custom-breadcrumb .breadcrumb-item.active {
+                    color: #1F2937 !important;
+                    font-weight: 600 !important;
+                }
+                .custom-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+                    content: "|" !important;
+                    color: #9CA3AF !important;
 
-            <section className="content-inner py-0 bg-light">
-                <div className="container-fluid">
-                    <div className="row">
-                        <div className="col-xxl-6 col-xl-6 col-lg-6 col-md-6">
-                            <div className="dz-product-detail style-1 sticky-top">
-                                <div className="swiper-btn-center-lr">
-                                    <div className="swiper product-gallery-swiper2">
-                                        <div className="swiper-wrapper">
-                                            {product.images && product.images.length > 0 ? product.images.map((img: string, index: number) => (
-                                                <div className="swiper-slide" key={index}>
-                                                    <div className="dz-media DZoomImage">
-                                                        <img src={img} alt={product.productName} />
-                                                    </div>
-                                                </div>
-                                            )) : (
-                                                <div className="swiper-slide">
-                                                    <div className="dz-media DZoomImage">
-                                                        <img src="https://via.placeholder.com/600x600?text=No+Image" alt="Placeholder" />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+                    display: inline !important;
+                    position: static !important;
+
+                    height: auto !important;
+                    min-height: 0 !important;
+
+                    line-height: inherit !important;
+                    vertical-align: baseline !important;
+
+                    top: auto !important;
+                    bottom: auto !important;
+
+                    transform: none !important;
+                    rotate: none !important;
+
+                    float: none !important;
+
+                    font-family: inherit !important;
+                    font-size: inherit !important;
+                    font-style: normal !important;
+                    font-weight: 400 !important;
+
+                    padding: 0 7px !important;
+                    margin: 0 !important;
+                }
+                .premium-product-card {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+                    padding: 32px;
+                }
+                .product-image-container {
+                    background-color: #f1f5f9;
+                    border-radius: 12px;
+                    height: 460px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                    border: 1px solid #e2e8f0;
+                    position: relative;
+                }
+                .product-main-image {
+                    transition: transform 0.3s ease;
+                }
+                @media (min-width: 992px) {
+                    .product-image-container:hover .product-main-image {
+                        transform: scale(1.12);
+                    }
+                }
+                .product-thumbnail {
+                    width: 70px;
+                    height: 70px;
+                    border-radius: 8px;
+                    border: 2px solid transparent;
+                    cursor: pointer;
+                    overflow: hidden;
+                    background-color: #f1f5f9;
+                    transition: all 0.2s;
+                }
+                .product-thumbnail:hover {
+                    border-color: #94a3b8;
+                }
+                .product-thumbnail.active {
+                    border-color: #166534;
+                }
+                .product-title {
+                    font-size: 2rem;
+                    font-weight: 700;
+                    color: #0f172a;
+                    margin-bottom: 8px;
+                }
+                .product-short-desc {
+                    font-size: 1.1rem;
+                    color: #475569;
+                    margin-bottom: 24px;
+                    line-height: 1.5;
+                }
+                .price-container {
+                    margin-bottom: 32px;
+                }
+                .price-main {
+                    font-size: 2rem;
+                    font-weight: 700;
+                    color: #166534;
+                }
+                .price-mrp {
+                    font-size: 1.1rem;
+                    color: #94a3b8;
+                    text-decoration: line-through;
+                    margin: 0 12px;
+                }
+                .price-discount {
+                    background-color: #dcfce7;
+                    color: #166534;
+                    padding: 4px 10px;
+                    border-radius: 6px;
+                    font-size: 0.95rem;
+                    font-weight: 600;
+                }
+                .action-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    flex-wrap: wrap;
+                    margin-bottom: 40px;
+                }
+                .qty-control {
+                    display: flex;
+                    align-items: center;
+                    border: 1px solid #cbd5e1;
+                    border-radius: 8px;
+                    height: 52px;
+                    overflow: hidden;
+                }
+                .qty-btn {
+                    background: none;
+                    border: none;
+                    width: 44px;
+                    height: 100%;
+                    font-size: 1.2rem;
+                    color: #475569;
+                    transition: background 0.2s;
+                }
+                .qty-btn:hover {
+                    background-color: #f1f5f9;
+                }
+                .qty-input {
+                    width: 50px;
+                    text-align: center;
+                    border: none;
+                    font-weight: 600;
+                    font-size: 1.1rem;
+                }
+                .qty-input:focus {
+                    outline: none;
+                }
+                .btn-add-to-cart {
+                    height: 52px;
+                    padding: 0 40px;
+                    background-color: #166534;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 1.1rem;
+                    transition: all 0.2s;
+                }
+                .btn-add-to-cart:hover {
+                    background-color: #14532d;
+                }
+                .btn-wishlist {
+                    width: 52px;
+                    height: 52px;
+                    border: 1px solid #cbd5e1;
+                    border-radius: 8px;
+                    background: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #475569;
+                    transition: all 0.2s;
+                }
+                .btn-wishlist:hover {
+                    border-color: #166534;
+                    color: #166534;
+                }
+                /* Accordion Styling */
+                .custom-accordion .accordion-item {
+                    border: 1px solid #e2e8f0;
+                    border-radius: 10px;
+                    margin-bottom: 12px;
+                    background-color: #ffffff;
+                    overflow: hidden;
+                }
+                .custom-accordion .accordion-button {
+                    background-color: #ffffff;
+                    color: #1e293b;
+                    font-weight: 600;
+                    font-size: 1.05rem;
+                    padding: 16px 20px;
+                    border: none;
+                    box-shadow: none;
+                }
+                .custom-accordion .accordion-button:not(.collapsed) {
+                    color: #166534;
+                    background-color: #f8fafc;
+                    border-bottom: 1px solid #e2e8f0;
+                }
+                .custom-accordion .accordion-body {
+                    padding: 20px;
+                    color: #475569;
+                    line-height: 1.6;
+                }
+                .breadcrumb-subtle a {
+                    color: #64748b;
+                    text-decoration: none;
+                }
+                .breadcrumb-subtle a:hover {
+                    color: #166534;
+                }
+                .breadcrumb-subtle .active {
+                    color: #1e293b;
+                }
+                .content-card {
+                    background-color: #ffffff;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    padding: 24px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+                }
+                .section-title {
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    color: #166534;
+                }
+                /* Custom Table Styles */
+                .ingredient-table {
+                    border-collapse: separate;
+                    border-spacing: 0;
+                    border-radius: 12px;
+                    overflow: hidden;
+                    border: 1px solid #e2e8f0;
+                }
+                .ingredient-table thead th {
+                    background-color: #166534;
+                    color: #ffffff;
+                    font-weight: 600;
+                    border-bottom: none;
+                    padding: 14px 16px;
+                    vertical-align: middle;
+                }
+                .ingredient-table tbody td {
+                    padding: 16px;
+                    vertical-align: middle;
+                    border-bottom: 1px solid #f1f5f9;
+                }
+                .ingredient-table tbody tr:last-child td {
+                    border-bottom: none;
+                }
+                .ingredient-table tbody tr:hover td {
+                    background-color: #f8fafc;
+                }
+                .ing-name {
+                    font-weight: 700;
+                    color: #14532d;
+                }
+                .ing-botanical {
+                    color: #64748b;
+                    font-style: italic;
+                    font-size: 0.95rem;
+                }
+                .ing-percentage-badge {
+                    background-color: #ecfdf5;
+                    color: #065f46;
+                    font-weight: 600;
+                    padding: 4px 10px;
+                    border-radius: 12px;
+                    font-size: 0.9rem;
+                    display: inline-block;
+                    border: 1px solid #a7f3d0;
+                }
+                .ing-role {
+                    background-color: #f0fdf4;
+                    border-left: 3px solid #34d399;
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    color: #1e293b;
+                    font-size: 0.95rem;
+                }
+                .inline-ing-summary {
+                    color: #166534;
+                    font-weight: 600;
+                    font-size: 0.95rem;
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 8px;
+                    margin-top: 12px;
+                }
+                .inline-ing-summary span.pct {
+                    color: #65a30d;
+                }
+                .inline-ing-summary span.separator {
+                    color: #cbd5e1;
+                    font-weight: 400;
+                }
+                @media (max-width: 991px) {
+                    .premium-product-card {
+                        padding: 20px;
+                        border-radius: 12px;
+                    }
+                    .product-image-container {
+                        height: 380px;
+                    }
+                }
+                @media (max-width: 767px) {
+                    .product-title {
+                        font-size: 1.5rem;
+                    }
+                    .action-row {
+                        flex-direction: column;
+                        align-items: stretch;
+                    }
+                    .btn-wishlist {
+                        width: 100%;
+                    }
+                }
+            `}</style>
+
+            <div className="container">
+                <div className="premium-product-card">
+                    {/* Breadcrumb Row */}
+                    <div className="row g-5" style={{ justifyContent: 'flex-start' }}>
+                        <div className="col-12" style={{ textAlign: 'left', display: 'flex' }}>
+                            <nav aria-label="breadcrumb" className="mb-3" style={{ textAlign: 'left', width: '100%' }}>
+                                <ol className="breadcrumb custom-breadcrumb mb-0">
+                                    <li className="breadcrumb-item">
+                                        <Link to="/">Home</Link>
+                                    </li>
+                                    {product.categoryId && product.categoryId.categoryName && (
+                                        <li className="breadcrumb-item">
+                                            <span>{product.categoryId.categoryName}</span>
+                                        </li>
+                                    )}
+                                    {product.subcategoryId && product.subcategoryId.subcategoryName && (
+                                        <li className="breadcrumb-item">
+                                            <span>{product.subcategoryId.subcategoryName}</span>
+                                        </li>
+                                    )}
+                                    <li className="breadcrumb-item active">
+                                        {product.productName}
+                                        {product.quantity && product.unitId ? ` ${product.quantity} ${product.unitId.unitName || product.unitId}` : ''}
+                                    </li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+
+                    {/* Top 2-Column Area */}
+                    <div className="row g-5">
+                        {/* LEFT: Image */}
+                        <div className="col-lg-5">
+                            <div className="product-image-container">
+                                {/* Highlights Overlay */}
+                                {(product.featured || product.isBestSeller || product.isPopular || product.isTrending) && (
+                                    <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 10, display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                        {product.featured && <span style={{ display: 'inline-block', background: '#FFC107', color: '#000', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>FEATURED</span>}
+                                        {product.isBestSeller && <span style={{ display: 'inline-block', background: '#38996E', color: '#fff', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>BEST SELLER</span>}
+                                        {product.isPopular && <span style={{ display: 'inline-block', background: '#0D6EFD', color: '#fff', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>POPULAR</span>}
+                                        {product.isTrending && <span style={{ display: 'inline-block', background: '#DC3545', color: '#fff', padding: '4px 8px', fontSize: '10px', fontWeight: 700, borderRadius: '2px' }}>TRENDING</span>}
                                     </div>
-                                    <div className="swiper product-gallery-swiper thumb-swiper-lg">
-                                        <div className="swiper-wrapper">
-                                            {product.images && product.images.length > 0 ? product.images.map((img: string, index: number) => (
-                                                <div className="swiper-slide" key={index}>
-                                                    <img src={img} alt={product.productName} />
-                                                </div>
-                                            )) : (
-                                                <div className="swiper-slide">
-                                                    <img src="https://via.placeholder.com/150x150?text=No+Image" alt="Placeholder Thumb" />
-                                                </div>
-                                            )}
+                                )}
+                                <img 
+                                    src={selectedImage || (product.images && product.images[0]) || 'https://via.placeholder.com/600x600?text=No+Image'} 
+                                    alt={product.imageAltText || product.productName} 
+                                    className="product-main-image"
+                                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', padding: '20px' }} 
+                                />
+                            </div>
+                            {/* Thumbnails */}
+                            {product.images && product.images.length > 1 && (
+                                <div className="d-flex gap-2 mt-3 overflow-auto pb-2">
+                                    {product.images.map((img: string, idx: number) => (
+                                        <div 
+                                            key={idx} 
+                                            className={`product-thumbnail ${selectedImage === img ? 'active' : ''}`}
+                                            onClick={() => setSelectedImage(img)}
+                                        >
+                                            <img src={img} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} alt="thumb" />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* RIGHT: Info */}
+                        <div className="col-lg-7 d-flex flex-column">
+                            <div>
+                                <h1 className="product-title">
+                                    {product.productName}
+                                    {product.quantity && product.unitId ? ` ${product.quantity} ${product.unitId.unitName || product.unitId}` : ''}
+                                </h1>
+                                 {/* Quick Key Ingredients */}
+                                {product.keyIngredients && product.keyIngredients.length > 0 && (
+                                    <div className="inline-ing-summary mb-4">
+                                        {product.keyIngredients.slice(0, 5).map((ing: any, idx: number, arr: any[]) => (
+                                            <React.Fragment key={idx}>
+                                                <span>
+                                                    {ing.name} 
+                                                    {/* {ing.percentage && <span className="pct"> {ing.percentage}</span>} */}
+                                                </span>
+                                                {idx < arr.length - 1 && <span className="separator">|</span>}
+                                            </React.Fragment>
+                                        ))}
+                                    </div>
+                                )}
+                                {product.shortDescription && <p className="product-short-desc">{product.shortDescription}</p>}
+
+
+
+                                <div className="mb-3">
+                                    {product.stock > 5 ? (
+                                        <div style={{ color: '#166534', fontWeight: 600, fontSize: '0.95rem' }}>
+                                            <span style={{ fontSize: '1.2rem', verticalAlign: 'middle', marginRight: '4px' }}>&bull;</span> 
+                                            In Stock &middot; {product.stock} available
+                                        </div>
+                                    ) : product.stock > 0 && product.stock <= 5 ? (
+                                        <div style={{ color: '#d97706', fontWeight: 600, fontSize: '0.95rem' }}>
+                                            <span style={{ fontSize: '1.2rem', verticalAlign: 'middle', marginRight: '4px' }}>&bull;</span> 
+                                            Low Stock &middot; Only {product.stock} left
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: '#b91c1c', fontWeight: 600, fontSize: '0.95rem' }}>
+                                            <span style={{ fontSize: '1.2rem', verticalAlign: 'middle', marginRight: '4px' }}>&bull;</span> 
+                                            Out of Stock
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-auto pt-3">
+                                <div className="price-container">
+                                <span className="price-main">₹{product.offerPrice ? product.offerPrice.toFixed(2) : product.price.toFixed(2)}</span>
+                                {product.offerPrice && product.offerPrice < product.price && (
+                                    <>
+                                        <span className="price-mrp">MRP ₹{product.price.toFixed(2)}</span>
+                                        <span className="price-discount">{Math.round(((product.price - product.offerPrice) / product.price) * 100)}% OFF</span>
+                                    </>
+                                )}
+                                <div className="mt-1" style={{ fontSize: '0.85rem', color: '#64748b' }}>Inclusive of all taxes</div>
+                            </div>
+
+                            <div className="action-row">
+                                <div className="qty-control">
+                                    <button type="button" className="qty-btn" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={product.stock <= 0}>-</button>
+                                    <input type="number" className="qty-input" value={quantity} readOnly />
+                                    <button type="button" className="qty-btn" onClick={() => setQuantity(quantity + 1)} disabled={product.stock <= 0 || quantity >= product.stock}>+</button>
+                                </div>
+                                <button 
+                                    className="btn-add-to-cart flex-grow-1" 
+                                    onClick={product.stock > 0 ? handleAddToCart : undefined}
+                                    disabled={product.stock <= 0}
+                                    style={product.stock <= 0 ? { backgroundColor: '#94a3b8', cursor: 'not-allowed' } : {}}
+                                >
+                                    {product.stock <= 0 ? 'OUT OF STOCK' : 'ADD TO CART'}
+                                </button>
+                                <button className="btn-wishlist" onClick={handleAddToWishlist}>
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* PRODUCT INFORMATION - FULL WIDTH */}
+                    <div className="mt-5">
+                        
+                        {/* 1. Product Overview */}
+                        {product.description && (
+                            <div className="content-card mb-4">
+                                <h4 className="section-title text-success mb-3">Product Overview</h4>
+                                <div style={{ whiteSpace: 'pre-line', color: '#475569', lineHeight: 1.7 }}>
+                                    {product.description}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 2 & 4. Key Benefits & Specifications */}
+                        <div className="row g-4 mb-4">
+                            {product.keyBenefits && product.keyBenefits.length > 0 && (
+                                <div className="col-md-6">
+                                    <div className="content-card h-100">
+                                        <h4 className="section-title mb-3">Key Benefits</h4>
+                                        <ul className="mb-0 ps-0 list-unstyled">
+                                            {product.keyBenefits.map((ben: string, i: number) => (
+                                                <li key={i} className="mb-3 d-flex align-items-start">
+                                                    <span style={{ color: '#166534', marginRight: '10px', fontWeight: 'bold' }}>✓</span> 
+                                                    <span style={{ color: '#475569', lineHeight: 1.5 }}>{ben}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+                            {product.specifications && Object.keys(product.specifications).length > 0 && (
+                                <div className="col-md-6">
+                                    <div className="content-card h-100">
+                                        <h4 className="section-title mb-3">Specifications</h4>
+                                        <table className="table table-borderless table-sm mb-0">
+                                            <tbody>
+                                                {Object.entries(product.specifications).map(([key, val]: any, i: number) => (
+                                                    <tr key={i} className="border-bottom">
+                                                        <td className="ps-0 fw-bold text-dark py-2" style={{ width: '40%' }}>{key}</td>
+                                                        <td className="py-2 text-muted">{val}</td>
+                                                    </tr>
+                                                ))}
+                                                {product.sku && (
+                                                    <tr>
+                                                        <td className="ps-0 fw-bold text-dark py-2">SKU</td>
+                                                        <td className="py-2 text-muted">{product.sku}</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 5 & 7. How To Use & Suitable For */}
+                        <div className="row g-4 mb-4">
+                            {product.howToUse && (
+                                <div className="col-md-6">
+                                    <div className="content-card h-100">
+                                        <h4 className="section-title mb-3">How To Use</h4>
+                                        <div style={{ whiteSpace: 'pre-line', color: '#475569', lineHeight: 1.6 }}>
+                                            {product.howToUse}
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
+                            {product.suitableFor && (
+                                <div className="col-md-6">
+                                    <div className="content-card h-100">
+                                        <h4 className="section-title mb-3">Who It Is Suitable For</h4>
+                                        <div style={{ whiteSpace: 'pre-line', color: '#475569', lineHeight: 1.6 }}>
+                                            {product.suitableFor}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="col-xl-5 col-lg-6 col-md-6">
-                            <div className="dz-product-detail style-4 pt-md-5 pt-0 bg-transparent">
-                                <div className="dz-content">
-                                    <div className="dz-content-footer">
-                                        <div className="dz-content-start m-b5">
-                                            {product.unit && <span className="badge mb-2">{product.unit.unitName || product.unit}</span>}
-                                            <h4 className="title mb-0">{product.productName}</h4>
-                                            <div className="review-num">
-                                                <ul className="dz-rating me-2">
-                                                    {[1, 2, 3, 4, 5].map(i => (
-                                                        <li key={i}>
-                                                            <svg width="14" height="13" viewBox="0 0 14 13" fill="none">
-                                                                <path d="M6.74805 0.234375L8.72301 4.51608L13.4054 5.07126L9.9436 8.27267L10.8625 12.8975L6.74805 10.5944L2.63355 12.8975L3.5525 8.27267L0.090651 5.07126L4.77309 4.51608L6.74805 0.234375Z" fill="#000" />
-                                                            </svg>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                                <span className="text-secondary me-2">5.0 Rating</span>
-                                                <a href="javascript:void(0);">(10 customer reviews)</a>
+                        {/* 3. Full Key Ingredients */}
+                        {product.keyIngredients && product.keyIngredients.length > 0 && (
+                            <div className="content-card mb-4">
+                                <h4 className="section-title mb-3">Key Ingredients</h4>
+                                <div className="table-responsive d-none d-md-block">
+                                    <table className="table ingredient-table w-100 mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Ingredient Name</th>
+                                                <th>Botanical / Technical Name</th>
+                                                <th>Percentage</th>
+                                                <th>Part / Type</th>
+                                                <th>Website Role</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {product.keyIngredients.map((ing: any, i: number) => {
+                                                const hasPercent = ing.percentage && ing.percentage.trim() !== '' && ing.percentage !== '-';
+                                                let displayPercent = ing.percentage;
+                                                if (hasPercent && !String(displayPercent).includes('%')) {
+                                                    displayPercent = `${displayPercent}%`;
+                                                }
+                                                return (
+                                                    <tr key={i}>
+                                                        <td className="ing-name">{ing.name}</td>
+                                                        <td className="ing-botanical">{ing.botanicalName || '-'}</td>
+                                                        <td>
+                                                            {hasPercent ? <span className="ing-percentage-badge">{displayPercent}</span> : '-'}
+                                                        </td>
+                                                        <td className="text-muted">{ing.partType || '-'}</td>
+                                                        <td>
+                                                            {ing.websiteRole && ing.websiteRole !== '-' ? (
+                                                                <div className="ing-role">{ing.websiteRole}</div>
+                                                            ) : '-'}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="d-block d-md-none">
+                                    {product.keyIngredients.map((ing: any, i: number) => {
+                                        const hasPercent = ing.percentage && ing.percentage.trim() !== '' && ing.percentage !== '-';
+                                        let displayPercent = ing.percentage;
+                                        if (hasPercent && !String(displayPercent).includes('%')) {
+                                            displayPercent = `${displayPercent}%`;
+                                        }
+                                        return (
+                                            <div key={i} className="card mb-3 shadow-sm border border-light">
+                                                <div className="card-body">
+                                                    <h5 className="card-title ing-name mb-1">{ing.name}</h5>
+                                                    {ing.botanicalName && ing.botanicalName !== '-' && <div className="ing-botanical mb-2">{ing.botanicalName}</div>}
+                                                    {hasPercent && <div className="mb-2"><span className="ing-percentage-badge">{displayPercent}</span></div>}
+                                                    {ing.partType && ing.partType !== '-' && <div className="mb-2"><small className="text-muted fw-bold">Part/Type:</small> {ing.partType}</div>}
+                                                    {ing.websiteRole && ing.websiteRole !== '-' && <div className="ing-role mt-2">{ing.websiteRole}</div>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 6. Other Ingredients */}
+                        {product.otherIngredients && product.otherIngredients.trim() !== '' && (
+                            <div className="content-card mb-4">
+                                <h4 className="section-title mb-3">Other Ingredients</h4>
+                                <div style={{ whiteSpace: 'pre-line', color: '#475569', lineHeight: 1.6 }}>
+                                    {product.otherIngredients}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Label Control */}
+                        {product.labelControl && product.labelControl.trim() !== '' && (
+                            <div className="mb-4 px-3 py-2" style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
+                                <span style={{ color: '#166534', lineHeight: '1.6', fontSize: '0.95rem' }}>
+                                    <strong style={{ textTransform: 'uppercase', marginRight: '6px' }}>LABEL CONTROL</strong> 
+                                    <span style={{ color: '#334155', whiteSpace: 'pre-line' }}>
+                                        {(() => {
+                                            let val = product.labelControl.trim();
+                                            if (val.toUpperCase().startsWith('LABEL CONTROL')) {
+                                                val = val.substring(13).replace(/^[:\s-]+/, '').trim();
+                                            }
+                                            return val;
+                                        })()}
+                                    </span>
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Secondary Info Accordions */}
+                        <div className="accordion custom-accordion mb-4" id="secondaryContentAccordion">
+                                
+                                {/* 8. Safety / Side Effects / Allergy Information */}
+                                {/* 8. Safety / Side Effects / Allergy Information */}
+                                {product.safetyInformation && (
+                                    <div className="accordion-item">
+                                        <h2 className="accordion-header" id="headingSafety">
+                                            <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSafety" aria-expanded="false" aria-controls="collapseSafety">
+                                                Safety, Possible Side Effects & Allergy Information
+                                            </button>
+                                        </h2>
+                                        <div id="collapseSafety" className="accordion-collapse collapse" aria-labelledby="headingSafety" data-bs-parent="#secondaryContentAccordion">
+                                            <div className="accordion-body bg-light rounded m-3" style={{ whiteSpace: 'pre-line', fontSize: '0.95rem' }}>
+                                                {product.safetyInformation}
                                             </div>
                                         </div>
                                     </div>
-                                    <p className="para-text m-b25">{product.description || 'No description available for this product.'}</p>
-                                    <div className="meta-content m-b20 d-flex align-items-end">
-                                        <div className="me-3">
-                                            <span className="price-name">Price</span>
-                                            <span className="price">
-                                                ₹{product.offerPrice ? product.offerPrice.toFixed(2) : product.price.toFixed(2)} 
-                                                {product.offerPrice && product.offerPrice < product.price && (
-                                                    <del className="ms-2 text-muted">₹{product.price.toFixed(2)}</del>
-                                                )}
-                                            </span>
-                                        </div>
-                                    </div>
+                                )}
 
-                                    <div className="product-num">
-                                        <div className="btn-quantity style-2 light d-xl-block d-sm-none d-none">
-                                            <label className="form-label">Quantity</label>
-                                            <input type="number" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value))} />
-                                        </div>
-                                    </div>
-
-                                    <div className="btn-group cart-btn">
-                                        <button className="btn bnt-lg btn-secondary text-uppercase me-md-4" onClick={handleAddToCart}>Add To Cart</button>
-                                        <button className="btn btn-outline-secondary btn-lg btn-icon" onClick={handleAddToWishlist}>
-                                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                                                <path d="M9 16.9986C8.74374 16.9986 8.49669 16.9058 8.30415 16.7371C7.577 16.1013 6.87593 15.5038 6.2574 14.9767L6.25424 14.974C4.44081 13.4286 2.87485 12.094 1.78528 10.7794C0.567307 9.30968 0 7.9162 0 6.39391C0 4.91487 0.507156 3.55037 1.42795 2.55157C2.35973 1.54097 3.63826 0.984375 5.02844 0.984375C6.06747 0.984375 7.01903 1.31287 7.8566 1.96065C8.2793 2.28763 8.66245 2.68781 9 3.15459C9.33769 2.68781 9.7207 2.28763 10.1435 1.96065C10.9811 1.31287 11.9327 0.984375 12.9717 0.984375C14.3617 0.984375 15.6404 1.54097 16.5722 2.55157C17.493 3.55037 18 4.91487 18 6.39391C18 7.9162 17.4328 9.30968 16.2149 10.7792C15.1253 12.094 13.5595 13.4285 11.7463 14.9737C11.1267 15.5016 10.4245 16.1001 9.69571 16.7374C9.50331 16.9058 9.25612 16.9986 9 16.9986ZM5.02844 2.03879C3.93626 2.03879 2.93294 2.47467 2.20303 3.26624C1.46228 4.06975 1.05428 5.18047 1.05428 6.39391C1.05428 7.67422 1.53012 8.81927 2.59703 10.1066C3.62823 11.3509 5.16206 12.658 6.938 14.1715L6.9413 14.1743C7.56216 14.7034 8.26598 15.3033 8.99849 15.9438C9.7354 15.302 10.4403 14.7012 11.0624 14.1713C12.8382 12.6578 14.3719 11.3509 15.4031 10.1066C16.4699 8.81927 16.9457 7.67422 16.9457 6.39391C16.9457 5.18047 16.5377 4.06975 15.797 3.26624C15.0672 2.47467 14.0637 2.03879 12.9717 2.03879C12.1716 2.03879 11.437 2.29312 10.7884 2.79465C10.2104 3.24179 9.80777 3.80704 9.5717 4.20255C9.4503 4.40593 9.23662 4.52733 9 4.52733C8.76338 4.52733 8.5497 4.40593 8.4283 4.20255C8.19237 3.80704 7.78972 3.24179 7.21156 2.79465C6.56296 2.29312 5.82838 2.03879 5.02844 2.03879Z" fill="black" />
-                                            </svg>
-                                            Add To Wishlist
-                                        </button>
-                                    </div>
-
-                                    <div className="dz-info">
-                                        <ul>
-                                            <li><strong>SKU:</strong></li>
-                                            <li>{product.sku || 'N/A'}</li>
-                                        </ul>
-                                        <ul>
-                                            <li><strong>Category:</strong></li>
-                                            <li>
-                                                <span><Link to="/shop">{product.categoryId?.categoryName || 'Uncategorized'}</Link></span>
-                                            </li>
-                                        </ul>
-                                        {product.tags && product.tags.length > 0 && (
-                                            <ul>
-                                                <li><strong>Tags:</strong></li>
-                                                <li>{product.tags.map((tag: string, i: number) => (
-                                                    <span key={i}><Link to="/shop">{tag}</Link>{i < product.tags.length - 1 ? ', ' : ''}</span>
-                                                ))}</li>
-                                            </ul>
-                                        )}
-                                        {product.specifications && Object.keys(product.specifications).length > 0 && (
-                                            <ul>
-                                                <li><strong>Specifications:</strong></li>
-                                                <li>
-                                                    {Object.entries(product.specifications).map(([key, val]: any, i: number) => (
-                                                        <div key={i}>{key}: {val}</div>
-                                                    ))}
-                                                </li>
-                                            </ul>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section className="content-inner-3 pb-0 bg-light">
-                <div className="container">
-                    <div className="product-description">
-                        <div className="dz-tabs">
-                            <ul className="nav nav-tabs center" role="tablist">
-                                <li className="nav-item">
-                                    <button className={`nav-link ${activeTab === 'description' ? 'active' : ''}`} onClick={() => setActiveTab('description')}>Description</button>
-                                </li>
-                                <li className="nav-item">
-                                    <button className={`nav-link ${activeTab === 'reviews' ? 'active' : ''}`} onClick={() => setActiveTab('reviews')}>Reviews (12)</button>
-                                </li>
-                            </ul>
-                            <div className="tab-content">
-                                {activeTab === 'description' ? (
-                                    <div className="tab-pane fade show active">
-                                        <div className="detail-bx text-center">
-                                            <h5 className="title">{product.productName}</h5>
-                                            <p className="para-text">{product.description || 'No detailed description available.'}</p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="tab-pane fade show active">
-                                        <div className="detail-bx text-center">
-                                            <h5 className="title">Customer Reviews</h5>
-                                            <p className="para-text">Reviews content goes here...</p>
+                                {/* 9. Patch-Test Guidance */}
+                                {product.patchTestGuidance && (
+                                    <div className="accordion-item">
+                                        <h2 className="accordion-header" id="headingPatchTest">
+                                            <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePatchTest" aria-expanded="false" aria-controls="collapsePatchTest">
+                                                Patch-Test Guidance
+                                            </button>
+                                        </h2>
+                                        <div id="collapsePatchTest" className="accordion-collapse collapse" aria-labelledby="headingPatchTest" data-bs-parent="#secondaryContentAccordion">
+                                            <div className="accordion-body" style={{ whiteSpace: 'pre-line' }}>
+                                                {product.patchTestGuidance}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
+
+                                {/* 10. Storage & Product Care */}
+                                {product.storageInstructions && (
+                                    <div className="accordion-item">
+                                        <h2 className="accordion-header" id="headingStorage">
+                                            <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStorage" aria-expanded="false" aria-controls="collapseStorage">
+                                                Storage & Product Care
+                                            </button>
+                                        </h2>
+                                        <div id="collapseStorage" className="accordion-collapse collapse" aria-labelledby="headingStorage" data-bs-parent="#secondaryContentAccordion">
+                                            <div className="accordion-body" style={{ whiteSpace: 'pre-line' }}>
+                                                {product.storageInstructions}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 11. FAQs */}
+                                {product.faqs && product.faqs.length > 0 && (
+                                    <div className="accordion-item">
+                                        <h2 className="accordion-header" id="headingFaqs">
+                                            <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFaqs" aria-expanded="false" aria-controls="collapseFaqs">
+                                                FAQs
+                                            </button>
+                                        </h2>
+                                        <div id="collapseFaqs" className="accordion-collapse collapse" aria-labelledby="headingFaqs" data-bs-parent="#secondaryContentAccordion">
+                                            <div className="accordion-body">
+                                                <div className="accordion" id="innerFaqAccordion">
+                                                    {product.faqs.map((faq: any, i: number) => (
+                                                        <div className="accordion-item border-0 border-bottom mb-0 rounded-0" key={i} style={{ boxShadow: 'none' }}>
+                                                            <h2 className="accordion-header" id={`innerFaqHeading${i}`}>
+                                                                <button className="accordion-button collapsed bg-transparent shadow-none py-3 px-1 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target={`#innerFaqCollapse${i}`} aria-expanded="false" aria-controls={`innerFaqCollapse${i}`} style={{ fontSize: '1rem', borderBottom: 'none' }}>
+                                                                    Q: {faq.question}
+                                                                </button>
+                                                            </h2>
+                                                            <div id={`innerFaqCollapse${i}`} className="accordion-collapse collapse" aria-labelledby={`innerFaqHeading${i}`} data-bs-parent="#innerFaqAccordion">
+                                                                <div className="accordion-body text-muted py-2 px-1" style={{ whiteSpace: 'pre-line', padding: '0 4px 16px 4px' }}>
+                                                                    {faq.answer}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                             </div>
-                        </div>
+
+                            {/* Special Publishing & Claims Note */}
+                            {product.specialPublishingClaimsNote && product.specialPublishingClaimsNote.trim() !== '' && (
+                                <div className="mb-4">
+                                    <h4 className="section-title mb-3">Special Publishing & Claims Note</h4>
+                                    <div className="px-3 py-2" style={{ backgroundColor: '#fefce8', border: '1px solid #fde047', borderRadius: '6px' }}>
+                                        <span style={{ lineHeight: '1.6', fontSize: '0.95rem' }}>
+                                            <strong style={{ color: '#b91c1c', textTransform: 'uppercase', marginRight: '6px' }}>REVIEW BEFORE PUBLISHING</strong> 
+                                            <span style={{ color: '#334155', whiteSpace: 'pre-line' }}>
+                                                {(() => {
+                                                    let val = product.specialPublishingClaimsNote.trim();
+                                                    if (val.toUpperCase().startsWith('REVIEW BEFORE PUBLISHING')) {
+                                                        val = val.substring(24).replace(/^[:\s-]+/, '').trim();
+                                                    }
+                                                    return val;
+                                                })()}
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 12. Standard Website Disclaimer */}
+                            {product.disclaimer && product.disclaimer.trim() !== '' && (
+                                <div className="disclaimer-panel p-3 rounded mb-4" style={{ backgroundColor: '#f4fbf7', border: '1px solid #d1e8da', fontSize: '0.9rem', color: '#334155' }}>
+                                    <div className="fw-bold mb-2" style={{ color: '#166534', fontSize: '1rem', display: 'flex', alignItems: 'center' }}>
+                                        <i className="bi bi-info-circle me-2"></i> Standard Website Disclaimer
+                                    </div>
+                                    <div style={{ whiteSpace: 'pre-line', lineHeight: '1.5' }}>{product.disclaimer}</div>
+                                </div>
+                            )}
+
+                            {/* Bottom Nature Callout - Inside Card */}
+                            <div className="mt-5 p-4 rounded text-center" style={{ backgroundColor: '#f0fdf4', border: '1px solid #dcfce7' }}>
+                                <h3 className="fw-bold mb-2" style={{ color: '#166534', fontFamily: 'serif', fontStyle: 'italic', fontSize: '1.4rem' }}>Experience the Purity of Nature</h3>
+                                <p className="mb-0" style={{ color: '#14532d', fontSize: '0.95rem' }}>Carefully crafted with authentic botanical ingredients. Gentle on your body, safe for your family, and kind to the earth.</p>
+                            </div>
+
                     </div>
                 </div>
-            </section>
+            </div>
         </div>
     );
 };

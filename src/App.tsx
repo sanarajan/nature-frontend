@@ -23,7 +23,8 @@ import AdminComboOffers from './pages/Admin/Offers/ComboOffers'
 import AdminSpinWheel from './pages/Admin/SpinWheel/AdminSpinWheel'
 import MyRewards from './pages/Account/MyRewards'
 import UserComboOffers from './pages/Shop/ComboOffers'
-
+import ComboOfferDetails from './pages/Shop/ComboOfferDetails'
+import ComboOfferForm from './pages/Admin/Offers/ComboOfferForm'
 
 import Header from './components/Header/Header'
 import SpinWheelPopup from './components/SpinWheelPopup/SpinWheelPopup'
@@ -199,6 +200,8 @@ function App() {
           />
           <Route path="/admin/offers/product-category" element={<ProductCategoryOffers />} />
           <Route path="/admin/offers/combo" element={<AdminComboOffers />} />
+          <Route path="/admin/offers/combo/create" element={<ComboOfferForm />} />
+          <Route path="/admin/offers/combo/edit/:id" element={<ComboOfferForm />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/orders/all" element={<AdminOrders />} />
           <Route path="/admin/orders/:id" element={<AdminOrderDetails />} />
@@ -245,6 +248,7 @@ function App() {
                   <Route path="/shop" element={<Shop />} />
                   <Route path="/offers" element={<Offers />} />
                   <Route path="/combo-offers" element={<UserComboOffers />} />
+                  <Route path="/combo-offers/:slug" element={<ComboOfferDetails />} />
                   <Route path="/product/:id" element={<ProductDetails />} />
                   <Route path="/shop-cart" element={<Cart />} />
                   <Route path="/checkout" element={<Checkout />} />

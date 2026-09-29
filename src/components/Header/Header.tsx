@@ -232,6 +232,9 @@ const Header: React.FC = () => {
                                     <Link to="/shop" onClick={closeNavbar}><span>Shop</span></Link>
                                 </li>
                                 <li className="has-mega-menu sub-menu-down">
+                                    <Link to="/combo-offers" onClick={closeNavbar}><span>Combo</span></Link>
+                                </li>
+                                <li className="has-mega-menu sub-menu-down">
                                     <Link to="/offers" onClick={closeNavbar}><span>Offers</span></Link>
                                 </li>
                                 <li className="has-mega-menu sub-menu-down">

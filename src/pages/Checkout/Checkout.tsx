@@ -24,6 +24,7 @@ const Checkout: React.FC = () => {
     const [appliedCode, setAppliedCode] = useState<{ code: string, type: 'referral' | 'coupon' | 'influencer' | null, source?: 'LINK' | 'CODE' | null }>({ code: '', type: null, source: null });
     const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
     const [appliedComboOffer, setAppliedComboOffer] = useState<any>(null);
+    const [appliedComboOffers, setAppliedComboOffers] = useState<any[]>([]);
     
     // Nature Points
     const [useNaturePoints, setUseNaturePoints] = useState(false);
@@ -158,6 +159,7 @@ const Checkout: React.FC = () => {
                     if (res.data.success && res.data.data) {
                         setCartItems(res.data.data.products || []);
                         setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                        setAppliedComboOffers(res.data.data.appliedComboOffers || []);
                     }
                 } catch (err) { }
             } else {
@@ -226,6 +228,7 @@ const Checkout: React.FC = () => {
                 if (res.data.success && res.data.data) {
                     setCartItems(res.data.data.products || []);
                     setAppliedComboOffer(res.data.data.appliedComboOffer || null);
+                    setAppliedComboOffers(res.data.data.appliedComboOffers || []);
                 }
             } catch (err) {
                 console.error("Failed to fetch cart", err);
@@ -428,7 +431,7 @@ const Checkout: React.FC = () => {
         };
 
         fetchCentralizedTotals();
-    }, [cartItems, influencerCookie, influencerDiscountPercent, appliedComboOffer, appliedDiscount, appliedCode, formData.state, tempSelectedId, isChanging, showNewAddressForm, editingAddressId, editFormData.state, selectedAddressId, savedAddresses, useNaturePoints]);
+    }, [cartItems, influencerCookie, influencerDiscountPercent, appliedComboOffer, appliedComboOffers, appliedDiscount, appliedCode, formData.state, tempSelectedId, isChanging, showNewAddressForm, editingAddressId, editFormData.state, selectedAddressId, savedAddresses, useNaturePoints]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -447,7 +450,8 @@ const Checkout: React.FC = () => {
     };
 
     const handleApplyCode = async (codeToApply: string) => {
-        if (appliedComboOffer) {
+        const hasCombo = appliedComboOffer || (Array.isArray(appliedComboOffers) && appliedComboOffers.length > 0);
+        if (hasCombo) {
             toast.warning("Coupon or referral cannot be applied when combo offer is active.");
             return;
         }
@@ -957,17 +961,29 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                                 <td className="price">-₹{appliedDiscount.toFixed(2)}</td>
                                             </tr>
                                         )}
-                                        {appliedComboOffer && (
-                                            <tr className="discount text-success" style={{ border: '2px dashed #28a745', background: '#f8fff8', borderRadius: '10px' }}>
+                                    {(() => {
+                                        let displayedComboOffers = [];
+                                        if (Array.isArray(appliedComboOffers) && appliedComboOffers.length > 0) {
+                                            displayedComboOffers = appliedComboOffers;
+                                        } else if (appliedComboOffer) {
+                                            displayedComboOffers = [{
+                                                offerName: appliedComboOffer.offerName,
+                                                applications: 1,
+                                                discountAmount: appliedComboOffer.discountValue || 0
+                                            }];
+                                        }
+                                        return displayedComboOffers.map((combo: any, index: number) => (
+                                            <tr key={index} className="discount text-success" style={{ border: '2px dashed #28a745', background: '#f8fff8', borderRadius: '10px' }}>
                                                 <td style={{ padding: '15px 10px' }}>
-                                                    <h6 className="mb-0 fw-bold">{appliedComboOffer.offerName}</h6>
+                                                    <h6 className="mb-0 fw-bold">{combo.offerName}{combo.applications > 1 ? ` ×${combo.applications}` : ''}</h6>
                                                     <div className="small opacity-75">Combo Discount Applied</div>
                                                 </td>
                                                 <td className="price fw-bold" style={{ padding: '15px 10px', fontSize: '1.2rem' }}>
-                                                    -₹{appliedComboOffer.discountValue.toFixed(2)}
+                                                    -₹{(combo.discountAmount || 0).toFixed(2)}
                                                 </td>
                                             </tr>
-                                        )}
+                                        ));
+                                    })()}
                                         <tr className="shipping">
                                             <td>Shipping</td>
                                             <td className="price">{shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}</td>
@@ -1059,32 +1075,35 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                 <div className="coupon-input-container">
                                     <h6 className="mb-2">Apply Coupon / Referral</h6>
                                     
-                                    {appliedComboOffer && (
-                                        <div className="alert alert-info py-2 mb-2" style={{ fontSize: '13px', borderLeft: '4px solid #0dcaf0' }}>
-                                            <i className="fas fa-info-circle me-2"></i>
-                                            Combo offer applied. Coupons cannot be used.
-                                        </div>
-                                    )}
+                                    {(() => {
+                                        const hasCombo = appliedComboOffer || (Array.isArray(appliedComboOffers) && appliedComboOffers.length > 0);
+                                        return hasCombo ? (
+                                            <div className="alert alert-info py-2 mb-2" style={{ fontSize: '13px', borderLeft: '4px solid #0dcaf0' }}>
+                                                <i className="fas fa-info-circle me-2"></i>
+                                                Combo offer applied. Coupons cannot be used.
+                                            </div>
+                                        ) : null;
+                                    })()}
 
                                     <div className="input-group">
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder={appliedComboOffer ? "Disabled" : "Code"}
+                                            placeholder={(appliedComboOffer || (Array.isArray(appliedComboOffers) && appliedComboOffers.length > 0)) ? "Disabled" : "Code"}
                                             value={couponInput}
-                                            disabled={!!appliedComboOffer}
+                                            disabled={!!(appliedComboOffer || (Array.isArray(appliedComboOffers) && appliedComboOffers.length > 0))}
                                             onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                                         />
                                         <button
                                             className="btn btn-secondary"
-                                            disabled={!!appliedComboOffer}
+                                            disabled={!!(appliedComboOffer || (Array.isArray(appliedComboOffers) && appliedComboOffers.length > 0))}
                                             onClick={() => handleApplyCode(couponInput)}
                                         >
                                             APPLY
                                         </button>
                                     </div>
                                     
-                                    {!appliedComboOffer && (
+                                    {!(appliedComboOffer || (Array.isArray(appliedComboOffers) && appliedComboOffers.length > 0)) && (
                                         <div
                                             className="coupon-link"
                                             onClick={() => {

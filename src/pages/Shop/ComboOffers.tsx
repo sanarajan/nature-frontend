@@ -48,6 +48,7 @@ const ComboOffers: React.FC = () => {
     const [priceMin, setPriceMin] = useState(0);
     const [priceMax, setPriceMax] = useState(5000);
     const [sortOrder, setSortOrder] = useState('newest');
+    const [currentPage, setCurrentPage] = useState(1);
 
     const [cartItems, setCartItems] = useState<any[]>([]);
 
@@ -151,6 +152,7 @@ const ComboOffers: React.FC = () => {
                 return [...prev, categoryId];
             }
         });
+        setCurrentPage(1);
     };
 
     const handleAddToCart = async (combo: Combo, e: React.MouseEvent) => {
@@ -178,7 +180,7 @@ const ComboOffers: React.FC = () => {
                     product: i.product._id,
                     quantity: i.quantity
                 }));
-                const res = await userApiClient.post('/user/cart/sync', { cartItems: apiItems });
+                const res = await userApiClient.post('/user/cart/sync', { cartItems: apiItems, isAtomicCombo: true });
                 if (res.data.success) {
                     toast.success(`Bundle Added!`);
                     window.dispatchEvent(new Event('cart-updated'));
@@ -194,6 +196,34 @@ const ComboOffers: React.FC = () => {
                     offlineItems = JSON.parse(localCartStr);
                 } catch (err) {
                     offlineItems = [];
+                }
+            }
+
+            // Offline atomic validation
+            const aggregatedItems: { [key: string]: { item: any, quantity: number } } = {};
+            for (const newItem of cartItemsToAdd) {
+                const id = newItem.product?._id;
+                if (!id) continue;
+                if (!aggregatedItems[id]) aggregatedItems[id] = { item: newItem, quantity: 0 };
+                aggregatedItems[id].quantity += newItem.quantity;
+            }
+
+            for (const [id, agg] of Object.entries(aggregatedItems)) {
+                const product = agg.item.product;
+                if (!product || product.isActive === false) {
+                    toast.error(`One or more products in this combo are currently unavailable.`);
+                    return;
+                }
+                const existsIndex = offlineItems.findIndex(p => p.product?._id === id);
+                const currentQty = existsIndex > -1 ? offlineItems[existsIndex].quantity : 0;
+                
+                if ((product.stock || 0) <= 0) {
+                    toast.error(`One or more products in this combo are out of stock.`);
+                    return;
+                }
+                if (currentQty + agg.quantity > (product.stock || 0)) {
+                    toast.error(`Insufficient stock for product in combo.`);
+                    return;
                 }
             }
 
@@ -226,6 +256,21 @@ const ComboOffers: React.FC = () => {
         return true;
     });
 
+    const totalResults = filteredCombos.length;
+    const totalPages = Math.ceil(totalResults / 12);
+    
+    // Page out-of-range safety
+    useEffect(() => {
+        if (totalPages > 0 && currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [totalPages, currentPage]);
+
+    const startIndex = (currentPage - 1) * 12;
+    const paginatedCombos = filteredCombos.slice(startIndex, startIndex + 12);
+
+    const hasActiveFilters = searchQuery.trim() !== '' || selectedCategories.length > 0 || priceMin > 0 || priceMax < 5000;
+
     return (
         <div className="page-content bg-white combo-offers-page">
             
@@ -255,7 +300,7 @@ const ComboOffers: React.FC = () => {
                                         {(selectedCategories.length > 0 || searchQuery || priceMin > 0 || priceMax < 5000) && (
                                             <button 
                                                 className="btn btn-sm btn-danger rounded-pill px-3 py-1 text-white"
-                                                onClick={() => { setSelectedCategories([]); setSearchQuery(''); setPriceMin(0); setPriceMax(5000); }}
+                                                onClick={() => { setSelectedCategories([]); setSearchQuery(''); setPriceMin(0); setPriceMax(5000); setCurrentPage(1); }}
                                                 style={{ fontSize: '11px', fontWeight: 'bold' }}
                                             >
                                                 RESET ALL
@@ -271,7 +316,7 @@ const ComboOffers: React.FC = () => {
                                                 className="form-control"
                                                 placeholder="Search Combo"
                                                 value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                                             />
                                         </div>
                                     </div>
@@ -309,7 +354,7 @@ const ComboOffers: React.FC = () => {
                                                     max={5000}
                                                     step={50}
                                                     value={priceMin}
-                                                    onChange={(e) => setPriceMin(Math.min(Number(e.target.value), priceMax - 100))}
+                                                    onChange={(e) => { setPriceMin(Math.min(Number(e.target.value), priceMax - 100)); setCurrentPage(1); }}
                                                     style={{ width: '100%', accentColor: '#38996E' }}
                                                 />
                                                 <input
@@ -318,7 +363,7 @@ const ComboOffers: React.FC = () => {
                                                     max={5000}
                                                     step={50}
                                                     value={priceMax}
-                                                    onChange={(e) => setPriceMax(Math.max(Number(e.target.value), priceMin + 100))}
+                                                    onChange={(e) => { setPriceMax(Math.max(Number(e.target.value), priceMin + 100)); setCurrentPage(1); }}
                                                     style={{ width: '100%', accentColor: '#38996E', marginTop: '8px' }}
                                                 />
                                             </div>
@@ -336,14 +381,19 @@ const ComboOffers: React.FC = () => {
                         <div className="col-xl-9 col-lg-8">
                             <div className="combo-sort-bar d-flex justify-content-between align-items-center m-b30">
                                 <div className="result-info">
-                                    <p className="mb-0 text-muted">Found <span className="text-primary fw-bold">{filteredCombos.length}</span> active bundles</p>
+                                    <p className="mb-0 text-muted">
+                                        {totalResults === 0 
+                                            ? 'Found 0 active bundles'
+                                            : `Showing ${startIndex + 1}–${Math.min(currentPage * 12, totalResults)} of ${totalResults} combo offers`
+                                        }
+                                    </p>
                                 </div>
                                 <div className="sort-controls d-flex align-items-center gap-3">
                                     <span className="text-muted fw-600 d-none d-sm-inline">SORT BY:</span>
                                     <select 
                                         className="form-select combo-select shadow-sm"
                                         value={sortOrder}
-                                        onChange={(e) => setSortOrder(e.target.value)}
+                                        onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
                                     >
                                         <option value="newest">Latest arrivals</option>
                                         <option value="best-savings">Biggest Savings</option>
@@ -360,7 +410,7 @@ const ComboOffers: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="row">
-                                    {filteredCombos.length > 0 ? filteredCombos.map((combo) => (
+                                    {paginatedCombos.length > 0 ? paginatedCombos.map((combo) => (
                                         <div key={combo._id} className="col-xl-6 col-md-12 m-b40">
                                             <div className="premium-combo-card h-100 shadow-sm" style={{ cursor: 'pointer' }} onClick={() => navigate(`/combo-offers/${combo.slug || combo._id}`)}>
                                                 <div className="card-top">
@@ -439,18 +489,90 @@ const ComboOffers: React.FC = () => {
                                     )) : (
                                         <div className="col-12 text-center py-5 empty-deals">
                                             <i className="fa-solid fa-layer-group fa-4x mb-4 opacity-10"></i>
-                                            <h3 className="text-secondary fw-bold">No bundles match these filters</h3>
-                                            <p className="text-muted">Try resetting filters to explore all our amazing deals.</p>
-                                            <button 
-                                                className="btn btn-outline-primary rounded-pill mt-3 px-5 mb-5"
-                                                onClick={() => { setSelectedCategories([]); setSearchQuery(''); setPriceMin(0); setPriceMax(5000); }}
-                                            >
-                                                EXPLORE ALL DEALS
-                                            </button>
+                                            {hasActiveFilters ? (
+                                                <>
+                                                    <h3 className="text-secondary fw-bold">No bundles match these filters</h3>
+                                                    <p className="text-muted">Try resetting filters to explore all our amazing deals.</p>
+                                                    <button 
+                                                        className="btn btn-outline-primary rounded-pill mt-3 px-5 mb-5"
+                                                        onClick={() => { setSelectedCategories([]); setSearchQuery(''); setPriceMin(0); setPriceMax(5000); setCurrentPage(1); }}
+                                                    >
+                                                        EXPLORE ALL DEALS
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <h3 className="text-secondary fw-bold">No combo offers available right now</h3>
+                                                    <p className="text-muted">Please check back soon for new combo deals.</p>
+                                                </>
+                                            )}
                                         </div>
                                     )}
                                 </div>
                             )}
+
+                            {/* Pagination UI */}
+                            {!loading && totalPages > 1 && (
+                                <div className="pagination-wrapper mt-4 d-flex justify-content-center">
+                                    <nav aria-label="Page navigation">
+                                        <ul className="pagination" style={{ display: 'flex', listStyle: 'none', gap: '8px', padding: 0, alignItems: 'center' }}>
+                                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                                <button
+                                                    className="page-link"
+                                                    onClick={() => { setCurrentPage(prev => Math.max(1, prev - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                                    disabled={currentPage === 1}
+                                                    style={{ border: '1px solid #dee2e6', padding: '8px 12px', background: currentPage === 1 ? '#f8f9fa' : '#fff', color: currentPage === 1 ? '#6c757d' : '#38996E', borderRadius: '4px', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                                                >
+                                                    <i className="fa-solid fa-chevron-left"></i>
+                                                </button>
+                                            </li>
+                                            
+                                            {(() => {
+                                                const pages: (number | string)[] = [];
+                                                for (let p = 1; p <= totalPages; p++) {
+                                                    if (
+                                                        p === 1 || p === 2 ||
+                                                        p === totalPages || p === totalPages - 1 ||
+                                                        (p >= currentPage - 1 && p <= currentPage + 1)
+                                                    ) {
+                                                        pages.push(p);
+                                                    } else if (pages[pages.length - 1] !== '...') {
+                                                        pages.push('...');
+                                                    }
+                                                }
+                                                return pages.map((p, i) => {
+                                                    if (p === '...') {
+                                                        return <li key={`ellipsis-${i}`} style={{ padding: '0 8px', color: '#6c757d' }}>...</li>;
+                                                    }
+                                                    return (
+                                                        <li key={p} className={`page-item ${currentPage === p ? 'active' : ''}`}>
+                                                            <button
+                                                                className="page-link"
+                                                                onClick={() => { setCurrentPage(p as number); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                                                style={{ border: '1px solid #dee2e6', padding: '8px 16px', background: currentPage === p ? '#38996E' : '#fff', color: currentPage === p ? '#fff' : '#333', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                                            >
+                                                                {p}
+                                                            </button>
+                                                        </li>
+                                                    );
+                                                });
+                                            })()}
+
+                                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                                <button
+                                                    className="page-link"
+                                                    onClick={() => { setCurrentPage(prev => Math.min(totalPages, prev + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                                    disabled={currentPage === totalPages}
+                                                    style={{ border: '1px solid #dee2e6', padding: '8px 12px', background: currentPage === totalPages ? '#f8f9fa' : '#fff', color: currentPage === totalPages ? '#6c757d' : '#38996E', borderRadius: '4px', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                                                >
+                                                    <i className="fa-solid fa-chevron-right"></i>
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            )}
+
                         </div>
                     </div>
                 </div>

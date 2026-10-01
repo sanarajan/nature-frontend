@@ -516,12 +516,12 @@ const ProductDetails: React.FC = () => {
 
 
                                 <div className="mb-3">
-                                    {product.stock > 5 ? (
+                                    {product.stock > 10 ? (
                                         <div style={{ color: '#166534', fontWeight: 600, fontSize: '0.95rem' }}>
                                             <span style={{ fontSize: '1.2rem', verticalAlign: 'middle', marginRight: '4px' }}>&bull;</span> 
                                             In Stock &middot; {product.stock} available
                                         </div>
-                                    ) : product.stock > 0 && product.stock <= 5 ? (
+                                    ) : product.stock > 0 && product.stock <= 10 ? (
                                         <div style={{ color: '#d97706', fontWeight: 600, fontSize: '0.95rem' }}>
                                             <span style={{ fontSize: '1.2rem', verticalAlign: 'middle', marginRight: '4px' }}>&bull;</span> 
                                             Low Stock &middot; Only {product.stock} left

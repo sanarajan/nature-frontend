@@ -20,7 +20,22 @@ const Wishlist: React.FC = () => {
             if (localWishlistStr) {
                 try {
                     const localItems = JSON.parse(localWishlistStr);
-                    setWishlistItems(localItems);
+                    // Validate existence using cart/calculate to filter out deleted products without removing inactive ones
+                    const mockCart = localItems.map((item: any) => ({ product: item, quantity: 1 }));
+                    const res = await userApiClient.post('/user/cart/calculate', { products: mockCart });
+                    if (res.data.success && res.data.data) {
+                        const validProducts = res.data.data.products;
+                        const validIds = validProducts.map((p: any) => (p.product?._id || p.product));
+                        const cleanItems = localItems.filter((item: any) => validIds.includes(item._id));
+                        
+                        if (cleanItems.length !== localItems.length) {
+                            localStorage.setItem('offlineWishlist', JSON.stringify(cleanItems));
+                            window.dispatchEvent(new Event('wishlist-updated'));
+                        }
+                        setWishlistItems(cleanItems);
+                    } else {
+                        setWishlistItems(localItems);
+                    }
                 } catch (err) {
                     console.error('Error parsing local wishlist:', err);
                 }
@@ -137,6 +152,11 @@ const Wishlist: React.FC = () => {
                                                             {item.subcategoryId && <li>Subcategory: {item.subcategoryId.subcategoryName}</li>}
                                                             {item.sku && <li>SKU: {item.sku}</li>}
                                                         </ul>
+                                                        {item.isActive === false && (
+                                                            <div className="mt-1">
+                                                                <span className="badge bg-danger" style={{ fontSize: '12px' }}>Currently unavailable</span>
+                                                            </div>
+                                                        )}
                                                     </td>
                                                     <td className="product-item-price">
                                                         ₹{item.offerPrice ? item.offerPrice.toFixed(2) : item.price.toFixed(2)}
@@ -147,6 +167,7 @@ const Wishlist: React.FC = () => {
                                                     <td className="product-item-totle">
                                                         <button
                                                             onClick={() => handleAddToCartGlobal(item, 1, isUser, navigate, true)}
+                                                            disabled={item.isActive === false}
                                                             className="btn btn-outline-secondary"
                                                         >
                                                             Add To Cart

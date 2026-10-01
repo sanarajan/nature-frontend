@@ -16,6 +16,8 @@ export interface Product {
     specifications?: Record<string, string>;
     categoryId?: { _id: string; categoryName: string };
     subcategoryId?: { _id: string; subcategoryName: string };
+    stock?: number;
+    isActive?: boolean;
 }
 
 /**
@@ -45,7 +47,7 @@ export const handleAddToCartGlobal = async (
                 window.dispatchEvent(new Event('cart-updated'));
             }
         } catch (err: any) {
-            toast.error('Failed to update cart');
+            toast.error(err.response?.data?.message || 'Failed to update cart');
             return;
         }
     } else {
@@ -61,6 +63,17 @@ export const handleAddToCartGlobal = async (
         }
 
         const existsIndex = offlineItems.findIndex(p => p.product._id === prod._id);
+        const currentQty = existsIndex > -1 ? offlineItems[existsIndex].quantity : 0;
+        
+        if ((prod.stock || 0) <= 0) {
+            toast.error('This product is out of stock.');
+            return;
+        }
+        if (currentQty + quantity > (prod.stock || 0)) {
+            toast.error(`Only ${prod.stock} items are currently available.`);
+            return;
+        }
+
         if (existsIndex > -1) {
             offlineItems[existsIndex].quantity += quantity;
             toast.success('Cart updated');

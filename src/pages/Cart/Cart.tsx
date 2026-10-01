@@ -19,6 +19,8 @@ interface CartItem {
         images?: string[];
         categoryId?: { categoryName: string; _id: string };
         subcategoryId?: { subcategoryName: string; _id: string };
+        isActive?: boolean;
+        stock?: number;
     };
     quantity: number;
     isComboItem: boolean;
@@ -39,7 +41,45 @@ const Cart: React.FC = () => {
     const [cartPricing, setCartPricing] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+    const [isPreflighting, setIsPreflighting] = useState(false);
     const navigate = useNavigate();
+
+    const handlePlaceOrderClick = async () => {
+        if (!isUser) {
+            toast.info('Please login to continue to checkout');
+            navigate('/login');
+            return;
+        }
+
+        setIsPreflighting(true);
+        try {
+            const res = await userApiClient.get('/user/cart');
+            if (res.data.success && res.data.data) {
+                const currentProducts = res.data.data.products;
+                const hasIssue = currentProducts.some((item: any) => 
+                    item.product?.isActive === false || 
+                    (item.product?.stock || 0) <= 0 || 
+                    item.quantity > (item.product?.stock || 0)
+                );
+                
+                if (hasIssue) {
+                    setCartItems(currentProducts);
+                    if (res.data.data.pricing) {
+                        (window as any).cartPricing = res.data.data.pricing;
+                        setCartPricing(res.data.data.pricing);
+                    }
+                    toast.error('Some items in your cart have stock issues. Please review before proceeding.');
+                    setIsPreflighting(false);
+                    return;
+                }
+            }
+            navigate('/checkout');
+        } catch (err) {
+            toast.error('Failed to validate cart. Please try again.');
+        } finally {
+            setIsPreflighting(false);
+        }
+    };
 
     const fetchCart = async () => {
         setLoading(true);
@@ -65,7 +105,17 @@ const Cart: React.FC = () => {
                     const parsed = JSON.parse(localCartStr);
                     const res = await userApiClient.post('/user/cart/calculate', { products: parsed });
                     if (res.data.success && res.data.data) {
-                        setCartItems(res.data.data.products);
+                        const validProducts = res.data.data.products;
+                        
+                        // Clean up stale items in offlineCart
+                        const validIds = validProducts.map((p: any) => (p.product?._id || p.product));
+                        const cleanParsed = parsed.filter((p: any) => validIds.includes(p.product?._id || p.product));
+                        if (cleanParsed.length !== parsed.length) {
+                            localStorage.setItem('offlineCart', JSON.stringify(cleanParsed));
+                            window.dispatchEvent(new Event('cart-updated'));
+                        }
+
+                        setCartItems(validProducts);
                         setAppliedComboOffer(res.data.data.appliedComboOffer || null);
                         setAppliedComboOffers(res.data.data.appliedComboOffers || []);
                         if (res.data.data.pricing) {
@@ -108,6 +158,12 @@ const Cart: React.FC = () => {
     const updateQty = async (productId: string, delta: number) => {
         const currentQty = cartItems.filter((i: CartItem) => i.product._id === productId).reduce((acc, curr) => acc + curr.quantity, 0) || 1;
         const newQty = Math.max(1, currentQty + delta);
+        
+        const productData = cartItems.find((i: CartItem) => i.product._id === productId)?.product;
+        if (delta > 0 && productData && newQty > (productData.stock || 0)) {
+            toast.warning(`Only ${productData.stock} items available`);
+            return;
+        }
 
         if (isUser) {
             try {
@@ -210,6 +266,12 @@ const Cart: React.FC = () => {
         return [];
     }, [appliedComboOffers, appliedComboOffer, comboDiscount]);
 
+    const hasUnavailableItems = cartItems.some(item => 
+        item.product.isActive === false || 
+        (item.product.stock || 0) <= 0 || 
+        item.quantity > (item.product.stock || 0)
+    );
+
     return (
         <div className="page-content">
             <div className="dz-bnr-inr" style={{ backgroundImage: `url(${bg1})` }}>
@@ -285,6 +347,21 @@ const Cart: React.FC = () => {
                                                                     </span>
                                                                 </div>
                                                             )}
+                                                            {prod.isActive === false && (
+                                                                <div className="mt-1">
+                                                                    <span className="badge bg-danger" style={{ fontSize: '12px' }}>Currently unavailable</span>
+                                                                </div>
+                                                            )}
+                                                            {prod.isActive !== false && (prod.stock || 0) <= 0 && (
+                                                                <div className="mt-1">
+                                                                    <span className="badge bg-danger" style={{ fontSize: '12px' }}>Out of stock</span>
+                                                                </div>
+                                                            )}
+                                                            {prod.isActive !== false && (prod.stock || 0) > 0 && quantity > (prod.stock || 0) && (
+                                                                <div className="mt-1">
+                                                                    <span className="badge bg-warning text-dark" style={{ fontSize: '12px' }}>Only {prod.stock} items are currently available.</span>
+                                                                </div>
+                                                            )}
                                                             {/* Mobile remove */}
                                                             <div className="d-block d-md-none mt-2">
                                                                 {itemToDelete === prod._id ? (
@@ -322,11 +399,11 @@ const Cart: React.FC = () => {
                                                         <td className="product-item-quantity py-1 px-1">
                                                             <div className="quantity btn-quantity style-1 me-1">
                                                                 <div className="btn-quantity light quantity-sm" style={{ display: 'flex', alignItems: 'center' }}>
-                                                                    <button className="btn btn-sm" onClick={() => updateQty(prod._id, -1)} style={{ background: '#1a1a1a', color: '#fff', border: 'none', width: '25px', height: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0' }}>
+                                                                    <button className="btn btn-sm" disabled={prod.isActive === false} onClick={() => updateQty(prod._id, -1)} style={{ background: '#1a1a1a', color: '#fff', border: 'none', width: '25px', height: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0' }}>
                                                                         <span style={{ fontSize: '18px', fontWeight: '500' }}>−</span>
                                                                     </button>
                                                                     <input type="text" value={quantity} readOnly style={{ width: '25px', height: '25px', textAlign: 'center', border: '1px solid #eee', color: '#1a1a1a', background: '#fff', margin: '0', borderRadius: '0', fontSize: '14px' }} />
-                                                                    <button className="btn btn-sm" onClick={() => updateQty(prod._id, 1)} style={{ background: '#1a1a1a', color: '#fff', border: 'none', width: '25px', height: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0' }}>
+                                                                    <button className="btn btn-sm" disabled={prod.isActive === false || quantity >= (prod.stock || 0)} onClick={() => updateQty(prod._id, 1)} style={{ background: '#1a1a1a', color: '#fff', border: 'none', width: '25px', height: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0', cursor: (prod.isActive === false || quantity >= (prod.stock || 0)) ? 'not-allowed' : 'pointer' }}>
                                                                         <span style={{ fontSize: '18px', fontWeight: '500' }}>+</span>
                                                                     </button>
                                                                 </div>
@@ -445,18 +522,17 @@ const Cart: React.FC = () => {
                                         </tr>
                                     </tbody>
                                 </table>
+                                {hasUnavailableItems && (
+                                    <div className="alert alert-danger" style={{ fontSize: '12px', padding: '10px', marginTop: '10px' }}>
+                                        Please update products with insufficient stock or remove unavailable items before checkout.
+                                    </div>
+                                )}
                                 <button
-                                    onClick={() => {
-                                        if (isUser) {
-                                            navigate('/checkout');
-                                        } else {
-                                            toast.info('Please login to continue to checkout');
-                                            navigate('/login');
-                                        }
-                                    }}
+                                    onClick={handlePlaceOrderClick}
+                                    disabled={hasUnavailableItems || isPreflighting}
                                     className="btn btn-outline-secondary btn-lg w-100"
                                 >
-                                    PLACE ORDER
+                                    {isPreflighting ? 'VALIDATING...' : 'PLACE ORDER'}
                                 </button>
                             </div>
                         </div>

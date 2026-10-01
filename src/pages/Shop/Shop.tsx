@@ -8,6 +8,7 @@ import type { RootState } from '../../store';
 // Asset Imports
 import bg1 from '../../assets/images/background/bg1.jpg';
 import product1 from '../../assets/images/shop/product/1.png';
+import { handleAddToCartGlobal } from '../../utils/CartHelper';
 
 // Star rating renderer
 const StarRating = ({ count }: { count: number }) => (
@@ -166,12 +167,12 @@ const QuickViewModal = ({ prod, onClose, inWishlist, onToggleWishlist, handleAdd
 
                     {/* Stock status */}
                     <div style={{ marginBottom: '15px' }}>
-                        {(prod.stock || 0) > 5 ? (
+                        {(prod.stock || 0) > 10 ? (
                             <div style={{ color: '#166534', fontWeight: 600, fontSize: '14px' }}>
                                 <span style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>&bull;</span> 
                                 In Stock &middot; {prod.stock || 0} available
                             </div>
-                        ) : (prod.stock || 0) > 0 && (prod.stock || 0) <= 5 ? (
+                        ) : (prod.stock || 0) > 0 && (prod.stock || 0) <= 10 ? (
                             <div style={{ color: '#d97706', fontWeight: 600, fontSize: '14px' }}>
                                 <span style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>&bull;</span> 
                                 Low Stock &middot; Only {prod.stock || 0} left
@@ -239,6 +240,8 @@ const Shop: React.FC = () => {
     const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
 
     const [products, setProducts] = useState<Product[]>([]);
+    const [totalResults, setTotalResults] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
     const [hierarchies, setHierarchies] = useState<any[]>([]);
     const [wishlist, setWishlist] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
@@ -356,44 +359,7 @@ const Shop: React.FC = () => {
     };
 
     const handleAddToCart = async (prod: Product, quantity: number = 1, redirect: boolean = false) => {
-        if (isUser) {
-            try {
-                const res = await userApiClient.post('/user/cart/toggle', { productId: prod._id, quantity });
-                if (res.data.success) {
-                    toast.success('Added to cart');
-                    window.dispatchEvent(new Event('cart-updated'));
-                }
-            } catch (err: any) {
-                toast.error('Failed to update cart');
-                return;
-            }
-        } else {
-            // Offline logic
-            const localCartStr = localStorage.getItem('offlineCart');
-            let offlineItems: any[] = [];
-            if (localCartStr) {
-                try {
-                    offlineItems = JSON.parse(localCartStr);
-                } catch (err) {
-                    offlineItems = [];
-                }
-            }
-
-            const existsIndex = offlineItems.findIndex(p => p.product._id === prod._id);
-            if (existsIndex > -1) {
-                offlineItems[existsIndex].quantity += quantity;
-                toast.success('Cart updated');
-            } else {
-                offlineItems.push({ product: prod, quantity });
-                toast.success('Added to offline cart. Login to save permanently.');
-            }
-            localStorage.setItem('offlineCart', JSON.stringify(offlineItems));
-            window.dispatchEvent(new Event('cart-updated'));
-        }
-
-        if (redirect) {
-            navigate('/shop-cart');
-        }
+        await handleAddToCartGlobal(prod, quantity, isUser, navigate, redirect);
     };
 
     useEffect(() => {
@@ -404,7 +370,9 @@ const Shop: React.FC = () => {
                 const params: any = {
                     minPrice: priceMin,
                     maxPrice: priceMax,
-                    sort: sortBy
+                    sort: sortBy,
+                    page: currentPage,
+                    limit: 12
                 };
                 if (activeCategoryIds.length > 0) params.categoryId = activeCategoryIds.join(',');
                 if (activeSubcategoryIds.length > 0) params.subcategoryId = activeSubcategoryIds.join(',');
@@ -413,7 +381,13 @@ const Shop: React.FC = () => {
 
                 const res = await userApiClient.get('/user/products', { params });
                 if (res.data.success) {
-                    setProducts(res.data.data);
+                    const responseData = res.data.data;
+                    setProducts(responseData.products || []);
+                    setTotalResults(responseData.total || 0);
+                    
+                    if (responseData.totalPages > 0 && currentPage > responseData.totalPages) {
+                        setCurrentPage(1);
+                    }
                 }
             } catch (err) {
                 console.error('Error fetching products:', err);
@@ -425,7 +399,7 @@ const Shop: React.FC = () => {
         };
         const timer = setTimeout(fetchProducts, 300);
         return () => clearTimeout(timer);
-    }, [activeCategoryIds, activeSubcategoryIds, searchQuery, priceMin, priceMax, sortBy, onOffer]);
+    }, [activeCategoryIds, activeSubcategoryIds, searchQuery, priceMin, priceMax, sortBy, onOffer, currentPage]);
 
     const handleCategoryToggle = (catId: string, subcategories: any[]) => {
         const subIds = subcategories.map(s => s._id);
@@ -445,6 +419,7 @@ const Shop: React.FC = () => {
             setActiveSubcategoryIds(prev => [...new Set([...prev, ...subIds])]);
             setExpandedCats(prev => prev.includes(catId) ? prev : [...prev, catId]);
         }
+        setCurrentPage(1);
     };
 
     const handleSubcategoryToggle = (subId: string, parentCatId: string, allSubIds: string[]) => {
@@ -463,6 +438,7 @@ const Shop: React.FC = () => {
                 return newPrev;
             }
         });
+        setCurrentPage(1);
     };
 
     const toggleCatExpand = (catId: string) => {
@@ -478,6 +454,7 @@ const Shop: React.FC = () => {
         setSortBy('newest');
         setExpandedCats([]);
         setOnOffer(false);
+        setCurrentPage(1);
     };
 
     return (
@@ -524,7 +501,7 @@ const Shop: React.FC = () => {
                                                         className="form-control"
                                                         placeholder="Search Product"
                                                         value={searchQuery}
-                                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                                        onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                                                     />
                                                     <div className="input-group-btn">
                                                         <button type="submit" className="btn btn-secondary"><i className="flaticon-loupe"></i></button>
@@ -538,7 +515,7 @@ const Shop: React.FC = () => {
                                             <ul>
                                                 <li className="cat-item">
                                                     <div className="custom-control custom-checkbox d-flex align-items-center"
-                                                        onClick={() => setOnOffer(!onOffer)}
+                                                        onClick={() => { setOnOffer(!onOffer); setCurrentPage(1); }}
                                                         style={{ cursor: 'pointer', marginBottom: '8px' }}>
                                                         <div className={`form-check-input square ${onOffer ? 'checked' : ''}`}
                                                             style={{ width: '16px', height: '16px', border: '1px solid #ccc', marginRight: '10px', backgroundColor: onOffer ? '#38996E' : 'transparent' }}></div>
@@ -563,7 +540,7 @@ const Shop: React.FC = () => {
                                                         max={2000}
                                                         step={50}
                                                         value={priceMin}
-                                                        onChange={(e) => setPriceMin(Math.min(Number(e.target.value), priceMax - 100))}
+                                                        onChange={(e) => { setPriceMin(Math.min(Number(e.target.value), priceMax - 100)); setCurrentPage(1); }}
                                                         style={{ width: '100%', accentColor: '#38996E' }}
                                                     />
                                                     <input
@@ -572,7 +549,7 @@ const Shop: React.FC = () => {
                                                         max={2000}
                                                         step={50}
                                                         value={priceMax}
-                                                        onChange={(e) => setPriceMax(Math.max(Number(e.target.value), priceMin + 100))}
+                                                        onChange={(e) => { setPriceMax(Math.max(Number(e.target.value), priceMin + 100)); setCurrentPage(1); }}
                                                         style={{ width: '100%', accentColor: '#38996E', marginTop: '8px' }}
                                                     />
                                                 </div>
@@ -646,11 +623,15 @@ const Shop: React.FC = () => {
                         <div className="col-12 col-xl-9">
                             <div className="filter-wrapper">
                                 <div className="filter-left-area">
-                                    <span>Showing 1–{products.length} Results</span>
+                                    <span>
+                                        {totalResults === 0 
+                                            ? 'Showing 0 Results' 
+                                            : `Showing ${(currentPage - 1) * 12 + 1}–${Math.min(currentPage * 12, totalResults)} of ${totalResults} Results`}
+                                    </span>
                                 </div>
                                 <div className="filter-right-area">
                                     <div className="form-group border-0">
-                                        <select className="form-select default-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                                        <select className="form-select default-select" value={sortBy} onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}>
                                             <option value="newest">Newest First</option>
                                             <option value="price-low-high">Price: Low to High</option>
                                             <option value="price-high-low">Price: High to Low</option>
@@ -799,6 +780,70 @@ const Shop: React.FC = () => {
                                     })}
                                 </div>
                             )}
+
+                            {/* Pagination UI */}
+                            {!loading && totalResults > 12 && (
+                                <div className="pagination-wrapper mt-4 d-flex justify-content-center">
+                                    <nav aria-label="Page navigation">
+                                        <ul className="pagination" style={{ display: 'flex', listStyle: 'none', gap: '8px', padding: 0, alignItems: 'center' }}>
+                                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                                <button
+                                                    className="page-link"
+                                                    onClick={() => { setCurrentPage(prev => Math.max(1, prev - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                                    disabled={currentPage === 1}
+                                                    style={{ border: '1px solid #dee2e6', padding: '8px 12px', background: currentPage === 1 ? '#f8f9fa' : '#fff', color: currentPage === 1 ? '#6c757d' : '#38996E', borderRadius: '4px', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                                                >
+                                                    <i className="fa-solid fa-chevron-left"></i>
+                                                </button>
+                                            </li>
+                                            
+                                            {(() => {
+                                                const tPages = Math.ceil(totalResults / 12);
+                                                const pages: (number | string)[] = [];
+                                                for (let p = 1; p <= tPages; p++) {
+                                                    if (
+                                                        p === 1 || p === 2 ||
+                                                        p === tPages || p === tPages - 1 ||
+                                                        (p >= currentPage - 1 && p <= currentPage + 1)
+                                                    ) {
+                                                        pages.push(p);
+                                                    } else if (pages[pages.length - 1] !== '...') {
+                                                        pages.push('...');
+                                                    }
+                                                }
+                                                return pages.map((p, i) => {
+                                                    if (p === '...') {
+                                                        return <li key={`ellipsis-${i}`} style={{ padding: '0 8px', color: '#6c757d' }}>...</li>;
+                                                    }
+                                                    return (
+                                                        <li key={p} className={`page-item ${currentPage === p ? 'active' : ''}`}>
+                                                            <button
+                                                                className="page-link"
+                                                                onClick={() => { setCurrentPage(p as number); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                                                style={{ border: '1px solid #dee2e6', padding: '8px 16px', background: currentPage === p ? '#38996E' : '#fff', color: currentPage === p ? '#fff' : '#333', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                                            >
+                                                                {p}
+                                                            </button>
+                                                        </li>
+                                                    );
+                                                });
+                                            })()}
+
+                                            <li className={`page-item ${currentPage === Math.ceil(totalResults / 12) ? 'disabled' : ''}`}>
+                                                <button
+                                                    className="page-link"
+                                                    onClick={() => { setCurrentPage(prev => Math.min(Math.ceil(totalResults / 12), prev + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                                    disabled={currentPage === Math.ceil(totalResults / 12)}
+                                                    style={{ border: '1px solid #dee2e6', padding: '8px 12px', background: currentPage === Math.ceil(totalResults / 12) ? '#f8f9fa' : '#fff', color: currentPage === Math.ceil(totalResults / 12) ? '#6c757d' : '#38996E', borderRadius: '4px', cursor: currentPage === Math.ceil(totalResults / 12) ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                                                >
+                                                    <i className="fa-solid fa-chevron-right"></i>
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            )}
+
                         </div>
                     </div>
                 </div>

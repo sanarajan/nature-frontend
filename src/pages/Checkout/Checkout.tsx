@@ -41,6 +41,8 @@ const Checkout: React.FC = () => {
     
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [addressLoading, setAddressLoading] = useState(true);
+    const [checkoutValidationError, setCheckoutValidationError] = useState<string | null>(null);
+    const [isTotalsLoading, setIsTotalsLoading] = useState(false);
 
     const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
     const [selectedAddressId, setSelectedAddressId] = useState<string>('');
@@ -387,6 +389,7 @@ const Checkout: React.FC = () => {
             const activeAddrId = (showNewAddressForm || editingAddressId) ? null : (tempSelectedId || selectedAddressId);
 
             try {
+                setIsTotalsLoading(true);
                 const payload = {
                     addressId: activeAddrId,
                     couponCode: (appliedCode.type === 'coupon' || (appliedCode.type === 'influencer' && appliedCode.source === 'CODE')) ? appliedCode.code : '',
@@ -397,6 +400,7 @@ const Checkout: React.FC = () => {
                 
                 const res = await userApiClient.post('/user/order/checkout/totals', payload);
                 if (res.data.success) {
+                    setCheckoutValidationError(null);
                     const data = res.data.data;
                     setSubtotal(data.originalPrice || data.subtotal);
                     setInfluencerDiscountAmount(data.influencerDiscountAmount || 0);
@@ -425,8 +429,15 @@ const Checkout: React.FC = () => {
                         setInfluencerCookie(null);
                     }
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to fetch checkout totals", error);
+                if (error.response?.data?.message) {
+                    setCheckoutValidationError(error.response.data.message);
+                } else {
+                    setCheckoutValidationError("Failed to calculate totals due to a validation error.");
+                }
+            } finally {
+                setIsTotalsLoading(false);
             }
         };
 
@@ -451,10 +462,6 @@ const Checkout: React.FC = () => {
 
     const handleApplyCode = async (codeToApply: string) => {
         const hasCombo = appliedComboOffer || (Array.isArray(appliedComboOffers) && appliedComboOffers.length > 0);
-        if (hasCombo) {
-            toast.warning("Coupon or referral cannot be applied when combo offer is active.");
-            return;
-        }
         const code = (codeToApply || couponInput).trim().toUpperCase();
         if (!code) return;
 
@@ -500,6 +507,11 @@ const Checkout: React.FC = () => {
                 }
             } catch (infErr) {
                 // Ignore and continue checking regular coupons/referrals
+            }
+
+            if (hasCombo) {
+                toast.warning("Coupon or referral cannot be applied when combo offer is active.");
+                return;
             }
 
             // 1. Try validating as a regular coupon first
@@ -940,6 +952,9 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                             <div className="dz-content">
                                                 <h6 className="title mb-0">{g.product?.productName} <span className="text-secondary">x{g.totalQty}</span></h6>
                                                 <span className="price">₹{((g.product?.price || 0) * g.totalQty).toFixed(2)}</span>
+                                                {g.product?.isActive === false && (
+                                                    <div className="mt-1"><span className="badge bg-danger" style={{ fontSize: '10px' }}>Unavailable</span></div>
+                                                )}
                                             </div>
                                         </div>
                                     ));
@@ -1002,7 +1017,9 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                         )}
                                         <tr className="total">
                                             <td>Total</td>
-                                            <td className="price">₹{total.toFixed(2)}</td>
+                                            <td className="price">
+                                                {checkoutValidationError ? '—' : `₹${total.toFixed(2)}`}
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1241,7 +1258,21 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                         )}
                                     </div>
                                 </div>
-                                <button onClick={handlePlaceOrder} disabled={cartItems.length === 0 || !selectedAddressId || selectedAddressId === 'new' || isChanging || showNewAddressForm || !!editingAddressId} className="btn btn-outline-secondary btn-lg w-100 mt-4">PLACE ORDER</button>
+                                {cartItems.some(item => item.product?.isActive === false) && (
+                                    <div className="alert alert-danger mt-3" style={{ fontSize: '13px', padding: '10px' }}>
+                                        <i className="fas fa-exclamation-circle me-2"></i>
+                                        One or more products in your cart are currently unavailable. Please remove them to checkout.
+                                    </div>
+                                )}
+                                {checkoutValidationError && (
+                                    <div className="alert alert-danger mt-3" style={{ fontSize: '13px', padding: '10px' }}>
+                                        <i className="fas fa-exclamation-circle me-2"></i>
+                                        {checkoutValidationError}
+                                    </div>
+                                )}
+                                <button onClick={handlePlaceOrder} disabled={cartItems.length === 0 || !selectedAddressId || selectedAddressId === 'new' || isChanging || showNewAddressForm || !!editingAddressId || cartItems.some(item => item.product?.isActive === false) || !!checkoutValidationError || isTotalsLoading} className="btn btn-outline-secondary btn-lg w-100 mt-4">
+                                    PLACE ORDER
+                                </button>
                             </div>
                         </div>
                     </div>

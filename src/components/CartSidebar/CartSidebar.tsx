@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import userApiClient from '../../services/userApiClient';
 import type { RootState } from '../../store';
 import product1 from '../../assets/images/shop/product/1.png';
+import { toast } from 'react-toastify';
 
 interface CartSidebarProps {
     activeTab: 'cart' | 'wishlist';
@@ -19,6 +20,43 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
     const handleNavigate = (path: string) => {
         handleCloseOffcanvas();
         navigate(path);
+    };
+
+    const [isPreflighting, setIsPreflighting] = useState(false);
+    
+    const handleCheckoutClick = async () => {
+        if (!isUser) {
+            handleNavigate('/login');
+            return;
+        }
+
+        setIsPreflighting(true);
+        try {
+            const res = await userApiClient.get('/user/cart');
+            if (res.data.success && res.data.data) {
+                const currentProducts = res.data.data.products;
+                const hasIssue = currentProducts.some((item: any) => 
+                    item.product?.isActive === false || 
+                    (item.product?.stock || 0) <= 0 || 
+                    item.quantity > (item.product?.stock || 0)
+                );
+                
+                if (hasIssue) {
+                    setCartItems(currentProducts);
+                    if (res.data.data.pricing) {
+                        setCartPricing(res.data.data.pricing);
+                    }
+                    toast.error('Some items in your cart have stock issues. Please review before proceeding.');
+                    setIsPreflighting(false);
+                    return;
+                }
+            }
+            handleNavigate('/checkout');
+        } catch (err) {
+            toast.error('Failed to validate cart. Please try again.');
+        } finally {
+            setIsPreflighting(false);
+        }
     };
 
     const handleCloseOffcanvas = () => {
@@ -67,18 +105,51 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
             if (localCartStr) {
                 try { 
                     const parsed = JSON.parse(localCartStr);
-                    setCartItems(parsed); 
                     // To get correct totals for offline users in sidebar, we'd ideally call calculate
                     const res = await userApiClient.post('/user/cart/calculate', { products: parsed });
-                    if (res.data.success && res.data.data && res.data.data.pricing) {
-                        setCartPricing(res.data.data.pricing);
+                    if (res.data.success && res.data.data) {
+                        const validProducts = res.data.data.products;
+                        
+                        // Clean up stale items in offlineCart
+                        const validIds = validProducts.map((p: any) => (p.product?._id || p.product));
+                        const cleanParsed = parsed.filter((p: any) => validIds.includes(p.product?._id || p.product));
+                        if (cleanParsed.length !== parsed.length) {
+                            localStorage.setItem('offlineCart', JSON.stringify(cleanParsed));
+                            window.dispatchEvent(new Event('cart-updated'));
+                            setCartItems(cleanParsed);
+                        } else {
+                            setCartItems(parsed); 
+                        }
+
+                        if (res.data.data.pricing) {
+                            setCartPricing(res.data.data.pricing);
+                        }
+                    } else {
+                        setCartItems(parsed);
                     }
                 } catch (e) { setCartItems([]); }
             } else setCartItems([]);
 
             const localWishlistStr = localStorage.getItem('offlineWishlist');
             if (localWishlistStr) {
-                try { setWishlistItems(JSON.parse(localWishlistStr)); } catch (e) { setWishlistItems([]); }
+                try {
+                    const localItems = JSON.parse(localWishlistStr);
+                    const mockCart = localItems.map((item: any) => ({ product: item, quantity: 1 }));
+                    const res = await userApiClient.post('/user/cart/calculate', { products: mockCart });
+                    if (res.data.success && res.data.data) {
+                        const validProducts = res.data.data.products;
+                        const validIds = validProducts.map((p: any) => (p.product?._id || p.product));
+                        const cleanItems = localItems.filter((item: any) => validIds.includes(item._id));
+                        
+                        if (cleanItems.length !== localItems.length) {
+                            localStorage.setItem('offlineWishlist', JSON.stringify(cleanItems));
+                            window.dispatchEvent(new Event('wishlist-updated'));
+                        }
+                        setWishlistItems(cleanItems);
+                    } else {
+                        setWishlistItems(localItems);
+                    }
+                } catch (e) { setWishlistItems([]); }
             } else setWishlistItems([]);
         }
     };
@@ -111,6 +182,10 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
         const item = cartItems.find(i => i.product._id === productId);
         if (!item) return;
         const newQty = Math.max(1, item.quantity + delta);
+        if (delta > 0 && newQty > (item.product.stock || 0)) {
+            toast.warning(`Only ${item.product.stock} items available`);
+            return;
+        }
 
         if (isUser) {
             try {
@@ -158,6 +233,12 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
         const price = item.finalUnitPrice !== undefined ? item.finalUnitPrice : (item.product?.price || 0);
         return acc + (price * (item.quantity || 1));
     }, 0);
+
+    const hasUnavailableItems = validCartItems.some(item => 
+        item.product.isActive === false || 
+        (item.product.stock || 0) <= 0 || 
+        item.quantity > (item.product.stock || 0)
+    );
 
     return (
         <div className="offcanvas dz-offcanvas offcanvas-end" tabIndex={-1} id="offcanvasRight" style={{ width: '450px' }}>
@@ -212,11 +293,26 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
                                                 <h6 className="title" style={{ fontFamily: "'Marcellus', serif", fontSize: '18px', fontWeight: '400', color: '#2D2E2F', marginBottom: '10px' }}>
                                                     <Link to={`/product/${prod._id}`}>{prod.productName}</Link>
                                                 </h6>
+                                                {prod.isActive === false && (
+                                                    <div className="mb-2">
+                                                        <span className="badge bg-danger" style={{ fontSize: '11px' }}>Unavailable</span>
+                                                    </div>
+                                                )}
+                                                {prod.isActive !== false && (prod.stock || 0) <= 0 && (
+                                                    <div className="mb-2">
+                                                        <span className="badge bg-danger" style={{ fontSize: '11px' }}>Out of stock</span>
+                                                    </div>
+                                                )}
+                                                {prod.isActive !== false && (prod.stock || 0) > 0 && item.quantity > (prod.stock || 0) && (
+                                                    <div className="mb-2">
+                                                        <span className="badge bg-warning text-dark" style={{ fontSize: '11px' }}>Only {prod.stock} items are currently available.</span>
+                                                    </div>
+                                                )}
                                                 <div className="d-flex align-items-center">
                                                     <div className="d-flex align-items-center" style={{ border: '1px solid #D9D9D9' }}>
-                                                        <button onClick={() => updateQty(prod._id, -1)} type="button" style={{ width: '30px', height: '30px', background: '#fff', border: 'none', fontSize: '18px', color: '#333' }}>-</button>
+                                                        <button onClick={() => updateQty(prod._id, -1)} disabled={prod.isActive === false} type="button" style={{ width: '30px', height: '30px', background: '#fff', border: 'none', fontSize: '18px', color: '#333' }}>-</button>
                                                         <input type="text" readOnly value={item.quantity} style={{ width: '35px', height: '30px', borderLeft: '1px solid #D9D9D9', borderRight: '1px solid #D9D9D9', borderTop: 'none', borderBottom: 'none', textAlign: 'center', fontSize: '14px', background: '#F8FBF9', color: '#2D2E2F' }} />
-                                                        <button onClick={() => updateQty(prod._id, 1)} type="button" style={{ width: '30px', height: '30px', background: '#fff', border: 'none', fontSize: '18px', color: '#333' }}>+</button>
+                                                        <button onClick={() => updateQty(prod._id, 1)} disabled={prod.isActive === false || item.quantity >= (prod.stock || 0)} type="button" style={{ width: '30px', height: '30px', background: '#fff', border: 'none', fontSize: '18px', color: '#333', cursor: (prod.isActive === false || item.quantity >= (prod.stock || 0)) ? 'not-allowed' : 'pointer' }}>+</button>
                                                     </div>
                                                     <h6 className="dz-price" style={{ fontSize: '18px', fontWeight: '500', color: '#2D2E2F', marginLeft: '15px', marginBottom: 0 }}>
                                                         {item.finalUnitPrice !== undefined && item.finalUnitPrice < (prod.price || 0) ? (
@@ -243,6 +339,11 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
                                             <h6 className="title" style={{ fontFamily: "'Marcellus', serif", fontSize: '18px', fontWeight: '400', color: '#2D2E2F', marginBottom: '10px' }}>
                                                 <Link to={`/product/${prod._id}`}>{prod.productName}</Link>
                                             </h6>
+                                            {prod.isActive === false && (
+                                                <div className="mb-2">
+                                                    <span className="badge bg-danger" style={{ fontSize: '11px' }}>Unavailable</span>
+                                                </div>
+                                            )}
                                             <div className="d-flex align-items-center">
                                                 <h6 className="dz-price" style={{ fontSize: '18px', fontWeight: '500', color: '#2D2E2F', marginBottom: 0 }}>
                                                     ₹{prod.price?.toFixed(2)}
@@ -278,7 +379,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
                                             </div>
                                         </div>
                                     </div>
-                                    <button onClick={() => handleNavigate('/checkout')} className="btn btn-outline-secondary btn-block w-100 mb-2">Checkout</button>
+                                    <button onClick={handleCheckoutClick} disabled={hasUnavailableItems || isPreflighting} className="btn btn-outline-secondary btn-block w-100 mb-2">
+                                        {isPreflighting ? 'VALIDATING...' : 'Checkout'}
+                                    </button>
                                     <button onClick={() => handleNavigate('/shop-cart')} className="btn btn-secondary btn-block w-100">View Cart</button>
                                 </>
                             ) : (

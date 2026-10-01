@@ -103,10 +103,72 @@ const AdminProducts: React.FC = () => {
         });
     };
 
-    const getStatusBadge = (stock: number) => {
-        if (stock === 0) return <span className="admin-badge badge-danger">Out of Stock</span>;
-        if (stock <= 10) return <span className="admin-badge badge-warning">Low Stock</span>;
-        return <span className="admin-badge badge-success">Active</span>;
+    const handleToggleStatus = (id: string, name: string, currentStatus: boolean) => {
+        const isCurrentlyActive = currentStatus !== false;
+        const newStatus = !isCurrentlyActive;
+        const title = isCurrentlyActive ? 'Make product inactive?' : 'Activate product?';
+        const message = isCurrentlyActive 
+            ? `"${name}" will no longer be available to customers in product listings. Existing database/order information will not be deleted.` 
+            : `"${name}" will become available to customers again, subject to the existing stock rules.`;
+        const confirmText = isCurrentlyActive ? 'Make Inactive' : 'Activate';
+        const confirmColor = isCurrentlyActive ? '#ef4444' : '#10b981';
+
+        const ConfirmToggle = ({ closeToast }: { closeToast?: () => void }) => (
+            <div className="delete-confirm-toast">
+                <div className="d-flex align-items-center mb-2">
+                    <AlertTriangle size={20} color={confirmColor} className="me-2" />
+                    <strong style={{ fontSize: '0.95rem' }}>{title}</strong>
+                </div>
+                <p style={{ fontSize: '0.85rem', marginBottom: '12px', color: '#64748b' }}>
+                    {message}
+                </p>
+                <div className="d-flex gap-2 justify-content-end">
+                    <button
+                        className="btn btn-sm btn-light"
+                        onClick={closeToast}
+                        style={{ fontSize: '0.8rem', padding: '4px 12px' }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="btn btn-sm"
+                        onClick={async () => {
+                            try {
+                                const res = await apiClient.patch(`/admin/products/${id}/highlight`, { field: 'isActive', value: newStatus });
+                                if (res.data.success) {
+                                    toast.success(isCurrentlyActive ? 'Product marked inactive successfully.' : 'Product activated successfully.');
+                                    setProducts(prev => prev.map(p =>
+                                        p._id === id ? { ...p, isActive: newStatus } : p
+                                    ));
+                                    if (closeToast) closeToast();
+                                }
+                            } catch (err: any) {
+                                toast.error(err.response?.data?.message || 'Failed to update product status');
+                                if (closeToast) closeToast();
+                            }
+                        }}
+                        style={{ fontSize: '0.8rem', padding: '4px 12px', backgroundColor: confirmColor, color: '#fff', border: 'none', borderRadius: '4px' }}
+                    >
+                        {confirmText}
+                    </button>
+                </div>
+            </div>
+        );
+
+        toast(<ConfirmToggle />, {
+            position: "top-center",
+            autoClose: false,
+            closeOnClick: false,
+            draggable: false,
+            closeButton: false,
+            className: 'custom-confirm-toast'
+        });
+    };
+
+    const getStockConditionBadge = (stock: number) => {
+        if (stock === 0) return <span className="admin-badge badge-danger mt-1">Out of Stock</span>;
+        if (stock <= 10) return <span className="admin-badge badge-warning mt-1">Low Stock</span>;
+        return <span className="admin-badge badge-success mt-1">In Stock</span>;
     };
 
     const filteredProducts = products.filter(p =>
@@ -189,8 +251,31 @@ const AdminProducts: React.FC = () => {
                                         <td><code style={{ fontSize: '0.8rem', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{product.sku || 'N/A'}</code></td>
                                         <td>{product.categoryId?.categoryName || 'N/A'}</td>
                                         <td>₹{product.price.toFixed(2)}</td>
-                                        <td>{product.stock} items</td>
-                                        <td>{getStatusBadge(product.stock)}</td>
+                                        <td>
+                                            <div style={{ marginBottom: '4px' }}>{product.stock} items</div>
+                                            {getStockConditionBadge(product.stock)}
+                                        </td>
+                                        <td>
+                                            <div 
+                                                className="status-toggle-wrapper" 
+                                                style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                                onClick={() => handleToggleStatus(product._id, product.productName, product.isActive)}
+                                            >
+                                                <span className={`admin-badge ${product.isActive === false ? 'badge-secondary' : 'badge-success'}`} style={{ width: '70px', textAlign: 'center', display: 'inline-block' }}>
+                                                    {product.isActive === false ? 'INACTIVE' : 'ACTIVE'}
+                                                </span>
+                                                <div style={{
+                                                    width: '32px', height: '18px', backgroundColor: product.isActive === false ? '#cbd5e1' : '#10b981',
+                                                    borderRadius: '10px', position: 'relative', transition: 'all 0.3s'
+                                                }}>
+                                                    <div style={{
+                                                        width: '14px', height: '14px', backgroundColor: '#fff', borderRadius: '50%',
+                                                        position: 'absolute', top: '2px', left: product.isActive === false ? '2px' : '16px',
+                                                        transition: 'all 0.3s'
+                                                    }}></div>
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td>
                                             <div className="d-flex gap-2">
                                                 <button
@@ -331,7 +416,7 @@ const AdminProducts: React.FC = () => {
                                         </div>
                                         <div className="stat-item">
                                             <label>Status</label>
-                                            <span>{selectedProduct.stock > 0 ? 'ACTIVE' : 'OUT OF STOCK'}</span>
+                                            <span>{selectedProduct.isActive === false ? 'INACTIVE' : 'ACTIVE'}</span>
                                         </div>
                                     </div>
 

@@ -64,6 +64,7 @@ const EditProduct: React.FC = () => {
     const [isPopular, setIsPopular] = useState(false);
     const [isTrending, setIsTrending] = useState(false);
     const [isBestSeller, setIsBestSeller] = useState(false);
+    const [isActive, setIsActive] = useState(true);
 
     const [images, setImages] = useState<string[]>([]);
 
@@ -170,6 +171,7 @@ const EditProduct: React.FC = () => {
                 setIsPopular(product.isPopular || false);
                 setIsTrending(product.isTrending || false);
                 setIsBestSeller(product.isBestSeller || false);
+                setIsActive(product.isActive !== false);
 
                 if (product.specifications && Object.keys(product.specifications).length > 0) {
                     const specs = Object.entries(product.specifications).map(([key, value]) => ({
@@ -271,7 +273,7 @@ const EditProduct: React.FC = () => {
             faqs: faqs.filter(f => f.question.trim() && f.answer.trim()),
             metaTitle, metaDescription,
             tags: tags.split(',').map(t => t.trim()).filter(t => t),
-            images, featured, isPopular, isTrending, isBestSeller,
+            images, featured, isPopular, isTrending, isBestSeller, isActive,
             suitableFor, safetyInformation, patchTestGuidance, storageInstructions, disclaimer, internalPublishingNote, slug, imageAltText,
             labelControl, specialPublishingClaimsNote
         };
@@ -623,6 +625,17 @@ const EditProduct: React.FC = () => {
 
                 <div className="col-lg-4">
                     <div className="admin-card mb-4" style={{ padding: '24px' }}>
+                        <h5 className="mb-4" style={{ fontWeight: 600 }}>Product Status</h5>
+                        <div className="form-group mb-4">
+                            <select className="form-control admin-input" value={isActive ? 'true' : 'false'} onChange={(e) => setIsActive(e.target.value === 'true')}>
+                                <option value="true">Active (Published)</option>
+                                <option value="false">Inactive (Hidden)</option>
+                            </select>
+                            <small className="text-muted mt-1 d-block">Inactive products will be hidden from the customer shop.</small>
+                        </div>
+
+                        <hr className="my-4" />
+
                         <h5 className="mb-4" style={{ fontWeight: 600 }}>Product Highlights</h5>
                         <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px' }}>Select features that apply to this product:</p>
                         <div className="d-flex flex-column gap-3">

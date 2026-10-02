@@ -250,9 +250,10 @@ const AdminSubcategories: React.FC = () => {
                 <div style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', zIndex: 1050,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    overflowY: 'auto', padding: '16px'
                 }}>
-                    <div className="admin-modal" style={{ maxWidth: '500px', padding: '30px' }}>
+                    <div className="admin-modal subcategory-modal-scroll-fix" style={{ maxWidth: '500px', padding: '30px', width: '100%', margin: 'auto' }} tabIndex={0}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--admin-text-primary)' }}>
                                 {modalMode === 'add' ? 'Add Subcategory' : modalMode === 'edit' ? 'Edit Subcategory' : 'Subcategory Details'}

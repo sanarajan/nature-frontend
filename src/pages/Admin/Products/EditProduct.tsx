@@ -98,10 +98,20 @@ const EditProduct: React.FC = () => {
 
     useEffect(() => {
         if (categoryId) {
-            const filtered = allSubcategories.filter(sub => sub.categoryId === categoryId);
+            const filtered = allSubcategories.filter(sub => {
+                const parentId = typeof sub.categoryId === 'object' ? sub.categoryId?._id : sub.categoryId;
+                return String(parentId) === String(categoryId);
+            });
             setFilteredSubcategories(filtered);
+            setSubcategoryId(prev => {
+                if (!prev) return prev;
+                if (allSubcategories.length === 0) return prev;
+                const isValid = filtered.some(s => String(s._id) === String(prev));
+                return isValid ? prev : '';
+            });
         } else {
             setFilteredSubcategories([]);
+            setSubcategoryId('');
         }
     }, [categoryId, allSubcategories]);
 
@@ -372,7 +382,7 @@ const EditProduct: React.FC = () => {
                                     <div className="col-md-6 mb-4">
                                         <label className="form-label" style={{ fontWeight: 600 }}>Subcategory (Optional)</label>
                                         <select className="form-control admin-input" value={subcategoryId} onChange={(e) => setSubcategoryId(e.target.value)} disabled={!categoryId}>
-                                            <option value="">Select Subcategory</option>
+                                            <option value="">{filteredSubcategories.length === 0 && categoryId ? 'No subcategories available' : 'Select Subcategory'}</option>
                                             {filteredSubcategories.map(s => <option key={s._id} value={s._id}>{s.subcategoryName}</option>)}
                                         </select>
                                     </div>

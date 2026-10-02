@@ -96,17 +96,19 @@ const EditProduct: React.FC = () => {
         }
     };
 
+    const normalizeId = (value: any) => 
+        typeof value === 'object' && value !== null && value._id ? String(value._id) : String(value || '');
+
     useEffect(() => {
         if (categoryId) {
             const filtered = allSubcategories.filter(sub => {
-                const parentId = typeof sub.categoryId === 'object' ? sub.categoryId?._id : sub.categoryId;
-                return String(parentId) === String(categoryId);
+                return normalizeId(sub.categoryId) === normalizeId(categoryId);
             });
             setFilteredSubcategories(filtered);
             setSubcategoryId(prev => {
                 if (!prev) return prev;
                 if (allSubcategories.length === 0) return prev;
-                const isValid = filtered.some(s => String(s._id) === String(prev));
+                const isValid = filtered.some(s => normalizeId(s._id) === normalizeId(prev));
                 return isValid ? prev : '';
             });
         } else {
@@ -122,8 +124,8 @@ const EditProduct: React.FC = () => {
                 const product = res.data.data;
                 setProductName(product.productName || '');
                 setSku(product.sku || '');
-                setCategoryId(product.categoryId || '');
-                setSubcategoryId(product.subcategoryId || '');
+                setCategoryId(normalizeId(product.categoryId));
+                setSubcategoryId(normalizeId(product.subcategoryId));
                 setUnitId(product.unitId || '');
                 setQuantity(product.quantity?.toString() || '');
                 setStock(product.stock?.toString() || '0');

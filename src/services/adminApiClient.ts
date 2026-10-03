@@ -13,6 +13,20 @@ const adminApiClient = axios.create({
     withCredentials: true,
 });
 
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
 // ✅ Request Interceptor
 adminApiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
@@ -42,7 +56,19 @@ adminApiClient.interceptors.response.use(
         }
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                return new Promise(function(resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                }).then(token => {
+                    originalRequest.headers.Authorization = 'Bearer ' + token;
+                    return adminApiClient(originalRequest);
+                }).catch(err => {
+                    return Promise.reject(err);
+                });
+            }
+
             originalRequest._retry = true;
+            isRefreshing = true;
 
             try {
                 console.log(API_BASE_URL,"constant api");
@@ -57,15 +83,19 @@ adminApiClient.interceptors.response.use(
                 if (accessToken) {
                     localStorage.setItem('admin_accessToken', accessToken);
                     originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                    processQueue(null, accessToken);
                     return adminApiClient(originalRequest);
                 } else {
                     throw new Error("Invalid refresh response");
                 }
             } catch (refreshError) {
+                processQueue(refreshError, null);
                 if (window.location.pathname.startsWith('/admin')) {
                     window.location.href = '/admin';
                 }
                 return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
             }
         }
 

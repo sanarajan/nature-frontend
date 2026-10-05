@@ -39,12 +39,14 @@ const HeartSVG = ({ filled }: { filled?: boolean }) => (
 );
 
 // Cart basket SVG
+/*
 const CartBasketSVG = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M21 9.24995H18.401L14.624 3.58395C14.394 3.23895 13.927 3.14495 13.584 3.37595C13.239 3.60595 13.146 4.07095 13.376 4.41595L16.599 9.24995H7.401L10.624 4.41595C10.854 4.07095 10.761 3.60595 10.416 3.37595C10.071 3.14595 9.606 3.23895 9.376 3.58395L5.599 9.24995H3C2.586 9.24995 2.25 9.58595 2.25 9.99995C2.25 10.4139 2.586 10.7499 3 10.7499H3.385L4.943 18.5389C5.199 19.8199 6.333 20.7499 7.64 20.7499H16.361C17.668 20.7499 18.801 19.8199 19.058 18.5389L20.616 10.7499H21.001C21.415 10.7499 21.751 10.4139 21.751 9.99995C21.751 9.58595 21.414 9.24995 21 9.24995ZM17.586 18.245C17.469 18.827 16.954 19.2499 16.36 19.2499H7.64C7.046 19.2499 6.531 18.827 6.414 18.245L4.915 10.7499H19.085L17.586 18.245Z" fill="white" />
         <path d="M14.75 14V16C14.75 16.414 14.414 16.75 14 16.75C13.586 16.75 13.25 16.414 13.25 16V14C13.25 13.586 13.586 13.25 14 13.25C14.414 13.25 14.75 13.586 14.75 14ZM10 13.25C9.586 13.25 9.25 13.586 9.25 14V16C9.25 16.414 9.586 16.75 10 16.75C10.414 16.75 10.75 16.414 10.75 16V14C10.75 13.586 10.414 13.25 10 13.25Z" fill="white" />
     </svg>
 );
+*/
 
 // ── Product type ──────────────────────────────────────────────
 interface Product {
@@ -170,7 +172,8 @@ const QuickViewModal = ({ prod, onClose, inWishlist, onToggleWishlist, handleAdd
                         {(prod.stock || 0) > 10 ? (
                             <div style={{ color: '#166534', fontWeight: 600, fontSize: '14px' }}>
                                 <span style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>&bull;</span> 
-                                In Stock &middot; {prod.stock || 0} available
+                                In Stock
+                                 {/* &middot; {prod.stock || 0} available */}
                             </div>
                         ) : (prod.stock || 0) > 0 && (prod.stock || 0) <= 10 ? (
                             <div style={{ color: '#d97706', fontWeight: 600, fontSize: '14px' }}>
@@ -771,7 +774,12 @@ const Shop: React.FC = () => {
                                                                     <del className="ms-2 text-muted" style={{ fontSize: '0.85em' }}>₹{prod.price.toFixed(2)}</del>
                                                                 )}
                                                             </h6>
-                                                            <div className="shop-cart-btn"><Link to="#" onClick={(e) => { e.preventDefault(); handleAddToCart(prod, 1, true); }}><CartBasketSVG /></Link></div>
+                                                            {/* <div className="fa-cart-shopping"><Link to="#" onClick={(e) => { e.preventDefault(); handleAddToCart(prod, 1, true); }}><CartBasketSVG /></Link></div> */}
+                                                       <div className="fa-cart-shopping">
+                                                            <Link to="#" onClick={(e) => { e.preventDefault(); handleAddToCart(prod, 1, true); }}>
+                                                                <i className="fa-solid fa-cart-shopping"></i>
+                                                            </Link>
+                                                        </div>
                                                         </div>
                                                     </div>
                                                 )}

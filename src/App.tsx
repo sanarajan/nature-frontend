@@ -6,6 +6,7 @@ import EditProduct from './pages/Admin/Products/EditProduct'
 import AdminCategories from './pages/Admin/Categories/AdminCategories'
 import AdminCertifications from './pages/Admin/Certifications/AdminCertifications'
 import AdminSubcategories from './pages/Admin/Categories/AdminSubcategories'
+import AdminUnits from './pages/Admin/Units/AdminUnits'
 import AdminCustomers from './pages/Admin/Customers/AdminCustomers'
 import AdminInfluencers from './pages/Admin/Influencers/AdminInfluencers'
 import AdminLoyaltySettings from './pages/Admin/LoyaltySettings/AdminLoyaltySettings'
@@ -184,6 +185,7 @@ function App() {
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/certifications" element={<AdminCertifications />} />
           <Route path="/admin/subcategories" element={<AdminSubcategories />} />
+          <Route path="/admin/units" element={<AdminUnits />} />
           <Route path="/admin/coupons" element={<AdminCoupons />} />
           <Route path="/admin/coupons/add" element={<AddCoupon />} />
           <Route path="/admin/coupons/edit/:id" element={<AddCoupon />} />

@@ -173,6 +173,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                         <span>Subcategories</span>
                     </NavLink>
 
+                    <NavLink to="/admin/units" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+                        <CheckCircle2 size={20} />
+                        <span>Units</span>
+                    </NavLink>
+
                     <NavLink to="/admin/certifications" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         <Award size={20} />
                         <span>Certifications</span>

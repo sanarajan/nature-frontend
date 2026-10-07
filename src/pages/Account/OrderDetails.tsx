@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
-import { toast } from 'react-toastify';
 import userApiClient from '../../services/userApiClient';
+import AccountSidebar from '../../components/AccountSidebar/AccountSidebar';
+import { toast } from 'react-toastify';
 
 const OrderDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { isAuthenticated, data: user } = useSelector((state: RootState) => state.auth.user);
+    const { isAuthenticated } = useSelector((state: RootState) => state.auth.user);
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -228,40 +229,7 @@ const OrderDetails: React.FC = () => {
                 <div className="content-inner-1">
                     <div className="container">
                         <div className="row">
-                            <aside className="col-xl-3">
-                                <div className="toggle-info">
-                                    <h5 className="title mb-0">Account Navbar</h5>
-                                    <a className="toggle-btn" href="#accountSidebar" onClick={(e) => { e.preventDefault(); document.getElementById('accountSidebar')?.classList.toggle('show'); }}>Account Menu</a>
-                                </div>
-                                <div className="sticky-top account-sidebar-wrapper">
-                                    <div className="account-sidebar" id="accountSidebar">
-                                        <div className="profile-head">
-                                            <div className="user-thumb">
-                                                <img className="rounded-circle" src={user?.imageUrl || '/images/profile4.jpg'} alt="Profile" />
-                                            </div>
-                                            <h5 className="title mb-0">{user?.displayName || 'User'}</h5>
-                                            <span className="text text-primary">{user?.email}</span>
-                                        </div>
-                                        <div className="account-nav">
-                                            <div className="nav-title bg-light">DASHBOARD</div>
-                                            <ul>
-                                                <li><Link to="/account">Dashboard</Link></li>
-                                                <li><Link to="/account/orders" className="active">Orders</Link></li>
-                                                <li><Link to="#">Downloads</Link></li>
-                                                <li><Link to="#">Return request</Link></li>
-                                            </ul>
-                                            <div className="nav-title bg-light">ACCOUNT SETTINGS</div>
-                                            <ul className="account-info-list">
-                                                <li><Link to="/account/profile">Profile</Link></li>
-                                                <li><Link to="/account/address">Address</Link></li>
-                                                <li><Link to="#">Shipping methods</Link></li>
-                                                <li><Link to="#">Payment Methods</Link></li>
-                                                <li><Link to="#">Review</Link></li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </aside>
+                            <AccountSidebar activePage="orders" />
 
                             <section className="col-xl-9 account-wrapper">
                                 <div className="account-card order-details">

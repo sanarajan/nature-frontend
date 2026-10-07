@@ -4,7 +4,7 @@ import userApiClient from '../../services/userApiClient';
 import { toast } from 'react-toastify';
 import { Gift, Copy, Check, Calendar, Tag, Clock } from 'lucide-react';
 import './MyRewards.css';
-
+import AccountSidebar from '../../components/AccountSidebar/AccountSidebar';
 interface RewardItem {
     id: string;
     rewardName: string;
@@ -71,23 +71,7 @@ const MyRewards: React.FC = () => {
                 <div className="container">
                     <div className="row">
                         {/* Sidebar */}
-                        <aside className="col-xl-3">
-                            <div className="sticky-top account-sidebar-wrapper">
-                                <div className="account-sidebar">
-                                    <div className="account-nav">
-                                        <div className="nav-title bg-light uppercase">DASHBOARD</div>
-                                        <ul>
-                                            <li><Link to="/account">Dashboard</Link></li>
-                                            <li><Link to="/account/orders">Orders</Link></li>
-                                            <li className="active"><Link to="/account/my-rewards">My Rewards</Link></li>
-                                            <li><Link to="/account/nature-points">Nature Points</Link></li>
-                                            <li><Link to="/account/return">Return request</Link></li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </aside>
-
+                        <AccountSidebar activePage="my-rewards" />
                         {/* Main Content */}
                         <section className="col-xl-9 account-wrapper mt-4 mt-xl-0">
                             <div className="account-card">

@@ -8,7 +8,7 @@ import 'cropperjs/dist/cropper.css';
 import { X, Crop } from 'lucide-react';
 import userApiClient from '../../services/userApiClient';
 import { userLoginSuccess, userLogout } from '../../store/authSlice';
-
+import AccountSidebar from '../../components/AccountSidebar/AccountSidebar';
 // Asset Imports
 import bg1 from '../../assets/images/background/bg1.jpg';
 import profileImgFallback from '../../assets/images/profile4.jpg'; // fallback
@@ -289,47 +289,7 @@ const Profile: React.FC = () => {
                 <div className="container">
                     <div className="row">
                         {/* Sidebar */}
-                        <aside className="col-xl-3">
-                            <div className="toggle-info">
-                                <h5 className="title mb-0">Account Navbar</h5>
-                                <a className="toggle-btn" href="#accountSidebar" onClick={(e) => { e.preventDefault(); document.getElementById('accountSidebar')?.classList.toggle('show'); }}>Account Menu</a>
-                            </div>
-                            <div className="sticky-top account-sidebar-wrapper">
-                                <div className="account-sidebar" id="accountSidebar">
-                                    <div className="profile-head">
-                                        <div className="user-thumb">
-                                            <img className="rounded-circle" src={profileImage || profileImgFallback} alt="User" />
-                                        </div>
-                                        <h5 className="title mb-0">{user?.username || user?.displayName || user?.name || 'User'}</h5>
-                                        <span className="text text-primary">{user?.email || ''}</span>
-                                    </div>
-                                    <div className="account-nav">
-                                        <div className="nav-title bg-light uppercase">DASHBOARD</div>
-                                        <ul>
-                                            <li><Link to="/account">Dashboard</Link></li>
-                                            <li><Link to="/account/orders">Orders</Link></li>
-                                            <li><Link to="/account/downloads">Downloads</Link></li>
-                                            <li><Link to="/account/return">Return request</Link></li>
-                                        </ul>
-                                        <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
-                                        <ul className="account-info-list">
-                                            <li className="active"><Link to="/account/profile">Profile</Link></li>
-                                            {user?.isInfluencer && (!user?.influencerRequestStatus || user?.influencerRequestStatus === 'APPROVED') ? (
-                                                <li><Link to="/account/influencer">Influencer Dashboard</Link></li>
-                                            ) : user?.influencerRequestStatus === 'PENDING' ? (
-                                                <li><span className="text-muted d-block py-1" style={{ cursor: 'not-allowed', fontSize: '14px' }}>Influencer (Pending Review)</span></li>
-                                            ) : (
-                                                <li><a href="#" onClick={(e) => { e.preventDefault(); setShowInfluencerModal(true); }}>Become an Influencer</a></li>
-                                            )}
-                                            <li><Link to="/account/address">Address</Link></li>
-                                            <li><Link to="/account/shipping">Shipping methods</Link></li>
-                                            <li><Link to="/account/payment">Payment Methods</Link></li>
-                                            <li><Link to="/account/review">Review</Link></li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </aside>
+                        <AccountSidebar activePage="profile" />
 
                         {/* Main Content */}
                         <section className="col-xl-9 account-wrapper mt-4 mt-xl-0">

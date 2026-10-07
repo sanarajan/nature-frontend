@@ -4,10 +4,9 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { toast } from 'react-toastify';
 import userApiClient from '../../services/userApiClient';
-
+import AccountSidebar from '../../components/AccountSidebar/AccountSidebar';
 // Asset Imports
 import bg1 from '../../assets/images/background/bg1.jpg';
-import profileImgFallback from '../../assets/images/profile4.jpg';
 
 const InfluencerDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -135,40 +134,8 @@ const InfluencerDashboard: React.FC = () => {
                 <div className="container">
                     <div className="row">
                         {/* Sidebar */}
-                        <aside className="col-xl-3">
-                            <div className="toggle-info">
-                                <h5 className="title mb-0">Account Navbar</h5>
-                                <a className="toggle-btn" href="#accountSidebar" onClick={(e) => { e.preventDefault(); document.getElementById('accountSidebar')?.classList.toggle('show'); }}>Account Menu</a>
-                            </div>
-                            <div className="sticky-top account-sidebar-wrapper">
-                                <div className="account-sidebar" id="accountSidebar">
-                                    <div className="profile-head">
-                                        <div className="user-thumb">
-                                            <img className="rounded-circle" src={user?.imageUrl || profileImgFallback} alt="User" />
-                                        </div>
-                                        <h5 className="title mb-0">{user?.username || user?.displayName || user?.name || 'User'}</h5>
-                                        <span className="text text-primary">{user?.email || ''}</span>
-                                    </div>
-                                    <div className="account-nav">
-                                        <div className="nav-title bg-light uppercase">DASHBOARD</div>
-                                        <ul>
-                                            <li><Link to="/account">Dashboard</Link></li>
-                                            <li><Link to="/account/orders">Orders</Link></li>
-                                        </ul>
-                                        <div className="nav-title bg-light uppercase">ACCOUNT SETTINGS</div>
-                                        <ul className="account-info-list">
-                                            <li><Link to="/account/profile">Profile</Link></li>
-                                            {user?.isInfluencer && (!user?.influencerRequestStatus || user?.influencerRequestStatus === 'APPROVED') && (
-                                                <>
-                                                    <li className="active"><Link to="/account/influencer">Influencer Dashboard</Link></li>
-                                                    <li><Link to="/account/influencer/withdrawals">Withdrawal History</Link></li>
-                                                </>
-                                            )}
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </aside>
+                        {/* Sidebar */}
+                        <AccountSidebar activePage="influencer" />
 
                         {/* Main Content */}
                         <section className="col-xl-9 account-wrapper mt-4 mt-xl-0">

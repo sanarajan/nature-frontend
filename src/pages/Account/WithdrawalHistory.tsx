@@ -4,10 +4,12 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { toast } from 'react-toastify';
 import userApiClient from '../../services/userApiClient';
-import AccountSidebar from '../../components/AccountSidebar/AccountSidebar';import { Eye, Clock, CheckCircle2, AlertCircle, CheckCheck, X } from 'lucide-react';
+import { Eye, Clock, CheckCircle2, AlertCircle, CheckCheck, X } from 'lucide-react';
+import AccountSidebar from '../../components/AccountSidebar/AccountSidebar';
 
 // Asset Imports
 import bg1 from '../../assets/images/background/bg1.jpg';
+// import profileImgFallback from '../../assets/images/profile4.jpg';
 
 interface BankSnapshot {
     accountHolderName?: string;
@@ -190,8 +192,8 @@ const WithdrawalHistory: React.FC = () => {
             <div className="content-inner-1">
                 <div className="container">
                     <div className="row">
-                        {/* Sidebar */}
-                        <AccountSidebar activePage="withdrawal-history" />
+                       {/* Sidebar */}
+    <AccountSidebar activePage="withdrawal-history" />
 
                         {/* Main Content */}
                         <section className="col-xl-9 account-wrapper mt-4 mt-xl-0">

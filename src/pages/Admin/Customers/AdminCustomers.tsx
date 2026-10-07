@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, MoreHorizontal, Mail, Phone, Filter, Download, Trash2, Edit2, User } from 'lucide-react';
+import { Search, Mail, Phone, Filter, Download, Eye, X } from 'lucide-react';
 import apiClient from '../../../services/adminApiClient';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../../utils/formatDate';
@@ -11,6 +11,7 @@ const AdminCustomers: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
 
     useEffect(() => {
         fetchCustomers();
@@ -42,6 +43,38 @@ const AdminCustomers: React.FC = () => {
         }
     };
 
+    const handleStatusToggleConfirm = async (
+        id: string,
+        currentStatus: boolean,
+        customerName: string
+    ) => {
+        const result = await Swal.fire({
+            title: currentStatus ? 'Deactivate Customer?' : 'Activate Customer?',
+            text: currentStatus
+                ? `Are you sure you want to deactivate ${customerName}?`
+                : `Are you sure you want to activate ${customerName}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: currentStatus
+                ? 'Yes, Deactivate'
+                : 'Yes, Activate',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: currentStatus ? '#ef4444' : '#22c55e',
+            cancelButtonColor: '#64748b',
+            background: '#ffffff',
+            customClass: {
+                popup: 'admin-swal-popup',
+                confirmButton: 'admin-swal-confirm',
+                cancelButton: 'admin-swal-cancel'
+            }
+        });
+
+        if (result.isConfirmed) {
+            await toggleStatus(id, currentStatus);
+        }
+    };
+
+    // @ts-ignore
     const handleDelete = async (id: string) => {
         const result = await Swal.fire({
             title: 'Are you sure?',
@@ -170,7 +203,7 @@ const AdminCustomers: React.FC = () => {
                                                     <img className="product-img" style={{ borderRadius: '50%' }} src={customer.imageUrl} alt={customer.displayName} />
                                                 ) : (
                                                     <div className="product-img-placeholder" style={{ width: '48px', height: '48px', backgroundColor: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0' }}>
-                                                        <User size={24} color="#94a3b8" />
+                                                        <img src="/images/default-user.png" alt="Default User" style={{ width: '24px', height: '24px' }} />
                                                     </div>
                                                 )}
                                                 <div>
@@ -207,19 +240,25 @@ const AdminCustomers: React.FC = () => {
                                                 <span className="text-muted small">None</span>
                                             )}
                                         </td>
-                                        <td onClick={() => toggleStatus(customer._id, customer.isActive)} style={{ cursor: 'pointer' }}>
+                                        <td onClick={() =>
+                                            handleStatusToggleConfirm(
+                                                customer._id,
+                                                customer.isActive,
+                                                customer.displayName || 'this customer'
+                                            )
+                                        } style={{ cursor: 'pointer' }}>
                                             {getStatusBadge(customer.isActive)}
                                         </td>
                                         <td>
                                             <div className="table-actions">
-                                                <button className="action-btn" title="Edit">
+                                                {/* <button className="action-btn" title="Edit">
                                                     <Edit2 size={16} />
                                                 </button>
                                                 <button className="action-btn delete" title="Delete" onClick={() => handleDelete(customer._id)}>
                                                     <Trash2 size={16} />
-                                                </button>
-                                                <button className="action-btn" title="More">
-                                                    <MoreHorizontal size={16} />
+                                                </button> */}
+                                                <button className="action-btn" title="View Customer" onClick={() => setSelectedCustomer(customer)}>
+                                                    <Eye size={16} />
                                                 </button>
                                             </div>
                                         </td>
@@ -230,6 +269,91 @@ const AdminCustomers: React.FC = () => {
                     </table>
                 </div>
             </div>
+
+            {selectedCustomer && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', zIndex: 1050,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    overflowY: 'auto', padding: '16px'
+                }}>
+                    <div className="admin-modal" style={{ maxWidth: '500px', padding: '30px', width: '100%', margin: 'auto', backgroundColor: '#fff', borderRadius: '12px' }} tabIndex={0}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--admin-text-primary)' }}>
+                                Customer Details
+                            </h3>
+                            <button onClick={() => setSelectedCustomer(null)} style={{ background: '#f1f5f9', border: 'none', cursor: 'pointer', color: '#64748b', padding: '8px', borderRadius: '10px' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+                                {selectedCustomer.imageUrl ? (
+                                    <img src={selectedCustomer.imageUrl} alt={selectedCustomer.displayName} style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover' }} />
+                                ) : (
+                                    <div style={{ width: '64px', height: '64px', backgroundColor: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0' }}>
+                                        {/* <User size={32} color="#94a3b8" /> */}
+                                        <img src="/images/default-user.png" alt="Default User" style={{ width: '32px', height: '32px' }} />
+                                    </div>
+                                )}
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>{selectedCustomer.displayName || 'Unnamed User'}</h4>
+                                    <span style={{ color: '#64748b', fontSize: '0.9rem' }}>{selectedCustomer.email}</span>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div>
+                                    <strong style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>Phone Number</strong>
+                                    <span style={{ fontSize: '1rem' }}>{selectedCustomer.phoneNumber || 'N/A'}</span>
+                                </div>
+                                <div>
+                                    <strong style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>Joined Date</strong>
+                                    <span style={{ fontSize: '1rem' }}>{formatDate(selectedCustomer.createdAt)}</span>
+                                </div>
+                                <div>
+                                    <strong style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>Location</strong>
+                                    <span style={{ fontSize: '1rem', display: 'block' }}>
+                                        {selectedCustomer.lastLocation 
+                                            ? `${selectedCustomer.lastLocation.city}, ${selectedCustomer.lastLocation.state}` 
+                                            : 'No address'
+                                        }
+                                    </span>
+                                </div>
+                                <div>
+                                    <strong style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>Total Orders</strong>
+                                    <span style={{ fontSize: '1rem' }}>{selectedCustomer.orderCount}</span>
+                                </div>
+                                <div>
+                                    <strong style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>Account Status</strong>
+                                    <div style={{ marginTop: '4px' }}>{getStatusBadge(selectedCustomer.isActive)}</div>
+                                </div>
+                                <div>
+                                    <strong style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', marginBottom: '4px' }}>Influencer Status</strong>
+                                    <div style={{ marginTop: '4px' }}>
+                                        {selectedCustomer.influencerRequestStatus === 'PENDING' ? (
+                                            <span className="admin-badge badge-warning text-dark" style={{ background: '#fef08a', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Pending</span>
+                                        ) : selectedCustomer.isInfluencer || selectedCustomer.influencerRequestStatus === 'APPROVED' ? (
+                                            <span className="admin-badge badge-success" style={{ background: '#bbf7d0', color: '#166534', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Influencer</span>
+                                        ) : selectedCustomer.influencerRequestStatus === 'REJECTED' ? (
+                                            <span className="admin-badge badge-danger" style={{ background: '#fecaca', color: '#991b1b', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>Rejected</span>
+                                        ) : (
+                                            <span className="text-muted small">None</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button onClick={() => setSelectedCustomer(null)} className="btn-primary-admin secondary" style={{ backgroundColor: '#f1f5f9', color: '#475569', boxShadow: 'none' }}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

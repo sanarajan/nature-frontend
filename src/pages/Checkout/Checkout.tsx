@@ -424,7 +424,7 @@ const Checkout: React.FC = () => {
                         setAppliedCode(prev => ({ ...prev, source: influencerCookie ? 'LINK' : 'CODE' }));
                     }
 
-                    if (influencerCookie && !data.influencerApplied && !data.influencerDiscountAmount) {
+                    if (influencerCookie && !data.influencerEligibility && !data.influencerApplied && !data.influencerDiscountAmount) {
                         document.cookie = 'influencer_ref=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                         setInfluencerCookie(null);
                     }
@@ -460,7 +460,8 @@ const Checkout: React.FC = () => {
         }
     };
 
-    const handleApplyCode = async (codeToApply: string) => {
+    const handleApplyCode = async (codeToApply: string) => {    
+        setIsModalOpen(false);     
         const hasCombo = appliedComboOffer || (Array.isArray(appliedComboOffers) && appliedComboOffers.length > 0);
         const code = (codeToApply || couponInput).trim().toUpperCase();
         if (!code) return;
@@ -495,7 +496,7 @@ const Checkout: React.FC = () => {
                 });
                 if (testRes.data?.success) {
                     const totalsData = testRes.data.data;
-                    if (totalsData.influencerApplied || totalsData.influencerDiscountAmount > 0) {
+                    if (totalsData.influencerDiscountAmount > 0 && totalsData.influencerCode && code.toUpperCase() === totalsData.influencerCode.toUpperCase()) {
                         setAppliedDiscount(totalsData.influencerDiscountAmount);
                         setAppliedCode({ code: totalsData.influencerCode || code, type: 'influencer', source: 'CODE' });
                         setCouponInput(totalsData.influencerCode || code);
@@ -551,13 +552,27 @@ const Checkout: React.FC = () => {
                     return;
                 }
 
-                // For referral codes, the backend placeOrder handles the actual validation.
-                // We'll apply it here for UI feedback, but it's "tentative".
-                setAppliedDiscount(subtotal * 0.20);
-                setAppliedCode({ code: code, type: 'referral', source: 'CODE' });
-                setCouponInput(code);
-                toast.success("Referral discount applied!");
-                setIsModalOpen(false);
+                // Actually validate it by calling /checkout/totals
+                const activeAddrId = (showNewAddressForm || editingAddressId) ? null : (tempSelectedId || selectedAddressId);
+                try {
+                    const refTestRes = await userApiClient.post('/user/order/checkout/totals', {
+                        addressId: activeAddrId,
+                        referralCode: code,
+                        couponCode: '', // Force validation check
+                        useNaturePoints
+                    });
+                    
+                    if (refTestRes.data?.success) {
+                        // Success!
+                        setAppliedDiscount(subtotal * 0.20); // The actual discount will be calculated by the backend in the next totals fetch anyway
+                        setAppliedCode({ code: code, type: 'referral', source: 'CODE' });
+                        setCouponInput(code);
+                        toast.success("Referral discount applied!");
+                        setIsModalOpen(false);
+                    }
+                } catch (refErr: any) {
+                    toast.error(refErr.response?.data?.message || "Invalid coupon or referral code.");
+                }
             }
         } catch (err: any) {
             toast.error(err.response?.data?.message || "Invalid code or application error.");

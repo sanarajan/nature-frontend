@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import adminApiClient from '../../../services/adminApiClient';
 import { Users, DollarSign, CheckCircle, XCircle, Tag, Search } from 'lucide-react';
 import './AdminInfluencers.css';
+import AdminPagination from '../../../components/Admin/AdminPagination';
 
 const AdminInfluencers: React.FC = () => {
     const adminData = useSelector((state: RootState) => state.auth.admin.data);
@@ -36,6 +37,13 @@ const AdminInfluencers: React.FC = () => {
     const [products, setProducts] = useState<any[]>([]);
     const [productsLoading, setProductsLoading] = useState(false);
     const [productSearch, setProductSearch] = useState('');
+    const [currentProductPage, setCurrentProductPage] = useState(1);
+    const productsPerPage = 10;
+
+    useEffect(() => {
+        setCurrentProductPage(1);
+    }, [productSearch, products]);
+
     const [editingProductDiscount, setEditingProductDiscount] = useState<{ [productId: string]: string }>({});
     const [updatingProductId, setUpdatingProductId] = useState<string | null>(null);
 
@@ -990,7 +998,14 @@ const AdminInfluencers: React.FC = () => {
                             </div>
                         </div>
 
-                        {productsLoading ? (
+                        {(() => {
+                            const validProducts = Array.isArray(products) ? products : [];
+                            const totalProductPages = Math.ceil(validProducts.length / productsPerPage);
+                            const paginatedProducts = validProducts.slice((currentProductPage - 1) * productsPerPage, currentProductPage * productsPerPage);
+
+                            return (
+                                <>
+                                    {productsLoading ? (
                             <div className="text-center py-5">
                                 <div className="spinner-border text-primary" role="status"></div>
                                 <p className="mt-2 text-muted">Loading products...</p>
@@ -1016,7 +1031,7 @@ const AdminInfluencers: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(Array.isArray(products) ? products : []).map((product, index) => {
+                                        {paginatedProducts.map((product, index) => {
                                             if (!product || typeof product !== 'object') return null;
                                             const productId = product._id ? String(product._id) : `prod-${index}`;
                                             const currentDiscount = typeof product.influencerDiscount === 'number' && !isNaN(product.influencerDiscount) 
@@ -1124,6 +1139,16 @@ const AdminInfluencers: React.FC = () => {
                                 </table>
                             </div>
                         )}
+                        
+                        {totalProductPages > 1 && !productsLoading && Array.isArray(products) && products.length > 0 && (
+                            <AdminPagination 
+                                currentPage={currentProductPage} 
+                                totalPages={totalProductPages} 
+                                onPageChange={setCurrentProductPage} 
+                            />
+                        )}
+                        </>
+                    );})()}
                     </div>
                 </div>
             )}

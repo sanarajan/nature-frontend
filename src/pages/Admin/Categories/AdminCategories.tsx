@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import apiClient from '../../../services/adminApiClient';
 import { formatDate } from '../../../utils/formatDate';
 import '../../../styles/admin-pages.css';
+import AdminPagination from '../../../components/Admin/AdminPagination';
 
 interface Category {
     _id: string;
@@ -17,6 +18,13 @@ interface Category {
 const AdminCategories: React.FC = () => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     // Form State
     const [categoryName, setCategoryName] = useState('');
@@ -189,6 +197,13 @@ const AdminCategories: React.FC = () => {
         );
     };
 
+    const filteredCategories = categories.filter(c =>
+        c.categoryName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
+    const paginatedCategories = filteredCategories.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     return (
         <div className="admin-page-container" style={{ position: 'relative' }}>
             <div className="page-header">
@@ -204,7 +219,12 @@ const AdminCategories: React.FC = () => {
                 <div className="card-filter-header">
                     <div className="search-wrapper">
                         <Search size={18} className="search-icon" />
-                        <input type="text" placeholder="Search categories..." />
+                        <input 
+                            type="text" 
+                            placeholder="Search categories..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
                 </div>
 
@@ -221,7 +241,7 @@ const AdminCategories: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {categories.map((cat) => (
+                            {paginatedCategories.map((cat) => (
                                 <tr key={cat._id}>
                                     <td style={{ fontWeight: 600 }}>{cat.categoryName}</td>
                                     <td style={{ width: 80 }}>
@@ -259,6 +279,13 @@ const AdminCategories: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                {totalPages > 1 && (
+                    <AdminPagination 
+                        currentPage={currentPage} 
+                        totalPages={totalPages} 
+                        onPageChange={setCurrentPage} 
+                    />
+                )}
             </div>
 
             {/* Modal Popup */}

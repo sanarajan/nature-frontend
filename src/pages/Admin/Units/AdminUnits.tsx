@@ -3,6 +3,7 @@ import { Plus, Search, Edit2, X, Eye, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/adminApiClient';
 import '../../../styles/admin-pages.css';
+import AdminPagination from '../../../components/Admin/AdminPagination';
 
 interface Unit {
     _id: string;
@@ -13,6 +14,13 @@ interface Unit {
 const AdminUnits: React.FC = () => {
     const [units, setUnits] = useState<Unit[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     // Form State
     const [unitName, setUnitName] = useState('');
@@ -112,6 +120,13 @@ const AdminUnits: React.FC = () => {
         }
     };
 
+    const filteredUnits = units.filter(u => 
+        u.unitName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredUnits.length / itemsPerPage);
+    const paginatedUnits = filteredUnits.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     return (
         <div className="admin-page-container">
             <div className="page-header">
@@ -127,7 +142,12 @@ const AdminUnits: React.FC = () => {
                 <div className="card-filter-header">
                     <div className="search-wrapper">
                         <Search size={18} className="search-icon" />
-                        <input type="text" placeholder="Search units..." />
+                        <input 
+                            type="text" 
+                            placeholder="Search units..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
                 </div>
 
@@ -141,9 +161,9 @@ const AdminUnits: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {units.map((unit, index) => (
+                            {paginatedUnits.map((unit, index) => (
                                 <tr key={unit._id}>
-                                    <td>{index + 1}</td>
+                                    <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                                     <td style={{ fontWeight: 600 }}>{unit.unitName}</td>
                                     <td>
                                         <div className="table-actions">
@@ -172,6 +192,13 @@ const AdminUnits: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                {totalPages > 1 && (
+                    <AdminPagination 
+                        currentPage={currentPage} 
+                        totalPages={totalPages} 
+                        onPageChange={setCurrentPage} 
+                    />
+                )}
             </div>
 
             {isModalOpen && (

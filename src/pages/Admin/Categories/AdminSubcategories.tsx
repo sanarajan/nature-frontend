@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import apiClient from '../../../services/adminApiClient';
 import { formatDate } from '../../../utils/formatDate';
 import '../../../styles/admin-pages.css';
+import AdminPagination from '../../../components/Admin/AdminPagination';
 
 interface Category {
     _id: string;
@@ -23,6 +24,13 @@ const AdminSubcategories: React.FC = () => {
     const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     // Form State
     const [subcategoryName, setSubcategoryName] = useState('');
@@ -175,6 +183,14 @@ const AdminSubcategories: React.FC = () => {
         );
     };
 
+    const filteredSubcategories = subcategories.filter(s =>
+        s.subcategoryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (s.categoryId?.categoryName || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredSubcategories.length / itemsPerPage);
+    const paginatedSubcategories = filteredSubcategories.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     return (
         <div className="admin-page-container">
             <div className="page-header">
@@ -190,7 +206,12 @@ const AdminSubcategories: React.FC = () => {
                 <div className="card-filter-header">
                     <div className="search-wrapper">
                         <Search size={18} className="search-icon" />
-                        <input type="text" placeholder="Search subcategories..." />
+                        <input 
+                            type="text" 
+                            placeholder="Search subcategories..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
                 </div>
 
@@ -207,7 +228,7 @@ const AdminSubcategories: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {subcategories.map((sub) => (
+                            {paginatedSubcategories.map((sub) => (
                                 <tr key={sub._id}>
                                     <td style={{ fontWeight: 600 }}>{sub.subcategoryName}</td>
                                     <td>
@@ -244,6 +265,13 @@ const AdminSubcategories: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                {totalPages > 1 && (
+                    <AdminPagination 
+                        currentPage={currentPage} 
+                        totalPages={totalPages} 
+                        onPageChange={setCurrentPage} 
+                    />
+                )}
             </div>
 
             {isModalOpen && (

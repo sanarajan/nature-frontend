@@ -671,7 +671,7 @@ const ProductDetails: React.FC = () => {
                                                 const hasPercent = ing.percentage && ing.percentage.trim() !== '' && ing.percentage !== '-';
                                                 let displayPercent = ing.percentage;
                                                 if (hasPercent && !String(displayPercent).includes('%')) {
-                                                    displayPercent = `${displayPercent}%`;
+                                                    displayPercent = `${displayPercent}`;
                                                 }
                                                 return (
                                                     <tr key={i}>
@@ -697,7 +697,7 @@ const ProductDetails: React.FC = () => {
                                         const hasPercent = ing.percentage && ing.percentage.trim() !== '' && ing.percentage !== '-';
                                         let displayPercent = ing.percentage;
                                         if (hasPercent && !String(displayPercent).includes('%')) {
-                                            displayPercent = `${displayPercent}%`;
+                                            displayPercent = `${displayPercent}`;
                                         }
                                         return (
                                             <div key={i} className="card mb-3 shadow-sm border border-light">

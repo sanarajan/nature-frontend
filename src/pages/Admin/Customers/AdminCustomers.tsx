@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { formatDate } from '../../../utils/formatDate';
 import Swal from 'sweetalert2';
 import '../../../styles/admin-pages.css';
+import AdminPagination from '../../../components/Admin/AdminPagination';
 
 const AdminCustomers: React.FC = () => {
     const [customers, setCustomers] = useState<any[]>([]);
@@ -12,10 +13,16 @@ const AdminCustomers: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchCustomers();
     }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filterStatus]);
 
     const fetchCustomers = async () => {
         setLoading(true);
@@ -132,6 +139,9 @@ const AdminCustomers: React.FC = () => {
         return true;
     });
 
+    const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+    const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     return (
         <div className="admin-page-container">
             <div className="page-header">
@@ -195,7 +205,7 @@ const AdminCustomers: React.FC = () => {
                             ) : filteredCustomers.length === 0 ? (
                                 <tr><td colSpan={8} className="text-center p-4">No customers found.</td></tr>
                             ) : (
-                                filteredCustomers.map((customer) => (
+                                paginatedCustomers.map((customer) => (
                                     <tr key={customer._id}>
                                         <td>
                                             <div className="product-info">
@@ -268,6 +278,13 @@ const AdminCustomers: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                {totalPages > 1 && (
+                    <AdminPagination 
+                        currentPage={currentPage} 
+                        totalPages={totalPages} 
+                        onPageChange={setCurrentPage} 
+                    />
+                )}
             </div>
 
             {selectedCustomer && (

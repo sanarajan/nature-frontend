@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import apiClient from '../../../services/adminApiClient';
 import { formatDate } from '../../../utils/formatDate';
 import '../../../styles/admin-pages.css';
+import AdminPagination from '../../../components/Admin/AdminPagination';
 
 const AdminProducts: React.FC = () => {
     const navigate = useNavigate();
@@ -14,10 +15,16 @@ const AdminProducts: React.FC = () => {
     const [showViewModal, setShowViewModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [activeImgIndex, setActiveImgIndex] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchProducts();
     }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     const fetchProducts = async () => {
         setLoading(true);
@@ -176,6 +183,9 @@ const AdminProducts: React.FC = () => {
         (p.categoryId?.categoryName || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+    const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     return (
         <div className="admin-page-container">
             <div className="page-header">
@@ -231,7 +241,7 @@ const AdminProducts: React.FC = () => {
                                     <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>No products found</td>
                                 </tr>
                             ) : (
-                                filteredProducts.map((product) => (
+                                paginatedProducts.map((product) => (
                                     <tr key={product._id}>
                                         <td>
                                             <div className="product-info">
@@ -347,6 +357,13 @@ const AdminProducts: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                {totalPages > 1 && (
+                    <AdminPagination 
+                        currentPage={currentPage} 
+                        totalPages={totalPages} 
+                        onPageChange={setCurrentPage} 
+                    />
+                )}
             </div>
             {showViewModal && selectedProduct && (
                 <div className="modal-overlay" onClick={() => setShowViewModal(false)}>

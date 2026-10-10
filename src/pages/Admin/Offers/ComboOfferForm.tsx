@@ -567,7 +567,7 @@ const ComboOfferForm: React.FC = () => {
                                                             <div key={item.productId} className="product-selection-row p-3 bg-white rounded border">
                                                                 <div className="d-flex align-items-start justify-content-between gap-3 mb-2">
                                                                     <div className="flex-grow-1">
-                                                                        <div className="fw-semibold">{p?.productName || 'Unknown'}</div>
+                                                                        <div className="fw-semibold">{p?.productName || 'Unknown'}<span className="text-primary ms-1" > {p.quantity}{p.unitId.unitName}</span></div>
                                                                         <div className="small text-muted">₹{p?.price || 0} / unit</div>
                                                                     </div>
                                                                     <div className="d-flex align-items-center gap-2">

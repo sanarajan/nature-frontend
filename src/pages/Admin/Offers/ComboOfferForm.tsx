@@ -687,7 +687,8 @@ const ComboOfferForm: React.FC = () => {
                                                                             {isSelected ? <ListChecks size={12} /> : null}
                                                                         </div>
                                                                         <div className="option-info">
-                                                                            <div className="option-name">{p.productName}</div>
+                                                                            <div className="option-name">{p.productName} <span className="text-primary ms-1" >{p.quantity}{p.unitId.unitName}</span> </div>
+                                                                           
                                                                             <div className="option-meta">
                                                                                 {p.sku && <span>{p.sku} • </span>}
                                                                                 <span>₹{p.price}</span>

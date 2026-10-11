@@ -19,10 +19,20 @@ const ComboOfferDetails: React.FC = () => {
         products: true,
         routine: true,
         whySpecial: true,
+        ingredients: true,
         howToUse: true,
         faq: true,
         safety: true
     });
+
+    const [expandedProductIngs, setExpandedProductIngs] = useState<Record<string, boolean>>({});
+
+    const toggleProductIng = (productId: string) => {
+        setExpandedProductIngs(prev => ({
+            ...prev,
+            [productId]: prev[productId] === undefined ? false : !prev[productId]
+        }));
+    };
 
     const toggleSection = (section: keyof typeof expandedSections) => {
         setExpandedSections(prev => ({
@@ -245,7 +255,7 @@ const ComboOfferDetails: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {combo.tagline && <div className="alert alert-primary bg-primary bg-opacity-10 border-0 fw-bold text-primary mb-4 p-3 rounded-3">{combo.tagline}</div>}
+                                {combo.tagline && <div className="alert alert-primary bg-primary bg-opacity-10 border-0 fw-bold text-white mb-4 p-3 rounded-3">{combo.tagline}</div>}
                                 
                                 {combo.shortDescription && <p className="lead text-secondary mb-4">{combo.shortDescription}</p>}
                                 
@@ -288,7 +298,7 @@ const ComboOfferDetails: React.FC = () => {
                                                             )}
                                                             <div className="flex-grow-1">
                                                                 <h6 className="mb-1 fw-bold">
-                                                                    <Link to={`/product/${p.productId?._id}`} className="text-dark text-decoration-none">{p.productId?.productName || 'Product'}</Link>
+                                                                    <Link to={`/product/${p.productId?._id}`} className="text-dark text-decoration-none">{p.productId?.productName || 'Product'} {p.productId?.quantity} {p?.unitId?.unitName}</Link>
                                                                 </h6>
                                                                 <div className="small text-muted">
                                                                     {p.comboRole && <span className="badge bg-secondary me-2">{p.comboRole}</span>}
@@ -303,6 +313,100 @@ const ComboOfferDetails: React.FC = () => {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Ingredients */}
+                                {(() => {
+                                    const productsWithIngredients = (combo.products || []).filter((p: any) => {
+                                        const prod = p?.productId;
+                                        if (!prod) return false;
+                                        const hasKey = Array.isArray(prod.keyIngredients) && prod.keyIngredients.some((ing: any) => ing && (ing.name || ing.ingredient));
+                                        const hasOther = typeof prod.otherIngredients === 'string' && prod.otherIngredients.trim().length > 0;
+                                        return hasKey || hasOther;
+                                    });
+
+                                    if (productsWithIngredients.length === 0) return null;
+
+                                    return (
+                                        <div className="accordion-item border-0 mb-3 bg-light rounded-4 overflow-hidden">
+                                            <button 
+                                                className="accordion-button bg-transparent fw-bold text-dark p-4 shadow-none" 
+                                                onClick={() => toggleSection('ingredients')} 
+                                                aria-expanded={expandedSections.ingredients}
+                                            >
+                                                <CheckCircle className="me-2 text-primary" size={20} /> Ingredients
+                                                <span className="ms-auto">{expandedSections.ingredients ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}</span>
+                                            </button>
+                                            <div className={`accordion-collapse collapse ${expandedSections.ingredients ? 'show' : ''}`}>
+                                                <div className="accordion-body pt-0 px-4 pb-4">
+                                                    <div className="d-flex flex-column gap-3">
+                                                        {productsWithIngredients.map((p: any, idx: number) => {
+                                                            const prod = p.productId;
+                                                            const pKey = prod._id ? String(prod._id) : `prod-${idx}`;
+                                                            const isExpanded = expandedProductIngs[pKey] !== false;
+                                                            const keyIngs = Array.isArray(prod.keyIngredients) 
+                                                                ? prod.keyIngredients.filter((ing: any) => ing && (ing.name || ing.ingredient)) 
+                                                                : [];
+                                                            const hasKey = keyIngs.length > 0;
+                                                            const hasOther = typeof prod.otherIngredients === 'string' && prod.otherIngredients.trim().length > 0;
+
+                                                            return (
+                                                                <div key={pKey} className="bg-white rounded-3 shadow-sm border border-light overflow-hidden">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn w-100 text-start p-3 fw-bold d-flex justify-content-between align-items-center bg-white border-0 shadow-none"
+                                                                        onClick={() => toggleProductIng(pKey)}
+                                                                        aria-expanded={isExpanded}
+                                                                    >
+                                                                        <span className="fs-6 text-dark fw-bold">{prod.productName || 'Product'}</span>
+                                                                        <span className="text-muted ms-2">
+                                                                            {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                                        </span>
+                                                                    </button>
+                                                                    {isExpanded && (
+                                                                        <div className="p-3 pt-0 border-top">
+                                                                            {hasKey && (
+                                                                                <div className="mt-3">
+                                                                                    <h6 className="fw-bold mb-2 text-dark">Key Ingredients</h6>
+                                                                                    <div className="table-responsive">
+                                                                                        <table className="table table-bordered mb-0 bg-white">
+                                                                                            <thead>
+                                                                                                <tr>
+                                                                                                    <th className="bg-white">Ingredient</th>
+                                                                                                    <th className="bg-white text-end" style={{ width: '140px' }}>Amount</th>
+                                                                                                </tr>
+                                                                                            </thead>
+                                                                                            <tbody>
+                                                                                                {keyIngs.map((ing: any, i: number) => (
+                                                                                                    <tr key={i}>
+                                                                                                        <td className="bg-white">{ing.name || ing.ingredient || ''}</td>
+                                                                                                        <td className="bg-white text-end">{ing.percentage || ing.amount || ''}</td>
+                                                                                                    </tr>
+                                                                                                ))}
+                                                                                            </tbody>
+                                                                                        </table>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+
+                                                                            {hasOther && (
+                                                                                <div className="mt-3">
+                                                                                    <h6 className="fw-bold mb-2 text-dark">Other Formulation Ingredients</h6>
+                                                                                    <div className="text-secondary" style={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                                                                                        {prod.otherIngredients}
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Overview & Routine */}
                                 {(combo.overviewTitle || combo.overviewDescription || combo.routineLabel || combo.targetConcerns?.length > 0) && (

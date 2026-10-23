@@ -2,7 +2,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../../store';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Download, Eye, FileText } from 'lucide-react';
+import { Search, Filter,  Eye, FileText } from 'lucide-react';
 import apiClient from '../../../services/adminApiClient';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../../utils/formatDate';
@@ -380,9 +380,9 @@ const AdminOrders: React.FC = () => {
             <div className="page-header">
                 <h1 className="page-title">Orders</h1>
                 <div className="header-actions">
-                    <button className="btn-primary-admin secondary" style={{ backgroundColor: '#fff', color: '#64748b', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                    {/* <button className="btn-primary-admin secondary" style={{ backgroundColor: '#fff', color: '#64748b', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
                         <Download size={18} /> Export CSV
-                    </button>
+                    </button> */}
                     <button className="btn-primary-admin">
                         <FileText size={18} /> New Order
                     </button>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, MoreHorizontal, Edit2, Trash2, Filter, Download, AlertTriangle, Eye, X, Star, Zap, Flame, Award } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Edit2, Trash2, Filter,  AlertTriangle, Eye, X, Star, Zap, Flame, Award } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/adminApiClient';
 import { formatDate } from '../../../utils/formatDate';
@@ -191,9 +191,9 @@ const AdminProducts: React.FC = () => {
             <div className="page-header">
                 <h1 className="page-title">Products</h1>
                 <div className="header-actions">
-                    <button className="btn-primary-admin secondary" style={{ backgroundColor: '#fff', color: '#64748b', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                    {/* <button className="btn-primary-admin secondary" style={{ backgroundColor: '#fff', color: '#64748b', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
                         <Download size={18} /> Export
-                    </button>
+                    </button> */}
                     <button className="btn-primary-admin" onClick={() => navigate('/admin/products/add')}>
                         <Plus size={18} /> Add Product
                     </button>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Mail, Phone, Filter, Download, Eye, X } from 'lucide-react';
+import { Search, Mail, Phone, Filter,  Eye, X } from 'lucide-react';
 import apiClient from '../../../services/adminApiClient';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../../utils/formatDate';
@@ -147,9 +147,9 @@ const AdminCustomers: React.FC = () => {
             <div className="page-header">
                 <h1 className="page-title">Customers</h1>
                 <div className="header-actions">
-                    <button className="btn-primary-admin secondary" style={{ backgroundColor: '#fff', color: '#64748b', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                    {/* <button className="btn-primary-admin secondary" style={{ backgroundColor: '#fff', color: '#64748b', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
                         <Download size={18} /> Export List
-                    </button>
+                    </button> */}
                     {/* <button className="btn-primary-admin">
                         <UserPlus size={18} /> Add Customer
                     </button> */}

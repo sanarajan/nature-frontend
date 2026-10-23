@@ -15,6 +15,14 @@ export const userAuthService = {
         const response = await apiClient.post(API_ENDPOINTS.USER.AUTH.REGISTER, data, { skipAuthInterceptor: true } as any);
         return response.data;
     },
+    verifyOtp: async (email: string, otp: string): Promise<ApiResponse<void>> => {
+        const response = await apiClient.post(API_ENDPOINTS.USER.AUTH.VERIFY_OTP, { email, otp }, { skipAuthInterceptor: true } as any);
+        return response.data;
+    },
+    resendOtp: async (email: string): Promise<ApiResponse<{ resendCount: number }>> => {
+        const response = await apiClient.post(API_ENDPOINTS.USER.AUTH.RESEND_OTP, { email }, { skipAuthInterceptor: true } as any);
+        return response.data;
+    },
     verifyEmail: async (email: string, token: string): Promise<ApiResponse<void>> => {
         const response = await apiClient.post(API_ENDPOINTS.USER.AUTH.VERIFY_EMAIL, { email, token }, { skipAuthInterceptor: true } as any);
         return response.data;

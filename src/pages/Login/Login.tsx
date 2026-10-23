@@ -122,6 +122,24 @@ const Login: React.FC = () => {
         } catch (err: any) {
             console.error("Login API Error:", err);
 
+            // If account is unverified, navigate to OTP verification page
+            if (err.response?.data?.requiresVerification) {
+                const targetEmail = err.response.data.data?.email || email;
+                const targetPhone = err.response.data.data?.phoneNumber;
+                sessionStorage.setItem('pending_verification_email', targetEmail);
+                if (targetPhone) {
+                    sessionStorage.setItem('pending_verification_phone', targetPhone);
+                }
+                navigate('/verify-otp', {
+                    state: {
+                        email: targetEmail,
+                        phoneNumber: targetPhone,
+                        fromLogin: true
+                    }
+                });
+                return;
+            }
+
             // Extract the most relevant error message exactly like the Registration form
             let errorMessage = 'Connection failed. Please try again.';
             if (err.response?.data?.message) {

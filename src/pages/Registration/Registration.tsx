@@ -61,8 +61,16 @@ const Registration: React.FC = () => {
         try {
             const res = await userAuthService.register(formData);
             if (res.success) {
-                // Navigate to Success Page with email state for context
-                navigate('/registration-success', { state: { email: formData.email } });
+                sessionStorage.setItem('pending_verification_email', formData.email);
+                if (formData.phoneNumber) {
+                    sessionStorage.setItem('pending_verification_phone', formData.phoneNumber);
+                }
+                navigate('/verify-otp', {
+                    state: {
+                        email: formData.email,
+                        phoneNumber: formData.phoneNumber
+                    }
+                });
             } else {
                 setErrorMsg(res.message || 'Registration failed');
             }

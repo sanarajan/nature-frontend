@@ -8,10 +8,10 @@ import adminApiClient from '../../../services/adminApiClient';
 import type { RootState } from '../../../store';
 import noimage from '../../../assets/images/noimage.png';
 import {
-    Search,
-    Sun,
-    Grid,
-    Languages,
+    // Search,
+    // Sun,
+    // Grid,
+    // Languages,
     Bell,
     ChevronDown,
     LogOut,
@@ -105,18 +105,18 @@ const Topbar: React.FC = () => {
             <div className="topbar-left">
                 <div className="topbar-search">
                     <div className="search-wrapper">
-                        <Search size={18} className="search-icon" />
-                        <input type="text" placeholder="Type for search..." />
+                        {/* <Search size={18} className="search-icon" />
+                        <input type="text" placeholder="Type for search..." /> */}
                     </div>
                 </div>
             </div>
 
             <div className="topbar-right">
                 <div className="topbar-actions">
-                    <button className="action-btn">
+                    {/* <button className="action-btn">
                         <Search size={20} />
-                    </button>
-                    <button className="action-btn">
+                    </button> */}
+                    {/* <button className="action-btn">
                         <Sun size={20} />
                     </button>
                     <button className="action-btn">
@@ -124,7 +124,7 @@ const Topbar: React.FC = () => {
                     </button>
                     <button className="action-btn">
                         <Languages size={20} />
-                    </button>
+                    </button> */}
                     <div style={{ position: 'relative' }}>
                         <button className="action-btn" onClick={() => { setShowNotifications(!showNotifications); setIsDropdownOpen(false); if (!showNotifications) fetchNotifications(); }}>
                             <Bell size={20} />

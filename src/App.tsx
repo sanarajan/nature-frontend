@@ -5,6 +5,8 @@ import AddProduct from './pages/Admin/Products/AddProduct'
 import EditProduct from './pages/Admin/Products/EditProduct'
 import AdminCategories from './pages/Admin/Categories/AdminCategories'
 import AdminCertifications from './pages/Admin/Certifications/AdminCertifications'
+import AdminSponsors from './pages/Admin/Sponsors/AdminSponsors'
+import AdminNews from './pages/Admin/News/AdminNews'
 import AdminSubcategories from './pages/Admin/Categories/AdminSubcategories'
 import AdminUnits from './pages/Admin/Units/AdminUnits'
 import AdminCustomers from './pages/Admin/Customers/AdminCustomers'
@@ -47,7 +49,8 @@ import ForgotPassword from './pages/Login/ForgotPassword'
 import ResetPassword from './pages/Login/ResetPassword'
 import Registration from './pages/Registration/Registration'
 import RegistrationSuccess from './pages/Registration/RegistrationSuccess'
-import VerifyEmail from './pages/Registration/VerifyEmail'
+// import VerifyEmail from './pages/Registration/VerifyEmail'
+import VerifyOtp from './pages/Registration/VerifyOtp'
 import Wishlist from './pages/Wishlist/Wishlist'
 import Account from './pages/Account/Account'
 import Profile from './pages/Account/Profile'
@@ -184,6 +187,8 @@ function App() {
           <Route path="/admin/products/edit/:id" element={<EditProduct />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
           <Route path="/admin/certifications" element={<AdminCertifications />} />
+          <Route path="/admin/sponsors" element={<AdminSponsors />} />
+          <Route path="/admin/news" element={<AdminNews />} />
           <Route path="/admin/subcategories" element={<AdminSubcategories />} />
           <Route path="/admin/units" element={<AdminUnits />} />
           <Route path="/admin/coupons" element={<AdminCoupons />} />
@@ -280,9 +285,14 @@ function App() {
                       <RegistrationSuccess />
                     </GuestRoute>
                   } />
+                  <Route path="/verify-otp" element={
+                    <GuestRoute type="user">
+                      <VerifyOtp />
+                    </GuestRoute>
+                  } />
                   <Route path="/verify-email" element={
                     <GuestRoute type="user">
-                      <VerifyEmail />
+                      <VerifyOtp />
                     </GuestRoute>
                   } />
                   <Route path="/wishlist" element={<Wishlist />} />

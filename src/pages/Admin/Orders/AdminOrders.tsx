@@ -7,10 +7,15 @@ import apiClient from '../../../services/adminApiClient';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../../utils/formatDate';
 import '../../../styles/admin-pages.css';
+import { useLocation } from 'react-router-dom';
 
 const AdminOrders: React.FC = () => {
     const adminData = useSelector((state: RootState) => state.auth.admin.data);
     const isAdmin = adminData?.role?.toUpperCase() === 'ADMIN';
+
+    //complte order route
+    const location = useLocation();
+    const isCompletedPage = location.pathname === '/admin/orders/completed';
 
     const navigate = useNavigate();
     const [orders, setOrders] = useState<any[]>([]);
@@ -347,12 +352,25 @@ const AdminOrders: React.FC = () => {
 
         if (!matchesSearch) return false;
 
-        if (filterTab === 'Return Requests') {
-            return order.globalOrderStatus === 'RETURN_REQUEST' || order.orderedProducts?.some((p: any) => p.orderStatus === 'Return Request');
-        }
-        if (filterTab === 'Cancellation Requests') {
-            return order.globalOrderStatus === 'CANCELLATION_REQUEST' || order.orderedProducts?.some((p: any) => p.orderStatus === 'Cancellation Request');
-        }
+        if (isCompletedPage) {
+        return ['Delivered', 'DELIVERED', 'COMPLETED', 'Completed'].includes(
+            order.globalOrderStatus
+        );
+    }
+
+    if (filterTab === 'Return Requests') {
+        return order.globalOrderStatus === 'RETURN_REQUEST' ||
+               order.orderedProducts?.some(
+                   (p: any) => p.orderStatus === 'Return Request'
+               );
+    }
+
+    if (filterTab === 'Cancellation Requests') {
+        return order.globalOrderStatus === 'CANCELLATION_REQUEST' ||
+               order.orderedProducts?.some(
+                   (p: any) => p.orderStatus === 'Cancellation Request'
+               );
+    }
 
         return true;
     });
@@ -373,29 +391,35 @@ const AdminOrders: React.FC = () => {
 
             <div className="admin-card">
                 <div className="card-filter-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '15px' }}>
-                    <div style={{ display: 'flex', gap: '10px', width: '100%', overflowX: 'auto', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                        <button 
-                            className={`btn ${filterTab === 'All' ? 'btn-primary' : 'btn-outline-primary'}`} 
-                            style={{ borderRadius: '20px', padding: '5px 15px', fontSize: '0.85rem' }}
-                            onClick={() => setFilterTab('All')}
-                        >
-                            All Orders
-                        </button>
-                        <button 
-                            className={`btn ${filterTab === 'Return Requests' ? 'btn-primary' : 'btn-outline-primary'}`} 
-                            style={{ borderRadius: '20px', padding: '5px 15px', fontSize: '0.85rem' }}
-                            onClick={() => setFilterTab('Return Requests')}
-                        >
-                            Return Requests
-                        </button>
-                        <button 
-                            className={`btn ${filterTab === 'Cancellation Requests' ? 'btn-primary' : 'btn-outline-primary'}`} 
-                            style={{ borderRadius: '20px', padding: '5px 15px', fontSize: '0.85rem' }}
-                            onClick={() => setFilterTab('Cancellation Requests')}
-                        >
-                            Cancellation Requests
-                        </button>
-                    </div>
+                   <div style={{ display: 'flex', gap: '10px', width: '100%', overflowX: 'auto', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+    {!isCompletedPage && (
+        <>
+            <button 
+                className={`btn ${filterTab === 'All' ? 'btn-primary' : 'btn-outline-primary'}`} 
+                style={{ borderRadius: '20px', padding: '5px 15px', fontSize: '0.85rem' }}
+                onClick={() => setFilterTab('All')}
+            >
+                All Orders
+            </button>
+
+            <button 
+                className={`btn ${filterTab === 'Return Requests' ? 'btn-primary' : 'btn-outline-primary'}`} 
+                style={{ borderRadius: '20px', padding: '5px 15px', fontSize: '0.85rem' }}
+                onClick={() => setFilterTab('Return Requests')}
+            >
+                Return Requests
+            </button>
+
+            <button 
+                className={`btn ${filterTab === 'Cancellation Requests' ? 'btn-primary' : 'btn-outline-primary'}`} 
+                style={{ borderRadius: '20px', padding: '5px 15px', fontSize: '0.85rem' }}
+                onClick={() => setFilterTab('Cancellation Requests')}
+            >
+                Cancellation Requests
+            </button>
+        </>
+    )}
+</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                         <div className="search-wrapper">
                             <Search size={18} className="search-icon" />

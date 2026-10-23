@@ -23,7 +23,9 @@ import {
     Truck,
     Zap,
     LogOut,
-    Award
+    Award,
+    Handshake,
+    Newspaper
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -181,6 +183,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                     <NavLink to="/admin/certifications" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         <Award size={20} />
                         <span>Certifications</span>
+                    </NavLink>
+
+                    <NavLink to="/admin/sponsors" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+                        <Handshake size={20} />
+                        <span>Sponsors</span>
+                    </NavLink>
+
+                    <NavLink to="/admin/news" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+                        <Newspaper size={20} />
+                        <span>Cosmetic News</span>
                     </NavLink>
 
                     <NavLink to="/admin/coupons" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>

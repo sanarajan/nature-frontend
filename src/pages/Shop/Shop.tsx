@@ -249,24 +249,105 @@ const Shop: React.FC = () => {
     const [wishlist, setWishlist] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>([]);
-    const [activeSubcategoryIds, setActiveSubcategoryIds] = useState<string[]>([]);
+    const getInitialParam = (paramName: string) => {
+        if (typeof window === 'undefined') return null;
+        const params = new URLSearchParams(window.location.search);
+        return params.get(paramName);
+    };
+
+    const initialCat = getInitialParam('category') || getInitialParam('categoryId');
+    const initialSub = getInitialParam('subcategory') || getInitialParam('subcategoryId');
+    const initialOffer = getInitialParam('offers') === 'true';
+    const initialFeatured = getInitialParam('featured') === 'true';
+
+    const [activeCategoryIds, setActiveCategoryIds] = useState<string[]>(initialCat ? [initialCat] : []);
+    const [activeSubcategoryIds, setActiveSubcategoryIds] = useState<string[]>(initialSub ? [initialSub] : []);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('newest');
-    const [onOffer, setOnOffer] = useState(false);
-    const [expandedCats, setExpandedCats] = useState<string[]>([]);
+    const [onOffer, setOnOffer] = useState(initialOffer);
+    const [featuredOnly, setFeaturedOnly] = useState(initialFeatured);
+    const [expandedCats, setExpandedCats] = useState<string[]>(initialCat ? [initialCat] : []);
 
     // Ensure we only treat them as a "user" if they actually have a user token.
     // If an Admin is logged in, isAuthenticated is true, but they don't have a user token.
     const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
 
-    // Handle offers redirect from home page
+    // Handle offers, featured, category, and subcategory redirects from home page or direct navigation
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
-        if (queryParams.get('offers') === 'true') {
+        const offersParam = queryParams.get('offers');
+        const featuredParam = queryParams.get('featured');
+        const catParam = queryParams.get('category') || queryParams.get('categoryId');
+        const subParam = queryParams.get('subcategory') || queryParams.get('subcategoryId');
+
+        if (offersParam === 'true') {
             setOnOffer(true);
+        } else if (offersParam === 'false') {
+            setOnOffer(false);
         }
-    }, [location.search]);
+
+        if (featuredParam === 'true') {
+            setFeaturedOnly(true);
+        } else if (featuredParam === 'false') {
+            setFeaturedOnly(false);
+        }
+
+        if (hierarchies.length > 0) {
+            let subApplied = false;
+            if (subParam) {
+                let foundSub: any = null;
+                let foundParentCat: any = null;
+                for (const cat of hierarchies) {
+                    const sub = cat.subcategories?.find((s: any) =>
+                        s._id === subParam ||
+                        (s.subcategoryName && s.subcategoryName.toLowerCase() === subParam.toLowerCase())
+                    );
+                    if (sub) {
+                        foundSub = sub;
+                        foundParentCat = cat;
+                        break;
+                    }
+                }
+
+                if (foundSub && foundParentCat) {
+                    setActiveSubcategoryIds([foundSub._id]);
+                    setActiveCategoryIds([foundParentCat._id]);
+                    setExpandedCats(prev => prev.includes(foundParentCat._id) ? prev : [...prev, foundParentCat._id]);
+                    setCurrentPage(1);
+                    subApplied = true;
+                }
+            }
+
+            if (!subApplied && catParam) {
+                const foundCat = hierarchies.find((c: any) =>
+                    c._id === catParam ||
+                    (c.categoryName && c.categoryName.toLowerCase() === catParam.toLowerCase())
+                );
+
+                if (foundCat) {
+                    const subIds = (foundCat.subcategories || []).map((s: any) => s._id);
+                    setActiveCategoryIds([foundCat._id]);
+                    setActiveSubcategoryIds(subIds);
+                    if (subIds.length > 0) {
+                        setExpandedCats(prev => prev.includes(foundCat._id) ? prev : [...prev, foundCat._id]);
+                    }
+                    setCurrentPage(1);
+                }
+            }
+
+            if (!subApplied && !catParam && !offersParam && !featuredParam && !location.search) {
+                setActiveCategoryIds([]);
+                setActiveSubcategoryIds([]);
+                setOnOffer(false);
+                setFeaturedOnly(false);
+                setExpandedCats([]);
+                setCurrentPage(1);
+            }
+        } else if (!location.search && !catParam && !subParam && !offersParam && !featuredParam) {
+            setOnOffer(false);
+            setFeaturedOnly(false);
+        }
+    }, [location.search, hierarchies]);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -375,7 +456,7 @@ const Shop: React.FC = () => {
                     maxPrice: priceMax,
                     sort: sortBy,
                     page: currentPage,
-                    limit: 12
+                    limit: featuredOnly ? 100 : 12
                 };
                 if (activeCategoryIds.length > 0) params.categoryId = activeCategoryIds.join(',');
                 if (activeSubcategoryIds.length > 0) params.subcategoryId = activeSubcategoryIds.join(',');
@@ -385,8 +466,12 @@ const Shop: React.FC = () => {
                 const res = await userApiClient.get('/user/products', { params });
                 if (res.data.success) {
                     const responseData = res.data.data;
-                    setProducts(responseData.products || []);
-                    setTotalResults(responseData.total || 0);
+                    let prods = responseData.products || [];
+                    if (featuredOnly) {
+                        prods = prods.filter((p: Product) => p.featured === true);
+                    }
+                    setProducts(prods);
+                    setTotalResults(featuredOnly ? prods.length : (responseData.total || 0));
                     
                     if (responseData.totalPages > 0 && currentPage > responseData.totalPages) {
                         setCurrentPage(1);
@@ -402,15 +487,13 @@ const Shop: React.FC = () => {
         };
         const timer = setTimeout(fetchProducts, 300);
         return () => clearTimeout(timer);
-    }, [activeCategoryIds, activeSubcategoryIds, searchQuery, priceMin, priceMax, sortBy, onOffer, currentPage]);
+    }, [activeCategoryIds, activeSubcategoryIds, searchQuery, priceMin, priceMax, sortBy, onOffer, featuredOnly, currentPage]);
 
     const handleCategoryToggle = (catId: string, subcategories: any[]) => {
         const subIds = subcategories.map(s => s._id);
 
         // Determine current selected state synchronously based on existing state variables
-        const isCatSelected = subcategories.length > 0
-            ? subIds.every(id => activeSubcategoryIds.includes(id))
-            : activeCategoryIds.includes(catId);
+        const isCatSelected = activeCategoryIds.includes(catId) || (subcategories.length > 0 && subIds.every(id => activeSubcategoryIds.includes(id)));
 
         if (isCatSelected) {
             // Uncheck category and all its subcategories
@@ -457,7 +540,11 @@ const Shop: React.FC = () => {
         setSortBy('newest');
         setExpandedCats([]);
         setOnOffer(false);
+        setFeaturedOnly(false);
         setCurrentPage(1);
+        if (location.search) {
+            navigate('/shop', { replace: true });
+        }
     };
 
     return (
@@ -526,6 +613,15 @@ const Shop: React.FC = () => {
                                                     </div>
                                                 </li>
                                                 <li className="cat-item">
+                                                    <div className="custom-control custom-checkbox d-flex align-items-center"
+                                                        onClick={() => { setFeaturedOnly(!featuredOnly); setCurrentPage(1); }}
+                                                        style={{ cursor: 'pointer', marginBottom: '8px' }}>
+                                                        <div className={`form-check-input square ${featuredOnly ? 'checked' : ''}`}
+                                                            style={{ width: '16px', height: '16px', border: '1px solid #ccc', marginRight: '10px', backgroundColor: featuredOnly ? '#38996E' : 'transparent' }}></div>
+                                                        <span style={{ fontSize: '14px', color: featuredOnly ? '#38996E' : '#555', fontWeight: featuredOnly ? 600 : 400 }}>Featured</span>
+                                                    </div>
+                                                </li>
+                                                <li className="cat-item">
                                                     <div className="custom-control custom-checkbox d-flex" onClick={handleReset} style={{ cursor: 'pointer' }}>
                                                         <span style={{ fontSize: '14px', color: '#555' }}>Show All</span>
                                                     </div>
@@ -568,11 +664,8 @@ const Shop: React.FC = () => {
                                             <ul>
                                                 {hierarchies.map((cat) => {
                                                     const subIds = cat.subcategories.map((s: any) => s._id);
-                                                    // A category is considered selected if it has subcategories and ALL of them are selected,
-                                                    // or if it has NO subcategories and its ID is in activeCategoryIds.
-                                                    const isCatSelected = cat.subcategories.length > 0
-                                                        ? subIds.every((id: string) => activeSubcategoryIds.includes(id))
-                                                        : activeCategoryIds.includes(cat._id);
+                                                    // A category is considered selected if its ID is in activeCategoryIds or all of its subcategories are selected
+                                                    const isCatSelected = activeCategoryIds.includes(cat._id) || (cat.subcategories.length > 0 && subIds.every((id: string) => activeSubcategoryIds.includes(id)));
 
                                                     const isCatExpanded = expandedCats.includes(cat._id);
                                                     return (

@@ -20,7 +20,9 @@ const Footer: React.FC = () => {
                                 </div>
                                 <ul className="widget-address">
                                     <li>
-                                        <p><span>Address</span> : 22/88 C, NR KAREEKKAD JUMA MASJID, PAYYOLI, KOZHIKODE, KOZHIKODE, KERALA, 673522
+                                        <p><span>Address</span> : Door No. 63/700, D Space, 6th Floor, Sky Tower, Mavoor Road Junction, Bank Road, Kozhikode - 673001
+
+
                                         </p>
                                     </li>
                                     <li>
@@ -87,7 +89,7 @@ const Footer: React.FC = () => {
                                 </ul>
                             </div>
                         </div>
-                        <div className="col-xl-2 col-md-4 col-sm-4 col-6 wow fadeInUp" data-wow-delay="0.3s">
+                        {/* <div className="col-xl-2 col-md-4 col-sm-4 col-6 wow fadeInUp" data-wow-delay="0.3s">
                             <div className="widget widget_services">
                                 <h5 className="footer-title">Our Stores</h5>
                                 <ul>
@@ -99,17 +101,18 @@ const Footer: React.FC = () => {
                                     <li><a href="javascript:void(0);">Las Vegas</a></li>
                                 </ul>
                             </div>
-                        </div>
+                        </div> */}
                         <div className="col-xl-2 col-md-4 col-sm-4 col-6 wow fadeInUp" data-wow-delay="0.4s">
                             <div className="widget widget_services">
                                 <h5 className="footer-title">Useful Links</h5>
                                 <ul>
                                     <li><Link to="/privacy-policy">Privacy Policy</Link></li>
-                                    <li><a href="javascript:void(0);">Returns</a></li>
                                     <li><Link to="/terms-and-conditions">Terms & Conditions</Link></li>
+                                    <li><Link to="/shop">Shop</Link></li>
+                                      <li><Link to="/combo-offers">Combo Offerss</Link></li>
                                     <li><a href="javascript:void(0);">Contact Us</a></li>
-                                    <li><a href="javascript:void(0);">Latest News</a></li>
-                                    <li><a href="javascript:void(0);">Our Sitemap</a></li>
+                                    {/* <li><a href="javascript:void(0);">Latest News</a></li> */}
+                                    {/* <li><a href="javascript:void(0);">Our Sitemap</a></li> */}
                                 </ul>
                             </div>
                         </div>
@@ -117,11 +120,10 @@ const Footer: React.FC = () => {
                             <div className="widget widget_services">
                                 <h5 className="footer-title">Footer Menu</h5>
                                 <ul>
-                                    <li><a href="javascript:void(0);">Instagram profile</a></li>
-                                    <li><a href="javascript:void(0);">New about</a></li>
-                                    <li><a href="javascript:void(0);">Woman Dress</a></li>
-                                    <li><a href="javascript:void(0);">Contact Us</a></li>
-                                    <li><a href="javascript:void(0);">Latest News</a></li>
+                                    <li><a href="https://www.instagram.com/naturalayam?rpxt=a2o1ajJuZ2lic3h3">Instagram profile</a></li>
+                                    <li><a href="https://youtube.com/@naturalayam?si=RYzP9NSneF8L034e">YouTube Channel</a></li>
+                                      <li><Link to="/certifications">Certifications & Product reports</Link></li>
+                                        <li><Link to="/offers">Offers</Link></li>
                                 </ul>
                             </div>
                         </div>

@@ -4,31 +4,31 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../../store';
 import { userLogout } from '../../store/authSlice';
 import { toast } from 'react-toastify';
-import ReactApexChart from 'react-apexcharts';
-import type { ApexOptions } from 'apexcharts';
-import userApiClient from '../../services/userApiClient';
+// import ReactApexChart from 'react-apexcharts';
+// import type { ApexOptions } from 'apexcharts';
+// import userApiClient from '../../services/userApiClient';
 import AccountSidebar from '../../components/AccountSidebar/AccountSidebar';
 const Account: React.FC = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { isAuthenticated, data: user } = useSelector((state: RootState) => state.auth.user);
-    const [wallet, setWallet] = React.useState<any>(null);
+    // const [wallet, setWallet] = React.useState<any>(null);
 
-    useEffect(() => {
-        if (isAuthenticated) {
-            const fetchWallet = async () => {
-                try {
-                    const res = await userApiClient.get('/user/wallet');
-                    if (res.data.success) {
-                        setWallet(res.data.data.wallet);
-                    }
-                } catch (error) {
-                    console.error("Failed to fetch wallet:", error);
-                }
-            };
-            fetchWallet();
-        }
-    }, [isAuthenticated]);
+    // useEffect(() => {
+    //     if (isAuthenticated) {
+    //         const fetchWallet = async () => {
+    //             try {
+    //                 const res = await userApiClient.get('/user/wallet');
+    //                 if (res.data.success) {
+    //                     setWallet(res.data.data.wallet);
+    //                 }
+    //             } catch (error) {
+    //                 console.error("Failed to fetch wallet:", error);
+    //             }
+    //         };
+    //         fetchWallet();
+    //     }
+    // }, [isAuthenticated]);
 
     useEffect(() => {
         if (!isAuthenticated && !localStorage.getItem('user_accessToken')) {
@@ -44,62 +44,62 @@ const Account: React.FC = () => {
     };
 
 
-    const chartOptions: ApexOptions = {
-        chart: {
-            height: 365,
-            type: 'area',
-            toolbar: { show: false },
-            zoom: { enabled: false },
-        },
-        colors: ["#248444"], // Match green line color
-        dataLabels: { enabled: false },
-        legend: { show: false },
-        stroke: {
-            show: true,
-            width: 2,
-            curve: 'smooth',
-            colors: ['#248444']
-        },
-        grid: {
-            show: true,
-            borderColor: '#eee',
-            padding: { top: 0, right: 0, bottom: 0, left: 0 }
-        },
-        yaxis: {
-            labels: {
-                minWidth: 20,
-                offsetX: -10,
-                style: { fontSize: '13px', colors: '#888888' },
-                formatter: (value) => "$" + value
-            },
-        },
-        xaxis: {
-            categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'August'],
-            axisBorder: { show: true },
-            axisTicks: { show: true },
-            labels: { show: true, style: { fontSize: '13px', colors: '#888888' } },
-            crosshairs: { show: true, position: 'front', stroke: { width: 0, dashArray: 3 } },
-            tooltip: { enabled: false }
-        },
-        fill: {
-            opacity: 0.9,
-            colors: ['#248444'],
-            type: 'gradient',
-            gradient: {
-                shadeIntensity: 1,
-                opacityFrom: 0.3,
-                opacityTo: 0.05,
-                stops: [0, 60, 100]
-            }
-        },
-    };
+    // const chartOptions: ApexOptions = {
+    //     chart: {
+    //         height: 365,
+    //         type: 'area',
+    //         toolbar: { show: false },
+    //         zoom: { enabled: false },
+    //     },
+    //     colors: ["#248444"], // Match green line color
+    //     dataLabels: { enabled: false },
+    //     legend: { show: false },
+    //     stroke: {
+    //         show: true,
+    //         width: 2,
+    //         curve: 'smooth',
+    //         colors: ['#248444']
+    //     },
+    //     grid: {
+    //         show: true,
+    //         borderColor: '#eee',
+    //         padding: { top: 0, right: 0, bottom: 0, left: 0 }
+    //     },
+    //     yaxis: {
+    //         labels: {
+    //             minWidth: 20,
+    //             offsetX: -10,
+    //             style: { fontSize: '13px', colors: '#888888' },
+    //             formatter: (value) => "$" + value
+    //         },
+    //     },
+    //     xaxis: {
+    //         categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'August'],
+    //         axisBorder: { show: true },
+    //         axisTicks: { show: true },
+    //         labels: { show: true, style: { fontSize: '13px', colors: '#888888' } },
+    //         crosshairs: { show: true, position: 'front', stroke: { width: 0, dashArray: 3 } },
+    //         tooltip: { enabled: false }
+    //     },
+    //     fill: {
+    //         opacity: 0.9,
+    //         colors: ['#248444'],
+    //         type: 'gradient',
+    //         gradient: {
+    //             shadeIntensity: 1,
+    //             opacityFrom: 0.3,
+    //             opacityTo: 0.05,
+    //             stops: [0, 60, 100]
+    //         }
+    //     },
+    // };
 
-    const chartSeries = [
-        {
-            name: 'Net Profit',
-            data: [200, 190, 200, 190, 205, 185, 200, 190],
-        },
-    ];
+    // const chartSeries = [
+    //     {
+    //         name: 'Net Profit',
+    //         data: [200, 190, 200, 190, 205, 185, 200, 190],
+    //     },
+    // ];
 
     return (
         <div className="page-content bg-light">
@@ -131,7 +131,7 @@ const Account: React.FC = () => {
                                     <p>Hello <strong className="text-black">{user?.username || user?.displayName || user?.name || 'User'}</strong> (not <strong className="text-black">{user?.username || user?.displayName || user?.name || 'User'}</strong>? <Link to="#" onClick={handleLogout} className="text-underline">Log out</Link>)</p>
                                     <p>From your account dashboard you can view your <Link to="/account/orders" className="text-underline">recent orders</Link>, manage your <Link to="/account/address" className="text-underline">shipping and billing addresses</Link>, and <Link to="/account/profile" className="text-underline">edit your password and account details</Link>.</p>
                                 </div>
-                                <div className="row g-4">
+                                {/* <div className="row g-4">
                                     <div className="col-md-4">
                                         <div className="total-contain">
                                             <div className="total-icon">
@@ -230,7 +230,7 @@ const Account: React.FC = () => {
                                             </ul>
                                         </div>
                                     </div>
-                                </div>
+                                </div> */}
                             </div>
                         </section>
                     </div>

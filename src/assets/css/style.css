@@ -39308,6 +39308,10 @@ video#video-background {
 }
 
 .blog-card .blog-media img {
+  width: 100%;
+  aspect-ratio: 600 / 675;
+  object-fit: cover;
+  display: block;
   transition: 0.5s;
 }
 

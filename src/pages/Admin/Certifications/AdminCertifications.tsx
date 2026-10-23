@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Edit2, Trash2, X, Eye, Upload, FileText } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Eye, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import apiClient from '../../../services/adminApiClient';
 import { formatDate } from '../../../utils/formatDate';
@@ -10,10 +10,25 @@ interface Certification {
     name: string;
     fileUrl: string;
     originalFileName?: string;
+    certificateImageUrl?: string;
+    originalCertificateName?: string;
     pdfUrl?: string;
     originalPdfName?: string;
+    description?: string;
     createdAt: string;
 }
+
+const isPdfUrl = (url?: string): boolean => {
+    if (!url || typeof url !== 'string') return false;
+    const lower = url.toLowerCase();
+    return lower.includes('/pdfs/') || lower.endsWith('.pdf') || lower.includes('.pdf?');
+};
+
+const isImageUrl = (url?: string): boolean => {
+    if (!url || typeof url !== 'string') return false;
+    if (isPdfUrl(url)) return false;
+    return true;
+};
 
 const AdminCertifications: React.FC = () => {
     const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -21,16 +36,21 @@ const AdminCertifications: React.FC = () => {
 
     // Form State
     const [name, setName] = useState('');
-    const [fileUrl, setFileUrl] = useState('');
-    const [originalFileName, setOriginalFileName] = useState('');
-    const [filePreview, setFilePreview] = useState<string>(''); // Base64 preview for Logo
+    const [description, setDescription] = useState('');
+
+    // Logo State
+    const [existingFileUrl, setExistingFileUrl] = useState('');
+    const [existingFileName, setExistingFileName] = useState('');
+    const [newLogoData, setNewLogoData] = useState<string>(''); // Base64 preview for newly selected Logo
+    const [newLogoName, setNewLogoName] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // PDF Form State
-    const [pdfUrl, setPdfUrl] = useState('');
-    const [originalPdfName, setOriginalPdfName] = useState('');
-    const [pdfData, setPdfData] = useState<string>(''); // Base64 data for PDF
-    const pdfInputRef = useRef<HTMLInputElement>(null);
+    // Certificate Image State
+    const [existingCertificateUrl, setExistingCertificateUrl] = useState('');
+    const [existingCertificateName, setExistingCertificateName] = useState('');
+    const [newCertificateData, setNewCertificateData] = useState<string>(''); // Base64 data for newly selected Certificate Image
+    const [newCertificateName, setNewCertificateName] = useState('');
+    const certificateInputRef = useRef<HTMLInputElement>(null);
 
     const [loading, setLoading] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit' | 'view'>('add');
@@ -55,17 +75,20 @@ const AdminCertifications: React.FC = () => {
 
     const resetForm = () => {
         setName('');
-        setFileUrl('');
-        setOriginalFileName('');
-        setFilePreview('');
-        setPdfUrl('');
-        setOriginalPdfName('');
-        setPdfData('');
+        setDescription('');
+        setExistingFileUrl('');
+        setExistingFileName('');
+        setNewLogoData('');
+        setNewLogoName('');
+        setExistingCertificateUrl('');
+        setExistingCertificateName('');
+        setNewCertificateData('');
+        setNewCertificateName('');
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
-        if (pdfInputRef.current) {
-            pdfInputRef.current.value = '';
+        if (certificateInputRef.current) {
+            certificateInputRef.current.value = '';
         }
     };
 
@@ -76,12 +99,14 @@ const AdminCertifications: React.FC = () => {
         if (cert) {
             setSelectedCertId(cert._id);
             setName(cert.name);
-            setFileUrl(cert.fileUrl);
-            setOriginalFileName(cert.originalFileName || '');
-            setFilePreview(cert.fileUrl);
-            setPdfUrl(cert.pdfUrl || '');
-            setOriginalPdfName(cert.originalPdfName || '');
-            setPdfData('');
+            setDescription(cert.description || '');
+            setExistingFileUrl(cert.fileUrl || '');
+            setExistingFileName(cert.originalFileName || '');
+
+            const certImg = cert.certificateImageUrl || (!isPdfUrl(cert.pdfUrl) ? cert.pdfUrl : '');
+            const certName = cert.originalCertificateName || (!isPdfUrl(cert.pdfUrl) ? cert.originalPdfName : '') || '';
+            setExistingCertificateUrl(certImg || cert.pdfUrl || '');
+            setExistingCertificateName(certName || cert.originalPdfName || '');
         } else {
             setSelectedCertId(null);
         }
@@ -97,8 +122,20 @@ const AdminCertifications: React.FC = () => {
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Check for PDF explicitly
+            if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                toast.error('PDF files are not allowed for Logo. Please upload an image (JPG, JPEG, PNG, WEBP, GIF).');
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+                return;
+            }
+
             const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-            if (!validTypes.includes(file.type)) {
+            const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+            const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+
+            if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
                 toast.error('Only JPG, JPEG, PNG, WEBP, and GIF image files are allowed for Logo.');
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
@@ -115,40 +152,52 @@ const AdminCertifications: React.FC = () => {
                 return;
             }
             
-            setOriginalFileName(file.name);
+            setNewLogoName(file.name);
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFilePreview(reader.result as string);
+                setNewLogoData(reader.result as string);
             };
             reader.readAsDataURL(file);
         }
     };
 
-    const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCertificateImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-            if (!isPdf) {
-                toast.error('Only PDF files are allowed for Certificate Upload.');
-                if (pdfInputRef.current) {
-                    pdfInputRef.current.value = '';
+            // Strictly reject PDF
+            if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                toast.error('PDF files are not allowed. Please upload an image file (JPG, JPEG, PNG, WEBP) for Certificate Image.');
+                if (certificateInputRef.current) {
+                    certificateInputRef.current.value = '';
                 }
                 return;
             }
 
-            // Check size (max 15MB)
-            if (file.size > 15 * 1024 * 1024) {
-                toast.error('Certificate PDF size exceeds the 15MB limit.');
-                if (pdfInputRef.current) {
-                    pdfInputRef.current.value = '';
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+            const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+            const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+
+            if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+                toast.error('Only JPG, JPEG, PNG, and WEBP image files are allowed for Certificate Image.');
+                if (certificateInputRef.current) {
+                    certificateInputRef.current.value = '';
                 }
                 return;
             }
 
-            setOriginalPdfName(file.name);
+            // Check size (max 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                toast.error('Certificate Image size exceeds the 10MB limit.');
+                if (certificateInputRef.current) {
+                    certificateInputRef.current.value = '';
+                }
+                return;
+            }
+
+            setNewCertificateName(file.name);
             const reader = new FileReader();
             reader.onloadend = () => {
-                setPdfData(reader.result as string);
+                setNewCertificateData(reader.result as string);
             };
             reader.readAsDataURL(file);
         }
@@ -163,12 +212,12 @@ const AdminCertifications: React.FC = () => {
         }
 
         if (modalMode === 'add') {
-            if (!filePreview || !filePreview.startsWith('data:')) {
+            if (!newLogoData || !newLogoData.startsWith('data:')) {
                 toast.error('Logo image is required.');
                 return;
             }
-            if (!pdfData || !pdfData.startsWith('data:application/pdf;base64,')) {
-                toast.error('Certificate PDF is required.');
+            if (!newCertificateData || !newCertificateData.startsWith('data:')) {
+                toast.error('Certificate image is required.');
                 return;
             }
         }
@@ -177,18 +226,21 @@ const AdminCertifications: React.FC = () => {
         try {
             const payload: any = {
                 name: trimmedName,
-                originalFileName,
-                originalPdfName
+                description: description.trim()
             };
             
             // Only send fileData if a new logo was selected
-            if (filePreview && filePreview.startsWith('data:')) {
-                payload.fileData = filePreview;
+            if (newLogoData && newLogoData.startsWith('data:')) {
+                payload.fileData = newLogoData;
+                payload.originalFileName = newLogoName;
             }
 
-            // Only send pdfData if a new PDF was selected
-            if (pdfData && pdfData.startsWith('data:')) {
-                payload.pdfData = pdfData;
+            // Only send certificateImageData if a new certificate image was selected
+            if (newCertificateData && newCertificateData.startsWith('data:')) {
+                payload.certificateImageData = newCertificateData;
+                payload.originalCertificateName = newCertificateName;
+                payload.pdfData = newCertificateData;
+                payload.originalPdfName = newCertificateName;
             }
 
             let res;
@@ -286,61 +338,75 @@ const AdminCertifications: React.FC = () => {
                                 <th>Sl No.</th>
                                 <th>Certification Name</th>
                                 <th>Logo</th>
-                                <th>Certificate PDF</th>
+                                <th>Certificate Image</th>
                                 <th>Added On</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredCertifications.length > 0 ? (
-                                filteredCertifications.map((cert, index) => (
-                                    <tr key={cert._id}>
-                                        <td>{index + 1}</td>
-                                        <td style={{ fontWeight: 600 }}>{cert.name}</td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                {cert.fileUrl ? (
-                                                    <img src={cert.fileUrl} alt={cert.name} style={{ width: 60, height: 40, objectFit: 'contain', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                                filteredCertifications.map((cert, index) => {
+                                    const certImg = cert.certificateImageUrl || (!isPdfUrl(cert.pdfUrl) ? cert.pdfUrl : null);
+                                    const certName = cert.originalCertificateName || cert.originalPdfName || 'Certificate Image';
+
+                                    return (
+                                        <tr key={cert._id}>
+                                            <td>{index + 1}</td>
+                                            <td style={{ fontWeight: 600 }}>{cert.name}</td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    {cert.fileUrl ? (
+                                                        <img 
+                                                            src={cert.fileUrl} 
+                                                            alt={cert.name} 
+                                                            style={{ width: 60, height: 40, objectFit: 'contain', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }} 
+                                                        />
+                                                    ) : (
+                                                        <div style={{ width: 60, height: 40, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, color: '#94a3b8', fontSize: 12 }}>No Logo</div>
+                                                    )}
+                                                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                                        {cert.originalFileName || 'logo image'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {certImg ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                        <img 
+                                                            src={certImg} 
+                                                            alt="Certificate" 
+                                                            style={{ width: 60, height: 40, objectFit: 'contain', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }} 
+                                                            onError={(e: any) => {
+                                                                e.target.style.display = 'none';
+                                                            }}
+                                                        />
+                                                        <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                                            {certName}
+                                                        </span>
+                                                    </div>
                                                 ) : (
-                                                    <div style={{ width: 60, height: 40, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, color: '#94a3b8', fontSize: 12 }}>No Logo</div>
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+                                                        {cert.pdfUrl && isPdfUrl(cert.pdfUrl) ? 'Legacy PDF' : 'No Certificate Image'}
+                                                    </span>
                                                 )}
-                                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                                    {cert.originalFileName || 'logo image'}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            {cert.pdfUrl ? (
-                                                <a 
-                                                    href={cert.pdfUrl} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer" 
-                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#dc2626', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 600 }}
-                                                    title="View / Download PDF"
-                                                >
-                                                    <FileText size={16} />
-                                                    <span>{cert.originalPdfName || 'Download PDF'}</span>
-                                                </a>
-                                            ) : (
-                                                <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No PDF</span>
-                                            )}
-                                        </td>
-                                        <td>{formatDate(cert.createdAt)}</td>
-                                        <td>
-                                            <div className="table-actions">
-                                                <button className="action-btn" title="View Details" onClick={() => handleOpenModal('view', cert)}>
-                                                    <Eye size={16} />
-                                                </button>
-                                                <button className="action-btn" title="Edit Certification" onClick={() => handleOpenModal('edit', cert)}>
-                                                    <Edit2 size={16} />
-                                                </button>
-                                                <button className="action-btn delete" title="Delete Certification" onClick={() => handleDelete(cert._id)}>
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                            </td>
+                                            <td>{formatDate(cert.createdAt)}</td>
+                                            <td>
+                                                <div className="table-actions">
+                                                    <button className="action-btn" title="View Details" onClick={() => handleOpenModal('view', cert)}>
+                                                        <Eye size={16} />
+                                                    </button>
+                                                    <button className="action-btn" title="Edit Certification" onClick={() => handleOpenModal('edit', cert)}>
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button className="action-btn delete" title="Delete Certification" onClick={() => handleDelete(cert._id)}>
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan={6} className="empty-state">
@@ -375,24 +441,55 @@ const AdminCertifications: React.FC = () => {
                                         type="text" 
                                         value={name} 
                                         onChange={(e) => setName(e.target.value)} 
-                                        placeholder="e.g., ISO 9001, FSSAI License"
+                                        placeholder="e.g., ISO 9001, Organic Product Certification"
                                         disabled={modalMode === 'view'}
                                         required
                                     />
                                 </div>
+
+                                <div className="form-group" style={{ marginTop: '16px' }}>
+                                    <label>Description (Optional)</label>
+                                    <textarea
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        placeholder="Enter certification description..."
+                                        disabled={modalMode === 'view'}
+                                        rows={4}
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px 14px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #cbd5e1',
+                                            fontSize: '0.95rem',
+                                            fontFamily: 'inherit',
+                                            resize: 'vertical',
+                                            lineHeight: '1.5',
+                                            outline: 'none',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
+                                </div>
                                 
                                 {/* Logo Upload Section */}
-                                <div className="form-group">
+                                <div className="form-group" style={{ marginTop: '20px' }}>
                                     <label>Logo Upload {modalMode === 'add' && <span className="required">*</span>}</label>
                                     
-                                    {modalMode !== 'add' && fileUrl && (
+                                    {modalMode !== 'add' && existingFileUrl && (
                                         <div style={{ marginBottom: '15px' }}>
                                             <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '5px' }}>
                                                 Current Logo: <br />
-                                                <strong>{originalFileName || 'Existing Logo'}</strong>
+                                                <strong>{existingFileName || 'Existing Logo'}</strong>
                                             </div>
-                                            <img src={fileUrl} alt="Current Logo Preview" style={{ maxWidth: '100%', maxHeight: '160px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', padding: '4px' }} />
+                                            <img 
+                                                src={existingFileUrl} 
+                                                alt="Current Logo Preview" 
+                                                style={{ maxWidth: '100%', maxHeight: '160px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', padding: '4px' }} 
+                                            />
                                         </div>
+                                    )}
+
+                                    {modalMode === 'view' && !existingFileUrl && (
+                                        <div style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '10px' }}>No Logo available</div>
                                     )}
 
                                     {modalMode !== 'view' && (
@@ -418,19 +515,23 @@ const AdminCertifications: React.FC = () => {
                                     )}
                                     
                                     {/* Show new selected logo preview */}
-                                    {filePreview && (modalMode === 'add' || (modalMode === 'edit' && filePreview.startsWith('data:'))) && (
+                                    {newLogoData && (
                                         <div style={{ marginTop: '10px' }}>
                                             <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '5px' }}>
                                                 {modalMode === 'add' ? 'Selected Logo:' : 'Selected New Logo:'} <br />
-                                                <strong>{originalFileName}</strong>
+                                                <strong>{newLogoName}</strong>
                                             </div>
                                             <div style={{ position: 'relative', display: 'inline-block' }}>
-                                                <img src={filePreview} alt="New Logo Preview" style={{ maxWidth: '100%', maxHeight: '160px', objectFit: 'contain', borderRadius: '8px', border: '1px dashed #cbd5e1', padding: '4px', background: '#f8fafc' }} />
+                                                <img 
+                                                    src={newLogoData} 
+                                                    alt="New Logo Preview" 
+                                                    style={{ maxWidth: '100%', maxHeight: '160px', objectFit: 'contain', borderRadius: '8px', border: '1px dashed #cbd5e1', padding: '4px', background: '#f8fafc' }} 
+                                                />
                                                 <button 
                                                     type="button" 
                                                     onClick={() => {
-                                                        setFilePreview('');
-                                                        setOriginalFileName('');
+                                                        setNewLogoData('');
+                                                        setNewLogoName('');
                                                         if (fileInputRef.current) fileInputRef.current.value = '';
                                                     }}
                                                     style={{ position: 'absolute', top: '10px', right: '10px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
@@ -443,25 +544,32 @@ const AdminCertifications: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* Certificate Upload (PDF) Section */}
+                                {/* Certificate Image Upload Section */}
                                 <div className="form-group" style={{ marginTop: '20px' }}>
-                                    <label>Certificate Upload (PDF) {modalMode === 'add' && <span className="required">*</span>}</label>
+                                    <label>Certificate Image {modalMode === 'add' && <span className="required">*</span>}</label>
 
-                                    {modalMode !== 'add' && pdfUrl && (
+                                    {modalMode !== 'add' && existingCertificateUrl && isImageUrl(existingCertificateUrl) && (
                                         <div style={{ marginBottom: '15px' }}>
                                             <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '5px' }}>
-                                                Current Certificate PDF:
+                                                Current Certificate Image: <br />
+                                                <strong>{existingCertificateName || 'Existing Certificate Image'}</strong>
                                             </div>
-                                            <a 
-                                                href={pdfUrl} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer" 
-                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}
-                                            >
-                                                <FileText size={18} />
-                                                <span>{originalPdfName || 'Download Current Certificate PDF'}</span>
-                                            </a>
+                                            <img 
+                                                src={existingCertificateUrl} 
+                                                alt="Current Certificate Preview" 
+                                                style={{ maxWidth: '100%', maxHeight: '180px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', padding: '4px' }} 
+                                            />
                                         </div>
+                                    )}
+
+                                    {modalMode !== 'add' && existingCertificateUrl && !isImageUrl(existingCertificateUrl) && (
+                                        <div style={{ marginBottom: '15px', padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c', fontSize: '0.85rem' }}>
+                                            Legacy PDF file on record ({existingCertificateName || 'certificate.pdf'}). Please upload a Certificate Image (JPG, JPEG, PNG, WEBP).
+                                        </div>
+                                    )}
+
+                                    {modalMode === 'view' && !existingCertificateUrl && (
+                                        <div style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '10px' }}>No Certificate Image available</div>
                                     )}
 
                                     {modalMode !== 'view' && (
@@ -469,44 +577,48 @@ const AdminCertifications: React.FC = () => {
                                             <button
                                                 type="button"
                                                 className="btn-primary-admin"
-                                                onClick={() => pdfInputRef.current?.click()}
+                                                onClick={() => certificateInputRef.current?.click()}
                                                 style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}
                                             >
                                                 <Upload size={16} /> 
-                                                {modalMode === 'edit' ? 'Upload New Certificate (PDF)' : 'Upload Certificate (PDF)'}
+                                                {modalMode === 'edit' ? 'Upload New Certificate Image' : 'Upload Certificate Image'}
                                             </button>
                                             
                                             <input 
                                                 type="file" 
-                                                ref={pdfInputRef} 
-                                                onChange={handlePdfChange} 
-                                                accept="application/pdf,.pdf" 
+                                                ref={certificateInputRef} 
+                                                onChange={handleCertificateImageChange} 
+                                                accept="image/jpeg, image/jpg, image/png, image/webp" 
                                                 style={{ display: 'none' }} 
                                             />
                                         </>
                                     )}
 
-                                    {/* Show new selected PDF info */}
-                                    {pdfData && (
+                                    {/* Show new selected Certificate Image info */}
+                                    {newCertificateData && (
                                         <div style={{ marginTop: '10px' }}>
                                             <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '5px' }}>
-                                                {modalMode === 'add' ? 'Selected Certificate PDF:' : 'Selected New Certificate PDF:'}
+                                                {modalMode === 'add' ? 'Selected Certificate Image:' : 'Selected New Certificate Image:'} <br />
+                                                <strong>{newCertificateName}</strong>
                                             </div>
-                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '8px 14px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
-                                                <FileText size={20} color="#dc2626" />
-                                                <span style={{ fontWeight: 600, color: '#334155', fontSize: '0.9rem' }}>{originalPdfName}</span>
+                                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                <img 
+                                                    src={newCertificateData} 
+                                                    alt="New Certificate Preview" 
+                                                    style={{ maxWidth: '100%', maxHeight: '180px', objectFit: 'contain', borderRadius: '8px', border: '1px dashed #cbd5e1', padding: '4px', background: '#f8fafc' }} 
+                                                />
                                                 {modalMode !== 'view' && (
                                                     <button 
                                                         type="button" 
                                                         onClick={() => {
-                                                            setPdfData('');
-                                                            setOriginalPdfName('');
-                                                            if (pdfInputRef.current) pdfInputRef.current.value = '';
+                                                            setNewCertificateData('');
+                                                            setNewCertificateName('');
+                                                            if (certificateInputRef.current) certificateInputRef.current.value = '';
                                                         }}
-                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
-                                                        title="Remove Selected PDF"
+                                                        style={{ position: 'absolute', top: '10px', right: '10px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                                                        title="Remove Selected Certificate Image"
                                                     >
-                                                        <X size={16} color="#ef4444" />
+                                                        <X size={14} color="#ef4444" />
                                                     </button>
                                                 )}
                                             </div>
@@ -514,7 +626,18 @@ const AdminCertifications: React.FC = () => {
                                     )}
                                 </div>
 
-                                {modalMode !== 'view' && (
+                                {modalMode === 'view' ? (
+                                    <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+                                        <button 
+                                            type="button" 
+                                            className="btn-primary-admin" 
+                                            onClick={handleCloseModal}
+                                            style={{ justifyContent: 'center', minWidth: '90px' }}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                ) : (
                                     <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
                                         <button 
                                             type="button" 

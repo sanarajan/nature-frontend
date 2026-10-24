@@ -43,6 +43,7 @@ const Checkout: React.FC = () => {
     const [addressLoading, setAddressLoading] = useState(true);
     const [checkoutValidationError, setCheckoutValidationError] = useState<string | null>(null);
     const [isTotalsLoading, setIsTotalsLoading] = useState(false);
+    const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
     const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
     const [selectedAddressId, setSelectedAddressId] = useState<string>('');
@@ -580,12 +581,13 @@ const Checkout: React.FC = () => {
     };
 
     const handlePlaceOrder = async () => {
+         if (isPlacingOrder) return;
         if (!isUser) {
             toast.error("Please login to place an order");
             navigate('/login');
             return;
         }
-
+      setIsPlacingOrder(true);
         const isOnline = paymentMethod !== 'cod';
 
         try {
@@ -731,6 +733,8 @@ const Checkout: React.FC = () => {
         } catch (error: any) {
             console.error("Order Place Error:", error);
             toast.error(error.response?.data?.message || "Failed to process the order");
+        }finally {
+          setIsPlacingOrder(false);
         }
     };
 

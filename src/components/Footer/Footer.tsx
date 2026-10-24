@@ -109,7 +109,7 @@ const Footer: React.FC = () => {
                                     <li><Link to="/privacy-policy">Privacy Policy</Link></li>
                                     <li><Link to="/terms-and-conditions">Terms & Conditions</Link></li>
                                     <li><Link to="/shop">Shop</Link></li>
-                                      <li><Link to="/combo-offers">Combo Offerss</Link></li>
+                                      <li><Link to="/combo-offers">Combo Offers</Link></li>
                                     <li><a href="javascript:void(0);">Contact Us</a></li>
                                     {/* <li><a href="javascript:void(0);">Latest News</a></li> */}
                                     {/* <li><a href="javascript:void(0);">Our Sitemap</a></li> */}

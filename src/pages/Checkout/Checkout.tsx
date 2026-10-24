@@ -607,7 +607,7 @@ const Checkout: React.FC = () => {
             if (res.data.success) {
                 if (isOnline) {
                     const { razorpayOrderId, amount, key_id, order } = res.data.data;
-console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
+
                     const options = {
                         key: key_id,
                         amount: amount,
@@ -1245,7 +1245,7 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                             </div>
                                         )}
                                     </div> */}
-                                    <div className="accordion-item">
+                                    {/* <div className="accordion-item">
                                         <div className="accordion-header">
                                             <div className="custom-control custom-checkbox">
                                                 <input type="radio" className="form-check-input" name="payment" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} />
@@ -1257,7 +1257,7 @@ console.log(razorpayOrderId,"razprpayid",amount,key_id,order)
                                                 <p className="m-b0">Pay with cash upon delivery.</p>
                                             </div>
                                         )}
-                                    </div>
+                                    </div> */}
 
                                     <div className="accordion-item">
                                         <div className="accordion-header">

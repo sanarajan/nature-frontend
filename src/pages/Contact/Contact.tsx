@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { API_BASE_URL } from '../../constants/apiConstants';
+
 
 const Contact: React.FC = () => {
     const [name, setName] = useState('');
@@ -43,7 +45,7 @@ const Contact: React.FC = () => {
 
         setIsSubmitting(true);
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            const apiUrl = API_BASE_URL ;
             await axios.post(`${apiUrl}/contact/submit`, {
                 name,
                 email,

@@ -276,40 +276,111 @@ const Contact: React.FC = () => {
                     </div>
 
                     {/* New Map Section */}
-                    <div className="row mt-4 mb-5">
-                        <div className="col-12 mb-3">
-                            <h3 className="title fw-bold">Our Locations</h3>
-                        </div>
-                        <div className="col-12">
-                            <div className="card shadow-sm border-0 overflow-hidden contact-locations-map bg-white" style={{ borderRadius: '15px' }}>
-                                <div className="map-area style-3 w-100 position-relative p-0 m-0">
-                                    <img src="/images/map/map4.png" alt="Map" className="w-100 h-auto d-block" />
-                                    
-                                    {/* Marker 1: Head Office */}
-                                    <div className="wow updown-2 position-absolute" data-wow-delay="0.2s" style={{ top: '40%', left: '30%', transform: 'translate(-50%, -100%)', visibility: 'visible', animationDelay: '0.2s', animationName: 'updown-2' }}>
-                                        <div className="p-2 bg-white shadow-sm text-center mb-1" style={{ borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                                            HEAD OFFICE<br/><span className="text-muted fw-normal">Kozhikode</span>
-                                        </div>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="56" height="85" viewBox="0 0 56 85" fill="none" style={{ height: '40px', width: 'auto', margin: '0 auto', display: 'block' }}>
-                                            <path d="M27.7396 4.50488C15.1409 4.50488 4.92627 14.7228 4.92627 27.3215C4.92627 39.9235 15.1409 50.1382 27.7429 50.1382C40.3449 50.1382 50.5596 39.9235 50.5596 27.3215C50.5596 14.7228 40.3416 4.50488 27.7396 4.50488ZM27.7396 46.4106C17.199 46.4106 8.65386 37.8655 8.65386 27.3248C8.65386 16.7842 17.199 8.23576 27.7396 8.23576C38.2803 8.23576 46.8254 16.7809 46.8254 27.3215C46.8254 37.8622 38.2803 46.4106 27.7396 46.4106Z" fill="#66A589"/>
-                                            <path d="M27.7396 0C12.4176 0 0 12.4209 0 27.7396C0 28.4409 0.0329295 29.1555 0.095495 29.8898C1.85721 50.7373 27.7396 84.6675 27.7396 84.6675C27.7396 84.6675 51.4881 53.5363 55.0379 32.5933C55.3243 30.9008 55.4824 29.2773 55.4824 27.7396C55.4824 12.4209 43.0615 0 27.7396 0ZM27.7396 47.9317C18.9343 47.9317 11.4166 42.4128 8.45951 34.6448C7.59018 32.3628 7.116 29.8898 7.116 27.3082C7.116 15.918 16.3493 6.68133 27.7396 6.68133C39.1298 6.68133 48.3664 15.9147 48.3664 27.3082C48.3664 30.5155 47.6321 33.5549 46.3248 36.2649C42.9924 43.1669 35.9225 47.9317 27.7396 47.9317Z" fill="#41705B"/>
-                                        </svg>
-                                    </div>
+                    
+{/* Interactive Google Maps Section */}
+<div className="row mt-4 mb-5">
+    <div className="col-12 mb-3">
+        <h3 className="title fw-bold">Our Locations</h3>
+    </div>
 
-                                    {/* Marker 2: Distribution Centre */}
-                                    <div className="wow updown-2 position-absolute" data-wow-delay="0.4s" style={{ top: '35%', left: '60%', transform: 'translate(-50%, -100%)', visibility: 'visible', animationDelay: '0.4s', animationName: 'updown-2' }}>
-                                        <div className="p-2 bg-white shadow-sm text-center mb-1" style={{ borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                                            DISTRIBUTION<br/><span className="text-muted fw-normal">Payyoli</span>
-                                        </div>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="34" height="47" viewBox="0 0 34 47" fill="none" style={{ height: '35px', width: 'auto', margin: '0 auto', display: 'block' }}>
-                                            <path d="M16.9593 5.10059C10.41 5.10059 5.10303 10.4115 5.10303 16.9568C5.10303 23.5061 10.4139 28.8131 16.9593 28.8131C23.5086 28.8131 28.8155 23.5061 28.8155 16.9568C28.8155 10.4075 23.5086 5.10059 16.9593 5.10059ZM16.9593 26.8761C11.4817 26.8761 7.04004 22.4344 7.04004 16.9568C7.04004 11.4792 11.4777 7.0376 16.9593 7.0376C22.4369 7.0376 26.8785 11.4792 26.8785 16.9568C26.8785 22.4344 22.4369 26.8761 16.9593 26.8761Z" fill="#66A589"/>
-                                            <path d="M16.9594 2.75879C8.99702 2.75879 2.54297 9.21284 2.54297 17.1752C2.54297 17.5404 2.55884 17.9135 2.5906 18.2946C3.50353 29.1267 16.9554 46.7583 16.9554 46.7583C16.9554 46.7583 29.2959 30.5795 31.1416 19.6957C31.2925 18.8185 31.3719 17.973 31.3719 17.1713C31.3758 9.21284 24.9218 2.75879 16.9594 2.75879ZM16.9594 27.666C12.3828 27.666 8.47705 24.7962 6.94094 20.7595C6.48844 19.5727 6.24234 18.2906 6.24234 16.945C6.24234 11.0268 11.0412 6.22794 16.9594 6.22794C22.8776 6.22794 27.6765 11.0268 27.6765 16.945C27.6765 18.6121 27.2954 20.1919 26.6167 21.601C24.886 25.1932 21.2105 27.666 16.9594 27.666Z" fill="#41705B"/>
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
+    <div className="col-12">
+        <div
+            className="card shadow-sm border-0 overflow-hidden bg-white"
+            style={{ borderRadius: '15px' }}
+        >
+            <div className="row g-0">
+                {/* Head Office */}
+                <div className="col-lg-6">
+                    <div className="p-3 p-md-4">
+                        <h5 className="fw-bold mb-2">
+                            NATURALAYAM™ – HEAD OFFICE
+                        </h5>
+                        <p className="text-muted mb-3">
+                            Door No. 63/700, D Space, 6th Floor,
+                            Sky Tower, Mavoor Road Junction,
+                            Bank Road, Kozhikode - 673001
+                        </p>
+
+                        <div
+                            style={{
+                                position: 'relative',
+                                width: '100%',
+                                height: '350px',
+                                borderRadius: '12px',
+                                overflow: 'hidden'
+                            }}
+                        >
+                            <iframe
+                                title="Naturalayam Head Office - Kozhikode"
+                                src="https://maps.google.com/maps?q=Door%20No.%2063%2F700%2C%20D%20Space%2C%20Sky%20Tower%2C%20Mavoor%20Road%2C%20Kozhikode%2C%20Kerala%20673001&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0 }}
+                                loading="lazy"
+                                allowFullScreen
+                                referrerPolicy="no-referrer-when-downgrade"
+                            />
                         </div>
+
+                        <a
+                            href="https://www.google.com/maps/search/?api=1&query=Door+No+63%2F700+D+Space+Sky+Tower+Mavoor+Road+Kozhikode+Kerala+673001"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-outline-secondary mt-3"
+                        >
+                            <i className="fas fa-map-marker-alt me-2"></i>
+                            Open in Google Maps
+                        </a>
                     </div>
+                </div>
+
+                {/* Distribution Centre */}
+                <div className="col-lg-6">
+                    <div className="p-3 p-md-4">
+                        <h5 className="fw-bold mb-2">
+                            NATURALAYAM™ – DISTRIBUTION & FULFILMENT CENTRE
+                        </h5>
+                        <p className="text-muted mb-3">
+                            Payyoli, Kozhikode, Kerala
+                        </p>
+
+                        <div
+                            style={{
+                                position: 'relative',
+                                width: '100%',
+                                height: '350px',
+                                borderRadius: '12px',
+                                overflow: 'hidden'
+                            }}
+                        >
+                            <iframe
+                                title="Naturalayam Distribution Centre - Payyoli"
+                                src="https://maps.google.com/maps?q=Payyoli%2C%20Kozhikode%2C%20Kerala%2C%20India&t=&z=14&ie=UTF8&iwloc=&output=embed"
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0 }}
+                                loading="lazy"
+                                allowFullScreen
+                                referrerPolicy="no-referrer-when-downgrade"
+                            />
+                        </div>
+
+                        <a
+                            href="https://www.google.com/maps/search/?api=1&query=Payyoli%2C+Kozhikode%2C+Kerala%2C+India"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-outline-secondary mt-3"
+                        >
+                            <i className="fas fa-map-marker-alt me-2"></i>
+                            Open in Google Maps
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
                 </div>
             </section>
         </>

@@ -33,7 +33,7 @@ const Footer: React.FC = () => {
                                         </p>
                                     </li>
                                 </ul>
-                                <div className="subscribe_widget">
+                                {/* <div className="subscribe_widget">
                                     <h6 className="title fw-medium text-capitalize">subscribe to our newsletter</h6>
                                     <form className="dzSubscribe style-1" action="#0" method="post">
                                         <div className="dzSubscribeMsg"></div>
@@ -52,7 +52,7 @@ const Footer: React.FC = () => {
                                             </div>
                                         </div>
                                     </form>
-                                </div>
+                                </div> */}
                             </div>
                         </div>
                         <div className="col-xl-3 col-md-4 col-sm-6 wow fadeInUp" data-wow-delay="0.2s">

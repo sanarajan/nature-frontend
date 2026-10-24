@@ -1876,7 +1876,7 @@ const Home: React.FC = () => {
             )}
 
             {/* Newsletter Subscription */}
-            <section className="content-inner overlay-white-dark overflow-hidden position-relative">
+            {/* <section className="content-inner overlay-white-dark overflow-hidden position-relative">
                 <div className="collection1 style-2 up-down"><img src={collection2} alt="" /></div>
                 <div className="collection3 style-2 up-down"><img src={collection3} alt="" /></div>
                 <div className="container">
@@ -1896,7 +1896,7 @@ const Home: React.FC = () => {
                         </form>
                     </div>
                 </div>
-            </section>
+            </section> */}
 
             {/* Instagram Feed */}
             <div className="content-inner py-0 overlay-white-middle">

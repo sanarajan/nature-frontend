@@ -25,7 +25,8 @@ import {
     LogOut,
     Award,
     Handshake,
-    Newspaper
+    Newspaper,
+    BookOpen
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -193,6 +194,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                     <NavLink to="/admin/news" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
                         <Newspaper size={20} />
                         <span>Cosmetic News</span>
+                    </NavLink>
+
+                    <NavLink to="/admin/blogs" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+                        <BookOpen size={20} />
+                        <span>Blogs</span>
                     </NavLink>
 
                     <NavLink to="/admin/coupons" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>

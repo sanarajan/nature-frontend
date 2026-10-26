@@ -1,0 +1,225 @@
+/* Rich Text Editor Styling for Naturalayam Admin */
+
+.rich-text-editor-container {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background-color: #ffffff;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.rich-text-editor-container:focus-within {
+    border-color: #1e523b;
+    box-shadow: 0 0 0 3px rgba(30, 82, 59, 0.12);
+}
+
+.rich-text-editor-container.disabled {
+    background-color: #f8fafc;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Toolbar */
+.rte-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 10px;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    user-select: none;
+}
+
+.rte-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.rte-divider {
+    width: 1px;
+    height: 22px;
+    background-color: #cbd5e1;
+    margin: 0 4px;
+}
+
+/* Toolbar Buttons */
+.rte-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+}
+
+.rte-btn:hover:not(:disabled) {
+    background-color: #e2e8f0;
+    color: #1e293b;
+}
+
+.rte-btn.active {
+    background-color: #e6f4ea;
+    color: #1e523b;
+    border-color: #a7f3d0;
+}
+
+.rte-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Headings Dropdown */
+.rte-select {
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background-color: #ffffff;
+    color: #334155;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.rte-select:focus {
+    border-color: #1e523b;
+}
+
+/* Color Picker Popover */
+.rte-color-picker-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.rte-color-swatch-indicator {
+    display: block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.rte-color-palette {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 50;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(4, 24px);
+    gap: 6px;
+}
+
+.rte-color-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.1s;
+}
+
+.rte-color-dot:hover {
+    transform: scale(1.15);
+}
+
+/* Editor Editable Area */
+.rte-content-area {
+    padding: 14px 18px;
+    min-height: 220px;
+    max-height: 480px;
+    overflow-y: auto;
+    outline: none;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #1e293b;
+    position: relative;
+}
+
+.rte-content-area[data-placeholder]:empty:before {
+    content: attr(data-placeholder);
+    color: #94a3b8;
+    pointer-events: none;
+    font-style: normal;
+}
+
+/* Typography styles inside content area */
+.rte-content-area h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 14px 0 8px 0;
+}
+
+.rte-content-area h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 12px 0 6px 0;
+}
+
+.rte-content-area h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 10px 0 4px 0;
+}
+
+.rte-content-area p {
+    margin: 0 0 10px 0;
+}
+
+.rte-content-area ul,
+.rte-content-area ol {
+    margin: 0 0 10px 24px;
+    padding: 0;
+}
+
+.rte-content-area li {
+    margin-bottom: 4px;
+}
+
+.rte-content-area blockquote {
+    border-left: 4px solid #1e523b;
+    margin: 12px 0;
+    padding: 8px 16px;
+    background-color: #f8fafc;
+    color: #475569;
+    font-style: italic;
+    border-radius: 0 8px 8px 0;
+}
+
+.rte-content-area a {
+    color: #0284c7;
+    text-decoration: underline;
+}
+
+/* Editor Footer Status */
+.rte-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 14px;
+    background-color: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}

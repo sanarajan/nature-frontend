@@ -194,6 +194,7 @@ const Cart: React.FC = () => {
                 const res = await userApiClient.delete(`/user/cart/${productId}`);
                 if (res.data.success && res.data.data) {
                     setCartItems(res.data.data.products);
+                     window.dispatchEvent(new Event('cart-updated'));
                     setAppliedComboOffer(res.data.data.appliedComboOffer || null);
                     setAppliedComboOffers(res.data.data.appliedComboOffers || []);
                     if (res.data.data.pricing) {

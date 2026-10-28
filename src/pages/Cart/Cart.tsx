@@ -45,6 +45,10 @@ const Cart: React.FC = () => {
     const navigate = useNavigate();
 
     const handlePlaceOrderClick = async () => {
+          if (finalItems.length === 0) {
+        toast.info('Your cart is empty');
+        return;
+    }
         if (!isUser) {
             toast.info('Please login to continue to checkout');
             navigate('/login');
@@ -176,6 +180,7 @@ const Cart: React.FC = () => {
                         (window as any).cartPricing = res.data.data.pricing;
                         setCartPricing(res.data.data.pricing);
                     }
+                    window.dispatchEvent(new Event('cart-updated'));
                 }
             } catch (err) {
                 toast.error('Failed to update quantity');
@@ -272,7 +277,7 @@ const Cart: React.FC = () => {
         (item.product.stock || 0) <= 0 || 
         item.quantity > (item.product.stock || 0)
     );
-
+const isCartEmpty = finalItems.length === 0;
     return (
         <div className="page-content">
             <div className="dz-bnr-inr" style={{ backgroundImage: `url(${bg1})` }}>
@@ -530,7 +535,7 @@ const Cart: React.FC = () => {
                                 )}
                                 <button
                                     onClick={handlePlaceOrderClick}
-                                    disabled={hasUnavailableItems || isPreflighting}
+                                    disabled={isCartEmpty ||hasUnavailableItems || isPreflighting}
                                     className="btn btn-outline-secondary btn-lg w-100"
                                 >
                                     {isPreflighting ? 'VALIDATING...' : 'PLACE ORDER'}

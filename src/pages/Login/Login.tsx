@@ -228,8 +228,8 @@ const Login: React.FC = () => {
                                 </div>
                                 <div className="d-flex justify-content-between mb-4">
                                     <div className="form-check">
-                                        <input className="form-check-input" type="checkbox" id="remember" />
-                                        <label className="form-check-label" htmlFor="remember">Remember me</label>
+                                        {/* <input className="form-check-input" type="checkbox" id="remember" />
+                                        <label className="form-check-label" htmlFor="remember">Remember me</label> */}
                                     </div>
                                     <Link to="/forgot-password" className="text-secondary text-decoration-underline">Forgot Password?</Link>
                                 </div>

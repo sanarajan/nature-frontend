@@ -423,8 +423,10 @@ const AdminOrderDetails: React.FC = () => {
                             
                             let nextGlobalStatuses: string[] = [];
                             if (allEqual) {
-                                if (productStatus === 'Order Placed' || productStatus === 'Pending') {
+                                if (productStatus === 'Order Placed' || (productStatus === 'Pending' && order.paymentMethod === 'COD')) {
                                     nextGlobalStatuses = ['Processing', 'Cancelled'];
+                                } else if (productStatus === 'Pending' && order.paymentMethod !== 'COD') {
+                                    nextGlobalStatuses = ['Cancelled'];
                                 } else if (productStatus === 'Processing') {
                                     nextGlobalStatuses = ['Shipped', 'Cancelled'];
                                 } else if (productStatus === 'Shipped') {
@@ -440,7 +442,7 @@ const AdminOrderDetails: React.FC = () => {
 
                             const badgeClass = gs === 'Cancelled' ? 'badge-danger' :
                                 (gs === 'Completed' || gs === 'Closed' || gs === 'Delivered') ? 'badge-success' :
-                                    (gs === 'Processing' || gs === 'Partially Processing' || gs === 'Action Required' || gs === 'Cancel Request Pending' || gs === 'Return Request Pending' || gs === 'Return Approved') ? 'badge-warning' :
+                                    (gs === 'PENDING' || gs === 'Processing' || gs === 'Partially Processing' || gs === 'Action Required' || gs === 'Cancel Request Pending' || gs === 'Return Request Pending' || gs === 'Return Approved') ? 'badge-warning' :
                                         (gs === 'Returned' || gs === 'Partially Returned') ? 'badge-returned' :
                                             'badge-info';
 
@@ -834,8 +836,10 @@ const AdminOrderDetails: React.FC = () => {
 
                                                 // Determine valid next statuses
                                                 let nextStatuses: string[] = [];
-                                                if (s === 'Order Placed' || s === 'Pending') {
+                                                if (s === 'Order Placed' || (s === 'Pending' && order.paymentMethod === 'COD')) {
                                                     nextStatuses = ['Processing', 'Cancelled'];
+                                                } else if (s === 'Pending' && order.paymentMethod !== 'COD') {
+                                                    nextStatuses = ['Cancelled'];
                                                 } else if (s === 'Processing') {
                                                     nextStatuses = ['Shipped', 'Cancelled'];
                                                 } else if (s === 'Shipped') {

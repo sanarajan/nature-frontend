@@ -5,6 +5,7 @@ import type { RootState } from '../../store';
 import userApiClient from '../../services/userApiClient';
 import AccountSidebar from '../../components/AccountSidebar/AccountSidebar';
 import { toast } from 'react-toastify';
+import { openRazorpayCheckout } from '../../utils/paymentHelper';
 
 const OrderDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -12,6 +13,7 @@ const OrderDetails: React.FC = () => {
     const { isAuthenticated } = useSelector((state: RootState) => state.auth.user);
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [isRetrying, setIsRetrying] = useState(false);
 
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
@@ -41,25 +43,25 @@ const OrderDetails: React.FC = () => {
     });
 
 
+    const fetchOrderDetails = async () => {
+        try {
+            const res = await userApiClient.get(`/user/order/${id}`);
+            if (res.data.success) {
+                setOrder(res.data.data.order);
+            }
+        } catch (error) {
+            console.error("Failed to fetch order details:", error);
+            toast.error("Failed to load order tracking details.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!isAuthenticated && !localStorage.getItem('user_accessToken')) {
             navigate('/login');
             return;
         }
-
-        const fetchOrderDetails = async () => {
-            try {
-                const res = await userApiClient.get(`/user/order/${id}`);
-                if (res.data.success) {
-                    setOrder(res.data.data.order);
-                }
-            } catch (error) {
-                console.error("Failed to fetch order details:", error);
-                toast.error("Failed to load order tracking details.");
-            } finally {
-                setLoading(false);
-            }
-        };
 
         if (id) {
             fetchOrderDetails();
@@ -135,6 +137,8 @@ const OrderDetails: React.FC = () => {
     const getStatusColor = (status: string) => {
         const s = status?.toUpperCase()?.replace(/_/g, ' ');
         switch (s) {
+            case 'PENDING': return 'bg-warning text-dark';
+            case 'EXPIRED': return 'bg-secondary text-white';
             case 'ORDER PLACED':
             case 'PLACED': return 'bg-primary';
             case 'CANCELLATION REQUEST':
@@ -284,6 +288,47 @@ const OrderDetails: React.FC = () => {
 
                                     <div className="content-btn m-b15 d-flex align-items-center flex-wrap gap-2">
                                         <button className="btn btn-md btn-secondary btnhover20">Export Details</button>
+
+                                        {/* Retry Payment Button */}
+                                        {order && order.paymentMethod !== 'COD' && order.globalOrderStatus === 'PENDING' && ['Pending', 'Failed'].includes(order.paymentStatus || 'Pending') && ((Date.now() - new Date(order.createdAt).getTime()) <= 24 * 60 * 60 * 1000) && (
+                                            <button
+                                                onClick={async () => {
+                                                    if (isRetrying || !order) return;
+                                                    setIsRetrying(true);
+                                                    try {
+                                                        const res = await userApiClient.post(`/user/order/${order._id}/retry-payment`);
+                                                        if (res.data.success) {
+                                                            const { razorpayOrderId, amount, key_id } = res.data.data;
+                                                            openRazorpayCheckout({
+                                                                key_id,
+                                                                amount,
+                                                                razorpayOrderId,
+                                                                orderId: order.orderId,
+                                                                onSuccess: () => {
+                                                                    navigate('/checkout/success', { replace: true });
+                                                                },
+                                                                onError: () => {
+                                                                    fetchOrderDetails();
+                                                                },
+                                                                onDismiss: () => {
+                                                                    fetchOrderDetails();
+                                                                }
+                                                            });
+                                                        } else {
+                                                            toast.error(res.data.message || 'Failed to initiate payment retry');
+                                                        }
+                                                    } catch (err: any) {
+                                                        toast.error(err.response?.data?.message || 'Error initiating payment retry');
+                                                    } finally {
+                                                        setIsRetrying(false);
+                                                    }
+                                                }}
+                                                disabled={isRetrying}
+                                                className="btn btn-md btn-primary btnhover20"
+                                            >
+                                                {isRetrying ? 'Processing...' : 'Retry Payment'}
+                                            </button>
+                                        )}
 
                                         {/* Cancellation Button Logic */}
                                         {(['PLACED', 'PROCESSING', 'PENDING', 'PARTIALLY_PROCESSING'].includes(order.globalOrderStatus) &&
@@ -766,14 +811,15 @@ const OrderDetails: React.FC = () => {
                                         // Terminal alternate states
                                         const isCancelled = pStatus === 'Cancelled' || pStatus === 'Cancellation Request';
                                         const isReturned = pStatus === 'Return Request' || pStatus === 'Return Approved' || pStatus === 'Return' || pStatus === 'Returned';
+                                        const isUnpaidOnlinePending = order?.paymentMethod !== 'COD' && pStatus === 'Pending';
                                         
                                         let currentIndex = statusSteps.indexOf(pStatus);
                                         
                                         if (isCancelled) currentIndex = statusSteps.indexOf('Processing'); // Show progression up to processing
                                         if (isReturned) currentIndex = statusSteps.indexOf('Delivered'); // Usually returned after delivered
-                                        if (currentIndex === -1) currentIndex = 0;
+                                        if (currentIndex === -1) currentIndex = isUnpaidOnlinePending ? -1 : 0;
 
-                                        const progressPercentage = (currentIndex / (statusSteps.length - 1)) * 100;
+                                        const progressPercentage = currentIndex < 0 ? 0 : (currentIndex / (statusSteps.length - 1)) * 100;
 
                                         return (
                                             <>
@@ -814,7 +860,13 @@ const OrderDetails: React.FC = () => {
                                     </div>
                                 )}
                                 
-                                {['Cancelled', 'Cancellation Request', 'Return Request', 'Return Approved', 'Return', 'Returned'].includes(journeyModal.product.orderStatus) && (
+                                {order?.paymentMethod !== 'COD' && journeyModal.product.orderStatus === 'Pending' && (
+                                    <div className="alert alert-warning mt-3 mb-0 small">
+                                        <strong>Payment Pending:</strong> This order is awaiting payment confirmation.
+                                    </div>
+                                )}
+
+                                {['Cancelled', 'Cancellation Request', 'Return Request', 'Return Approved', 'Return', 'Returned', 'Expired'].includes(journeyModal.product.orderStatus) && (
                                     <div className="alert alert-warning mt-3 mb-0 small">
                                         <strong>Current Status:</strong> {journeyModal.product.orderStatus}
                                     </div>

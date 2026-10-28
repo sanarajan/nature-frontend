@@ -14,7 +14,7 @@ import product1 from '../../assets/images/shop/product/1.png';
 const Checkout: React.FC = () => {
     const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
     const navigate = useNavigate();
-    const [paymentMethod, setPaymentMethod] = useState('cod');
+    const [paymentMethod, setPaymentMethod] = useState('online');//online or cod
     const [cartItems, setCartItems] = useState<any[]>([]);
     const [subtotal, setSubtotal] = useState(0);
     const [shipping, setShipping] = useState(0);
@@ -1289,8 +1289,8 @@ const Checkout: React.FC = () => {
                                         {checkoutValidationError}
                                     </div>
                                 )}
-                                <button onClick={handlePlaceOrder} disabled={cartItems.length === 0 || !selectedAddressId || selectedAddressId === 'new' || isChanging || showNewAddressForm || !!editingAddressId || cartItems.some(item => item.product?.isActive === false) || !!checkoutValidationError || isTotalsLoading} className="btn btn-outline-secondary btn-lg w-100 mt-4">
-                                    PLACE ORDER
+                                <button onClick={handlePlaceOrder} disabled={cartItems.length === 0 || !selectedAddressId || selectedAddressId === 'new' || isChanging || showNewAddressForm || !!editingAddressId || cartItems.some(item => item.product?.isActive === false) || !!checkoutValidationError || isTotalsLoading || isPlacingOrder} className="btn btn-outline-secondary btn-lg w-100 mt-4">
+                                    {isPlacingOrder ? 'Processing...' : 'PLACE ORDER'}
                                 </button>
                             </div>
                         </div>

@@ -48,24 +48,26 @@ const Header: React.FC = () => {
 
         const updateCartCount = async () => {
             const token = localStorage.getItem('user_accessToken');
+            try{
             if (token) {
-                try {
+               
                     const cartRes = await userApiClient.get('/user/cart');
                     if (cartRes.data.success && cartRes.data.data) {
-                        setCartCount(cartRes.data.data.products?.length || 0);
+                        const products = cartRes.data.data.products || [];
+                       setCartCount(products.length);
+                    }else{
+                        setCartCount(0);
                     }
-                } catch (e) { }
+                 
             } else {
-                const localCartStr = localStorage.getItem('offlineCart');
-                if (localCartStr) {
-                    try {
-                        const items = JSON.parse(localCartStr);
-                        setCartCount(Array.isArray(items) ? items.length : 0);
-                    } catch (e) { setCartCount(0); }
-                } else {
-                    setCartCount(0);
-                }
-            }
+            const localCartStr = localStorage.getItem('offlineCart');
+            const items = localCartStr ? JSON.parse(localCartStr) : [];
+
+            setCartCount(Array.isArray(items) ? items.length : 0);
+        }
+        } catch (error) {
+        console.error('Failed to update header cart count:', error);
+    }
         };
 
         const updateWishlistCount = async () => {

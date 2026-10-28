@@ -25,6 +25,10 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
     const [isPreflighting, setIsPreflighting] = useState(false);
     
     const handleCheckoutClick = async () => {
+        if (validCartItems.length === 0) {
+    toast.info('Your cart is empty');
+    return;
+}
         if (!isUser) {
             handleNavigate('/login');
             return;
@@ -189,8 +193,12 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
 
         if (isUser) {
             try {
-                await userApiClient.put('/user/cart/update', { productId, quantity: newQty });
-                fetchCartAndWishlist();
+                await userApiClient.put('/user/cart/update', {
+    productId,
+    quantity: newQty
+});
+
+window.dispatchEvent(new Event('cart-updated'));
             } catch (err) { }
         } else {
             const newItems = cartItems.map(i => i.product._id === productId ? { ...i, quantity: newQty } : i);
@@ -204,7 +212,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
         if (isUser) {
             try {
                 await userApiClient.delete(`/user/cart/${productId}`);
-                fetchCartAndWishlist();
+window.dispatchEvent(new Event('cart-updated'));
             } catch (err) { }
         } else {
             const newItems = cartItems.filter(i => i.product._id !== productId);
@@ -260,7 +268,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ activeTab, setActiveTab }) =>
                                     padding: '4px 8px',
                                     fontWeight: '500',
                                     borderRadius: '1px'
-                                }}>{cartItems.length}</span>
+                                }}>{validCartItems.length}</span>
                             </button>
                         </li>
                         <li className="nav-item">

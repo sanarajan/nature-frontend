@@ -652,8 +652,8 @@ const Home: React.FC = () => {
                             <h2 className="title">Nature's Finest Offerings</h2>
                         </div>
                     </div>
-                    <div className="row product-style1">
-                        {categories.slice(0, 4).map((cat, idx) => (
+                    <div className="row product-style1">                        
+                            {categories.filter((category) => category.productCount > 0).slice(0, 4).map((cat, idx) => (
                             <div key={cat._id} className="col-4 col-sm-4 col-md-4 col-lg-3 mb-3">
                                 <Link to={`/shop?category=${cat._id}`}>
                                     <div className="image-box style-1">

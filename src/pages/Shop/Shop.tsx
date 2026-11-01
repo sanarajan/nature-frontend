@@ -470,6 +470,10 @@ const Shop: React.FC = () => {
                     if (featuredOnly) {
                         prods = prods.filter((p: Product) => p.featured === true);
                     }
+                    console.log(
+    'Hair Darkening Elixir:',
+    prods.find((p: Product) => p._id === '6a0e0e9b3319ec1ef4d6ee84')
+);
                     setProducts(prods);
                     setTotalResults(featuredOnly ? prods.length : (responseData.total || 0));
                     
@@ -508,24 +512,32 @@ const Shop: React.FC = () => {
         setCurrentPage(1);
     };
 
-    const handleSubcategoryToggle = (subId: string, parentCatId: string, allSubIds: string[]) => {
-        setActiveSubcategoryIds(prev => {
-            if (prev.includes(subId)) {
-                // If we are unchecking, we might need to uncheck the parent category as well
-                setActiveCategoryIds(catPrev => catPrev.filter(id => id !== parentCatId));
-                return prev.filter(id => id !== subId);
-            } else {
-                // If we are checking, check if all siblings are now checked to auto-check parent
-                const newPrev = [...prev, subId];
-                const allSelected = allSubIds.every(id => newPrev.includes(id));
-                if (allSelected) {
-                    setActiveCategoryIds(catPrev => [...catPrev, parentCatId]);
-                }
-                return newPrev;
-            }
-        });
-        setCurrentPage(1);
-    };
+  const handleSubcategoryToggle = (
+    subId: string,
+    parentCatId: string,
+    // allSubIds: string[]
+) => {
+    setActiveSubcategoryIds(prev => {
+        if (prev.includes(subId)) {
+            // Only remove this subcategory.
+            // DO NOT remove the parent category.
+            return prev.filter(id => id !== subId);
+        }
+
+        // Add the selected subcategory.
+        return [...new Set([...prev, subId])];
+    });
+
+    // Parent category must remain selected.
+    // This keeps the product listing inside the correct category.
+    setActiveCategoryIds(prev =>
+        prev.includes(parentCatId)
+            ? prev
+            : [...prev, parentCatId]
+    );
+
+    setCurrentPage(1);
+};
 
     const toggleCatExpand = (catId: string) => {
         setExpandedCats(prev => prev.includes(catId) ? prev.filter(id => id !== catId) : [...prev, catId]);
@@ -693,7 +705,9 @@ const Shop: React.FC = () => {
                                                                         return (
                                                                             <li key={sub._id} style={{ marginBottom: '6px' }}>
                                                                                 <div className="custom-control custom-checkbox d-flex align-items-center"
-                                                                                    onClick={(e) => { e.stopPropagation(); handleSubcategoryToggle(sub._id, cat._id, subIds); }}
+                                                                                            //   onClick={(e) => { e.stopPropagation(); handleSubcategoryToggle(sub._id, cat._id, subIds); }}
+// 
+                                                                                    onClick={(e) => { e.stopPropagation(); handleSubcategoryToggle(sub._id, cat._id); }}
                                                                                     style={{ cursor: 'pointer' }}>
                                                                                     <div className={`form-check-input square ${isSubSelected ? 'checked' : ''}`}
                                                                                         style={{ width: '14px', height: '14px', border: '1px solid #ccc', marginRight: '8px', borderRadius: '50%', backgroundColor: isSubSelected ? '#38996E' : 'transparent' }}></div>

@@ -68,7 +68,7 @@ const BlogDetails: React.FC = () => {
             >
                 <div className="container">
                     <div className="dz-bnr-inr-entry">
-                        <h1>{blog ? blog.title : 'Blog Details'}</h1>
+                         <h1 className="blog-details-banner-title">Blog Details</h1>
                         <nav aria-label="breadcrumb" className="breadcrumb-row">
                             <ul className="breadcrumb">
                                 <li className="breadcrumb-item">

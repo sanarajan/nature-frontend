@@ -58976,36 +58976,35 @@ table.wishlist_table {
 
 @media only screen and (max-width: 767px) {
   .site-header .extra-nav {
-    width: 100%;
-    background: #fff;
-    position: fixed;
-    bottom: -80px;
-    left: 0;
-    padding: 0 20px;
-    box-shadow: 0 0 30px 0 rgba(0, 0, 0, 0.15);
-    height: 50px;
-    transition: all 0.5s ease 0.5s;
+    width: auto;
+    background: transparent;
+    position: static;
+    bottom: auto;
+    left: auto;
+    padding: 0;
+    box-shadow: none;
+    height: auto;
+    transition: none;
   }
 
   .site-header .extra-nav.active {
-    bottom: 0;
+    bottom: auto;
   }
 
   .site-header .extra-nav.bottom-end {
-    bottom: -80px;
+    bottom: auto;
   }
 
   .site-header .extra-nav .extra-cell {
-    width: 100%;
+    width: auto;
   }
 
   .site-header .extra-nav .extra-cell ul {
-    width: 100%;
+    width: auto;
   }
 
   .site-header .extra-nav .extra-cell ul .login-link {
-    margin-right: auto;
-    margin-left: -15px;
+    display: none;
   }
 }
 
@@ -63773,3 +63772,4 @@ footer.footer-dark .icon-bx-wraper {
     transform: translateY(-3px);
 }
 }
+

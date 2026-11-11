@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 // import { toast } from 'react-toastify';
 import { Link, useNavigate } from 'react-router-dom';
 import userApiClient from '../../services/userApiClient';
@@ -89,6 +89,7 @@ import QuickViewModal from '../../components/QuickViewModal/QuickViewModal';
 const Home: React.FC = () => {
     const isUser = useSelector((state: RootState) => state.auth.user.isAuthenticated) && !!localStorage.getItem('user_accessToken');
     const navigate = useNavigate();
+    const bannerSwiperRef = useRef<any>(null);
     const [categories, setCategories] = useState<any[]>([]);
     const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
     const [comboOffers, setComboOffers] = useState<any[]>([]);
@@ -562,39 +563,83 @@ const Home: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="row gx-0">
-                                    <div className="col-sm-12 col-md-6 col-lg-5 mb-3 wow fadeInUp" data-wow-delay="0.1s">
-                                        <div className="product-card" onClick={() => featuredProducts[0] && setQuickViewProduct(featuredProducts[0])} style={{ cursor: 'pointer' }}>
-                                            <div className="dz-media">
-                                                <img src={featuredProducts[0]?.images?.[0] || smallPic1} alt="/" />
-                                            </div>
-                                            <div className="dz-content">
-                                                <h5 className="dz-title">{featuredProducts[0]?.productName || 'Metavya'}</h5>
-                                                <span className="price">
-                                                    ₹{featuredProducts[0]?.offerPrice?.toFixed(2) || featuredProducts[0]?.price?.toFixed(2) || '18.00'} 
-                                                    {featuredProducts[0]?.offerPrice && featuredProducts[0]?.offerPrice < featuredProducts[0]?.price && (
-                                                        <del className="ms-1">₹{featuredProducts[0]?.price?.toFixed(2)}</del>
-                                                    )}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="col-sm-12 col-md-6 col-lg-5 wow fadeInUp" data-wow-delay="0.1s">
-                                        <div className="product-card" onClick={() => featuredProducts[1] && setQuickViewProduct(featuredProducts[1])} style={{ cursor: 'pointer' }}>
-                                            <div className="dz-media">
-                                                <img src={featuredProducts[1]?.images?.[0] || smallPic2} alt="/" />
-                                            </div>
-                                            <div className="dz-content">
-                                                <h5 className="dz-title">{featuredProducts[1]?.productName || 'Femroot'}</h5>
-                                                <span className="price">
-                                                    ₹{featuredProducts[1]?.offerPrice?.toFixed(2) || featuredProducts[1]?.price?.toFixed(2) || '18.00'} 
-                                                    {featuredProducts[1]?.offerPrice && featuredProducts[1]?.offerPrice < featuredProducts[1]?.price && (
-                                                        <del className="ms-1">₹{featuredProducts[1]?.price?.toFixed(2)}</del>
-                                                    )}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div className="banner-products-carousel-wrapper wow fadeInUp" data-wow-delay="0.1s">
+                                    <Swiper
+                                        onSwiper={(swiper) => {
+                                            bannerSwiperRef.current = swiper;
+                                        }}
+                                        modules={[Autoplay, Navigation]}
+                                        slidesPerView={1}
+                                        slidesPerGroup={1}
+                                        spaceBetween={20}
+                                        loop={(featuredProducts && featuredProducts.length > 2) || false}
+                                        autoplay={{
+                                            delay: 3500,
+                                            disableOnInteraction: false,
+                                            pauseOnMouseEnter: true,
+                                        }}
+                                        navigation={{
+                                            prevEl: '.banner-carousel-prev',
+                                            nextEl: '.banner-carousel-next',
+                                        }}
+                                        breakpoints={{
+                                            768: {
+                                                slidesPerView: 2,
+                                                slidesPerGroup: 2,
+                                                spaceBetween: 25,
+                                            },
+                                        }}
+                                        className="banner-products-swiper"
+                                    >
+                                       {featuredProducts.map((prod, idx) => (
+                                            <SwiperSlide key={prod._id || idx}>
+                                                <div
+                                                    className="product-card"
+                                                    onClick={() => prod && setQuickViewProduct(prod)}
+                                                    style={{ cursor: 'pointer' }}
+                                                >
+                                                    <div className="dz-media">
+                                                        <img
+                                                            src={prod?.images && prod.images.length > 0 ? prod.images[0] : (idx % 2 === 0 ? smallPic1 : smallPic2)}
+                                                            alt={prod?.productName || "/"}
+                                                        />
+                                                    </div>
+                                                    <div className="dz-content">
+                                                        <h5 className="dz-title">{prod?.productName || (idx % 2 === 0 ? 'Metavya' : 'Femroot')}</h5>
+                                                        <span className="price">
+                                                            ₹{prod?.offerPrice?.toFixed(2) || prod?.price?.toFixed(2) || '18.00'}
+                                                            {prod?.offerPrice && prod?.offerPrice < prod?.price && (
+                                                                <del className="ms-1">₹{prod?.price?.toFixed(2)}</del>
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </SwiperSlide>
+                                        ))}
+                                    </Swiper>
+                                    {/* Scoped Hover Navigation Arrows */}
+                                    <button
+                                        type="button"
+                                        className="banner-carousel-arrow banner-carousel-prev"
+                                        aria-label="Previous products"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            bannerSwiperRef.current?.slidePrev();
+                                        }}
+                                    >
+                                        <i className="fa-solid fa-chevron-left"></i>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="banner-carousel-arrow banner-carousel-next"
+                                        aria-label="Next products"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            bannerSwiperRef.current?.slideNext();
+                                        }}
+                                    >
+                                        <i className="fa-solid fa-chevron-right"></i>
+                                    </button>
                                 </div>
                             </div>
                             <div className="col-md-12 col-lg-4">

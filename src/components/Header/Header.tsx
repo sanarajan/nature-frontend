@@ -191,30 +191,30 @@ const Header: React.FC = () => {
                     onClick={closeNavbar}
                     style={{
                         position: 'fixed',
-                        top: 0,
+                        top: 'var(--header-height, 96px)',
                         left: 0,
                         width: '100vw',
-                        height: '100vh',
+                        height: 'calc(100vh - var(--header-height, 96px))',
                         backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        zIndex: 98,
+                        zIndex: 998,
                         cursor: 'pointer',
                         transition: 'opacity 0.3s'
                     }}
                 />
             )}
             {/* Main Header */}
-            <div className={`sticky-header main-bar-wraper navbar-expand-lg ${isHeaderSticky ? 'is-fixed' : ''}`}>
+            <div className={`sticky-header main-bar-wraper navbar-expand-xl ${isHeaderSticky ? 'is-fixed' : ''}`}>
                 <div className="main-bar clearfix">
-                    <div className="container-fluid clearfix d-lg-flex d-block">
+                    <div className="container-fluid clearfix d-xl-flex d-flex align-items-center justify-content-between">
                         {/* Website Logo */}
-                        <div className="logo-header logo-dark me-md-4">
+                        <div className="logo-header logo-dark me-md-4 me-2">
                             <Link to="/"><img src={logo} alt="logo" /></Link>
                         </div>
 
                         {/* Nav Toggle Button */}
                         <button className={`navbar-toggler navicon justify-content-end ${isMobileMenuOpen ? 'open' : 'collapsed'}`} type="button"
                             onClick={toggleMenu}
-                            style={{ zIndex: 105, position: 'relative' }}
+                            style={{ zIndex: 1005, position: 'relative' }}
                             aria-expanded={isMobileMenuOpen} aria-label="Toggle navigation">
                             <span></span>
                             <span></span>
@@ -259,7 +259,7 @@ const Header: React.FC = () => {
                             <div className="extra-cell">
                                 <ul className="header-right">
                                     {/* Search icon */}
-                                    <li className="nav-item search-link">
+                                    {/* <li className="nav-item search-link">
                                         <a className="nav-link" href="javascript:void(0);" data-bs-toggle="offcanvas"
                                             data-bs-target="#offcanvasTop" aria-controls="offcanvasTop"
                                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -273,7 +273,7 @@ const Header: React.FC = () => {
                                                     strokeLinecap="round" strokeLinejoin="round" />
                                             </svg>
                                         </a>
-                                    </li>
+                                    </li> */}
                                     {/* Wishlist icon */}
                                     <li className="nav-item wishlist-link" onClick={() => setActiveTab('wishlist')}>
                                         <a href="javascript:void(0);" className="nav-link"

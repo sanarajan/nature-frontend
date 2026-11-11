@@ -167,6 +167,51 @@ function App() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [dispatch]);
 
+
+  //fluffychats telinfy.com widget script
+ 
+  // FluffyChats widget - Public pages only
+  useEffect(() => {
+    const existingWidget = document.querySelector('aura-assistant');
+
+    // Remove widget from admin pages
+    if (pathname.startsWith('/admin')) {
+      existingWidget?.remove();
+      return;
+    }
+
+    // Avoid duplicate widget
+    if (existingWidget) return;
+
+    const widget = document.createElement('aura-assistant');
+
+    widget.setAttribute(
+      'server',
+      'https://fluffychats.telinfy.com/api/widget/acae345478c940a1af08a2f5026ecad4'
+    );
+
+    document.body.appendChild(widget);
+
+    // Load script only once
+    if (!document.querySelector('script[data-fluffychats-widget]')) {
+      const script = document.createElement('script');
+      script.src = 'https://fluffychats.telinfy.com/widgets/aura-widget.js';
+      script.async = true;
+      script.setAttribute('data-fluffychats-widget', 'true');
+
+      script.onerror = () => {
+        console.error('FluffyChats widget script failed to load');
+      };
+
+      document.body.appendChild(script);
+    }
+
+    return () => {
+      widget.remove();
+    };
+  }, [pathname]);
+
+
   return (
     <div className="page-wraper" id="scroll-container">
       <Routes>
@@ -365,6 +410,7 @@ function App() {
 
                 </Routes>
               </div>
+            
               <Footer />
             </>
           }

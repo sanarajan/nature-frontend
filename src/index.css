@@ -63,38 +63,283 @@ body {
   }
 }
 
-/* ─── Header Nav Links ─────────────────────────────────────────── */
-/* zoom:0.9 on site-header: set values ~11% higher to land on HTML's rendered size */
-/* HTML: font-size:16px, padding:28px 23px → with zoom:0.9 we set 18px/26px */
-.header-nav .nav>li>a {
-  font-size: 18px !important;
-  padding: 28px 26px !important;
-  font-family: 'Lufga', sans-serif !important;
-  font-weight: 400 !important;
-  line-height: 24px !important;
+/* ─── Header Core Dimensions & Variables ──────────────────────── */
+:root {
+  --header-height: 96px;
+  --header-height-mobile: 90px;
 }
 
-@media only screen and (max-width: 1480px) {
-  .header-nav .nav>li>a {
-    padding-left: 17px !important;
-    padding-right: 17px !important;
+/* ─── Main Bar & Header Height ────────────────────────────────── */
+.site-header .main-bar {
+  min-height: var(--header-height) !important;
+  height: var(--header-height) !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.site-header .main-bar-wraper {
+  min-height: var(--header-height) !important;
+}
+
+.site-header .main-bar .container-fluid {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  height: 100% !important;
+  min-height: var(--header-height) !important;
+}
+
+@media only screen and (min-width: 1200px) and (max-width: 1440px) {
+  .site-header .container-fluid {
+    padding-left: 30px !important;
+    padding-right: 30px !important;
   }
 }
 
-@media only screen and (max-width: 1199px) {
-  .header-nav .nav>li>a {
+@media only screen and (max-width: 767px) {
+  .site-header .main-bar {
+    min-height: var(--header-height-mobile) !important;
+    height: var(--header-height-mobile) !important;
+  }
+  .site-header .main-bar-wraper {
+    min-height: var(--header-height-mobile) !important;
+  }
+  .site-header .main-bar .container-fluid {
+    min-height: var(--header-height-mobile) !important;
+    height: var(--header-height-mobile) !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    flex-wrap: nowrap !important;
+  }
+}
+
+/* Sticky Header */
+.site-header .is-fixed .main-bar {
+  min-height: var(--header-height) !important;
+  height: var(--header-height) !important;
+}
+
+@media only screen and (max-width: 767px) {
+  .site-header .is-fixed .main-bar {
+    min-height: var(--header-height-mobile) !important;
+    height: var(--header-height-mobile) !important;
+  }
+}
+
+/* ─── Logo Size & Alignment ───────────────────────────────────── */
+.site-header .logo-header {
+  height: 100% !important;
+  min-height: var(--header-height) !important;
+  width: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  float: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  order: 1 !important;
+}
+
+.site-header .logo-header a {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+}
+
+.site-header .logo-header img {
+  width: 86px !important;
+  height: auto !important;
+  max-height: 84px !important;
+  object-fit: contain !important;
+  display: block !important;
+  transition: all 0.3s ease !important;
+}
+
+@media only screen and (max-width: 767px) {
+  .site-header .logo-header {
+    min-height: var(--header-height-mobile) !important;
+    flex-shrink: 0 !important;
+  }
+  .site-header .logo-header img {
+    width: 80px !important;
+    max-height: 76px !important;
+  }
+}
+
+@media only screen and (max-width: 340px) {
+  .site-header .logo-header img {
+    width: 70px !important;
+  }
+  .site-header .main-bar .container-fluid {
     padding-left: 8px !important;
     padding-right: 8px !important;
-    font-size: 16px !important;
   }
 }
 
-/* ─── Logo ─────────────────────────────────────────────────── */
-.logo-header img {
-  height: 45px;
-  /* zoom:0.9 on header scales this to ~40px rendered */
-  width: auto;
+/* ─── Desktop Header Nav (1200px and above) ──────────────────── */
+@media only screen and (min-width: 1200px) {
+  .site-header .logo-header {
+    width: 180px !important;
+    margin-right: 24px !important;
+  }
+
+  .site-header .header-nav {
+    display: flex !important;
+    flex-grow: 1 !important;
+    justify-content: flex-start !important;
+    position: static !important;
+    height: 100% !important;
+    width: auto !important;
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    order: 2 !important;
+  }
+
+  .site-header .header-nav .logo-header {
+    display: none !important;
+  }
+
+  .site-header .header-nav .nav {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    float: none !important;
+  }
+
+  .site-header .header-nav .nav>li {
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 100% !important;
+    margin: 0 !important;
+  }
+
+  .site-header .header-nav .nav>li>a {
+    display: inline-flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+    font-family: 'Lufga', sans-serif !important;
+    font-weight: 400 !important;
+    line-height: 24px !important;
+    text-decoration: none !important;
+  }
 }
+
+@media only screen and (min-width: 1481px) {
+  .site-header .header-nav .nav>li>a {
+    font-size: 18px !important;
+    padding: 28px 26px !important;
+  }
+}
+
+@media only screen and (min-width: 1301px) and (max-width: 1480px) {
+  .site-header .header-nav .nav>li>a {
+    font-size: 17px !important;
+    padding: 28px 17px !important;
+  }
+}
+
+@media only screen and (min-width: 1200px) and (max-width: 1300px) {
+  .site-header .header-nav .nav>li>a {
+    font-size: 15px !important;
+    padding: 28px 13px !important;
+  }
+}
+
+/* ─── Tablet & Mobile Collapsed Navigation (Below 1200px) ────── */
+@media only screen and (max-width: 1199px) {
+  .site-header .header-nav {
+    position: fixed !important;
+    top: var(--header-height, 96px) !important;
+    left: -100% !important;
+    width: 320px !important;
+    max-width: 85vw !important;
+    height: calc(100vh - var(--header-height, 96px)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background-color: #ffffff !important;
+    box-shadow: 4px 10px 30px rgba(0, 0, 0, 0.15) !important;
+    z-index: 999 !important;
+    transition: left 0.35s ease-in-out !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  @media only screen and (max-width: 767px) {
+    .site-header .header-nav {
+      top: var(--header-height-mobile, 90px) !important;
+      height: calc(100vh - var(--header-height-mobile, 90px)) !important;
+    }
+    .menu-backdrop {
+      top: var(--header-height-mobile, 90px) !important;
+      height: calc(100vh - var(--header-height-mobile, 90px)) !important;
+    }
+  }
+
+  @media only screen and (max-width: 575px) {
+    .site-header .header-nav {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+  }
+
+  .site-header .header-nav.show {
+    left: 0 !important;
+  }
+
+  /* Hide duplicate logo inside drawer */
+  .site-header .header-nav .logo-header {
+    display: none !important;
+  }
+
+  .site-header .header-nav .nav {
+    display: flex !important;
+    flex-direction: column !important;
+    float: none !important;
+    padding: 15px 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .site-header .header-nav .nav>li {
+    width: 100% !important;
+    display: block !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+  }
+
+  .site-header .header-nav .nav>li:last-child {
+    border-bottom: none !important;
+  }
+
+  .site-header .header-nav .nav>li>a {
+    display: block !important;
+    width: 100% !important;
+    padding: 14px 24px !important;
+    font-size: 16px !important;
+    line-height: 24px !important;
+    font-family: 'Lufga', sans-serif !important;
+    color: #24262B !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .site-header .header-nav .nav>li>a:hover {
+    color: #0D775E !important;
+    background-color: #f8fafc !important;
+  }
+
+  .site-header .header-nav .nav>li.sub-menu-down>a:after {
+    display: none !important;
+  }
+}
+
 
 /* ─── Dropdown Menu Beautification ───────────────────────────── */
 .dropdown-menu {
@@ -138,9 +383,68 @@ body {
   zoom: 0.9;
 }
 
-/* ─── Extra Nav Height (matched to HTML style.css line 37747) ── */
+/* ─── Extra Nav Height & Alignment ──────────────────────────── */
 .site-header .extra-nav {
-  height: 80px !important;
+  order: 2 !important;
+  float: none !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+  min-height: var(--header-height) !important;
+  margin-left: auto !important;
+  position: static !important;
+  width: auto !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  flex-shrink: 0 !important;
+  transition: none !important;
+}
+
+@media only screen and (min-width: 1200px) {
+  .site-header .extra-nav {
+    order: 3 !important;
+    padding-right: 55px !important;
+  }
+}
+
+@media only screen and (min-width: 768px) and (max-width: 1199px) {
+  .site-header .extra-nav {
+    order: 2 !important;
+    padding-right: 12px !important;
+  }
+  .site-header .extra-right-btn {
+    display: none !important;
+  }
+}
+
+@media only screen and (max-width: 767px) {
+  .site-header .extra-nav {
+    order: 2 !important;
+    min-height: var(--header-height-mobile) !important;
+    padding-right: 0 !important;
+  }
+  .site-header .extra-nav .extra-cell {
+    width: auto !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  .site-header .extra-nav .extra-cell ul {
+    width: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .site-header .extra-nav .extra-cell ul .login-link {
+    display: none !important;
+  }
+  .site-header .extra-right-btn {
+    display: none !important;
+  }
 }
 
 /* ─── Login / Register link styling (matches HTML line 37762) ── */
@@ -154,17 +458,10 @@ body {
   white-space: nowrap;
 }
 
-/* hide Login link on tablets (≤1480px) — same as HTML */
+/* hide Login link on tablets and below (≤1480px) */
 @media only screen and (max-width: 1480px) {
   .site-header .extra-nav .extra-cell .login-link {
     display: none !important;
-  }
-}
-
-/* show again on mobile (≤767px) inside collapsed menu — same as HTML */
-@media only screen and (max-width: 767px) {
-  .site-header .extra-nav .extra-cell .login-link {
-    display: block !important;
   }
 }
 
@@ -176,29 +473,95 @@ body {
 }
 
 /* ─── Navicon (Burger Menu) ────────────────────────────────── */
+.site-header .navbar-toggler {
+  order: 3 !important;
+  float: none !important;
+  margin: 0 0 0 8px !important;
+  align-self: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+@media only screen and (min-width: 1200px) {
+  .site-header .navbar-toggler {
+    display: none !important;
+  }
+}
+
+@media only screen and (max-width: 340px) {
+  .site-header .navbar-toggler {
+    margin-left: 4px !important;
+  }
+}
+
 /* Shrink to 38×38px — slightly smaller than original 45×45px */
 .navicon {
   width: 38px !important;
   height: 38px !important;
+  position: relative !important;
 }
 
-.navicon span {
+/* Ensure hamburger icon lines are visible in dark color with sufficient contrast against header */
+.site-header .navicon span,
+.site-header .navbar-toggler span,
+.site-header.header-transparent .navbar-toggler span {
+  background: #24262B !important;
+  height: 2px !important;
+  border-radius: 1px !important;
   left: 8px !important;
+  display: block !important;
+  opacity: 1;
+  transition: all 0.25s ease-in-out !important;
 }
 
-.navicon span:nth-child(1) {
+.site-header .navicon span:nth-child(1) {
   top: 11px !important;
-  width: 19px !important;
-}
-
-.navicon span:nth-child(2) {
-  top: 19px !important;
   width: 22px !important;
 }
 
-.navicon span:nth-child(3) {
-  top: 27px !important;
-  width: 17px !important;
+.site-header .navicon span:nth-child(2) {
+  top: 18px !important;
+  width: 22px !important;
+}
+
+.site-header .navicon span:nth-child(3) {
+  top: 25px !important;
+  width: 22px !important;
+}
+
+/* Open state: transform into crisp 'X' close icon while maintaining dark visible lines */
+.site-header .navicon.open span,
+.site-header .navbar-toggler.open span,
+.site-header.mo-left .navbar-toggler.open span {
+  background: #24262B !important;
+}
+
+.site-header .navicon.open span:nth-child(1),
+.site-header .navbar-toggler.open span:nth-child(1) {
+  top: 18px !important;
+  width: 22px !important;
+  transform: rotate(135deg) !important;
+}
+
+.site-header .navicon.open span:nth-child(2),
+.site-header .navbar-toggler.open span:nth-child(2) {
+  opacity: 0 !important;
+  left: -60px !important;
+}
+
+.site-header .navicon.open span:nth-child(3),
+.site-header .navbar-toggler.open span:nth-child(3) {
+  top: 18px !important;
+  width: 22px !important;
+  transform: rotate(-135deg) !important;
 }
 
 /* ─── Shop Card Offer & Featured Badges ────────────────────── */
@@ -711,3 +1074,176 @@ body {
   top: 8px !important;
   right: 8px !important;
 }
+
+@media only screen and (max-width: 767px) {
+  .site-header .extra-nav .extra-cell .header-right {
+    gap: 1px !important;
+  }
+  .site-header .extra-nav .extra-cell .header-right .nav-item .nav-link {
+    padding: 0 4px !important;
+    min-width: 32px !important;
+    height: 36px !important;
+  }
+}
+
+@media only screen and (max-width: 340px) {
+  .site-header .extra-nav .extra-cell .header-right .nav-item .nav-link {
+    padding: 0 2px !important;
+    min-width: 28px !important;
+  }
+}
+
+
+/* =====================================================
+   NATURALAYAM - MOBILE HEADER ICON VISIBILITY FIX
+   CSS ONLY - Preserve existing header functionality
+===================================================== */
+
+@media only screen and (max-width: 767px) {
+
+  .site-header .main-bar .container-fluid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+  }
+
+  /* Logo - Left */
+  .site-header .logo-header {
+    order: 1 !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Wishlist, Login and Cart - Right side */
+  .site-header .extra-nav {
+    order: 2 !important;
+    position: static !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: auto !important;
+    height: auto !important;
+    margin-left: auto !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .site-header .extra-nav .extra-cell,
+  .site-header .extra-nav .header-right {
+    display: flex !important;
+    align-items: center !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 1px !important;
+  }
+
+  .site-header .extra-nav .header-right .nav-link {
+    min-width: 32px !important;
+    height: 36px !important;
+    padding: 0 4px !important;
+  }
+
+  /* Hamburger - Far Right */
+  .site-header .navbar-toggler {
+    order: 3 !important;
+    flex-shrink: 0 !important;
+    margin-left: 8px !important;
+  }
+
+  /* Keep unused extra button hidden on mobile */
+  .site-header .extra-right-btn {
+    display: none !important;
+  }
+}
+
+/* =====================================================
+   NATURALAYAM - BANNER PRODUCTS CAROUSEL
+===================================================== */
+.banner-products-carousel-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  padding: 0 4px;
+}
+
+.banner-products-swiper {
+  width: 100%;
+  padding: 8px 4px !important;
+}
+
+.banner-products-swiper .swiper-slide {
+  height: auto;
+  display: flex;
+  align-items: center;
+}
+
+/* Ensure round product card is visible on mobile inside banner carousel */
+@media only screen and (max-width: 767px) {
+  .banner-products-carousel-wrapper {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .banner-products-carousel-wrapper .product-card {
+    display: flex !important;
+  }
+}
+
+/* Small, subtle hover-only navigation arrows */
+.banner-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(13, 119, 94, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  color: #0D775E;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  padding: 0;
+  outline: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.banner-carousel-arrow:hover {
+  background: #0D775E;
+  color: #ffffff;
+  border-color: #0D775E;
+  transform: translateY(-50%) scale(1.06);
+}
+
+.banner-carousel-prev {
+  left: -14px;
+}
+
+.banner-carousel-next {
+  right: -14px;
+}
+
+/* Reveal arrows only when hovering over the carousel wrapper */
+.banner-products-carousel-wrapper:hover .banner-carousel-arrow {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Prevent hover arrows from interfering on touch devices without fine pointers */
+@media (hover: none) {
+  .banner-carousel-arrow {
+    display: none !important;
+  }
+}
+
